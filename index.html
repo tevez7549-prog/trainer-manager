@@ -151,6 +151,8 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:18px}
 .chip2.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .tm-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:11px 16px;border-radius:12px;font-weight:600;font-size:14px;z-index:30;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
 .num{font-variant-numeric:tabular-nums}
+.customtime{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.customtime .inp{font-size:18px;font-variant-numeric:tabular-nums}
 .flag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:7px;padding:2px 8px;background:var(--new-bg);color:var(--new-fg)}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .tile{border:0;background:var(--surface);border-radius:14px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -752,17 +754,27 @@ C.c_package={title:'แพ็ก PT',render(){
   <section class="sec"><h2>ประวัติ</h2><div class="list">${c.log.length?c.log.map(x=>`<div class="row"><span class="ic">${x.k==='edit'?svg('pencil',18):x.k==='add'?svg('shop',18):'−1'}</span><span class="tx"><span class="lb">${esc(x.t)}</span><span class="sb">${esc(x.d)}</span></span></div>`).join(''):`<div class="row"><span class="tx"><span class="sb">ยังไม่มีประวัติ</span></span></div>`}</div></section>`;
 }};
 
+const RS_BUSY={0:['07:00','10:00','13:00','19:00'],1:[],2:['08:00','18:00'],3:['07:00','17:00','18:00']};
+const toMin=t=>{const [h,m]=t.split(':').map(Number);return h*60+m};
+function rsConflict(sel){
+  if(!sel.time) return '';
+  const t=toMin(sel.time);
+  if(t<toMin('06:00')||t>toMin('21:00')) return 'นอกเวลาเปิดยิม (06:00–22:00)';
+  const hit=(RS_BUSY[sel.day]||[]).find(b=>Math.abs(toMin(b)-t)<60);
+  return hit?`ชนกับนัด ${hit}–${String(+hit.slice(0,2)+1).padStart(2,'0')}:${hit.slice(3)} · เลือกเวลาอื่น`:'';
+}
 C.reschedule={title:'เลื่อนนัด',render(){
   const a=apptOf(T.cur), c=cl(a), sel=T.rs||{day:0,time:null};
   const days=Array.from({length:7},(_,i)=>dAdd(D0,i));
   const closed=d=>d.getDay()===0;
-  const busy={0:['07:00','10:00','13:00','19:00'],1:[],2:['08:00','18:00'],3:['07:00','17:00','18:00']};
+  const busy=RS_BUSY;
   const slots=['06:00','07:00','08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
   const d=days[sel.day];
   return `<section class="sec"><div class="card2"><div class="h3">${esc(c.name)}</div><div class="muted2">นัดเดิม: ส. ${dTh(D0)} ${a.time} · ${esc(PROG[a.prog].name)}</div></div></section>
   <section class="sec"><h2>เลือกวัน</h2><div class="dayrow">${days.map((x,i)=>`<button class="day ${i===sel.day?'on':''}" data-act="rsday" data-i="${i}" ${closed(x)?'disabled':''}><span>${TH_DOW[x.getDay()]}</span><b>${x.getDate()}</b>${closed(x)?'<small>ยิมปิด</small>':''}</button>`).join('')}</div></section>
-  <section class="sec"><h2>เวลาที่คุณว่าง · ${TH_DOW[d.getDay()]} ${dTh(d)}</h2><div class="slots">${slots.map(t=>{const taken=(busy[sel.day]||[]).includes(t);return `<button class="slot ${sel.time===t?'on':''}" data-act="rstime" data-t="${t}" ${taken?'disabled':''}>${t}${taken?'<small>มีนัด</small>':''}</button>`}).join('')}</div></section>
-  <section class="sec"><button class="cta" data-act="rsok" ${sel.time?'':'disabled'}>ยืนยันเลื่อน${sel.time?` เป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${sel.time}`:''}</button><p class="muted2" style="margin:0">ระบบแจ้งลูกเทรนในแอปให้อัตโนมัติ · เลื่อนนัดไม่ตัดครั้ง</p></section>`;
+  <section class="sec"><h2>เวลาที่คุณว่าง · ${TH_DOW[d.getDay()]} ${dTh(d)}</h2><div class="slots">${slots.map(t=>{const taken=(busy[sel.day]||[]).includes(t);return `<button class="slot ${sel.time===t&&!sel.custom?'on':''}" data-act="rstime" data-t="${t}" ${taken?'disabled':''}>${t}${taken?'<small>มีนัด</small>':''}</button>`}).join('')}<button class="slot ${sel.custom?'on':''}" data-act="rscustom">+ เวลาอื่น<small>เช่น 08:30</small></button></div>
+    ${sel.custom?`<div class="customtime"><label class="muted2" for="rsTime">ระบุเวลาเอง</label><input id="rsTime" class="inp" type="time" step="300" data-in="rstime" value="${sel.time||''}"><p class="muted2" id="rsWarn" style="margin:0">${rsConflict(sel)||'นัด 1 ชั่วโมง · ระบบเช็กว่าชนกับนัดอื่นไหม'}</p></div>`:''}</section>
+  <section class="sec"><button class="cta" id="rsOk" data-act="rsok" ${sel.time&&!rsConflict(sel)?'':'disabled'}>ยืนยันเลื่อน${sel.time?` เป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${sel.time}`:''}</button><p class="muted2" style="margin:0">ระบบแจ้งลูกเทรนในแอปให้อัตโนมัติ · เลื่อนนัดไม่ตัดครั้ง</p></section>`;
 }};
 
 C.requests={title:'คำขอเลื่อนนัด',render(){
@@ -819,12 +831,13 @@ function onAct(b){
     case 'finishok':{const ap=apptOf(T.sess.appt),c=cl(ap);c.pkg.used++;ap.status='done';c.log.unshift({d:dTh(D0),t:`ใช้ 1 ครั้ง · ${PROG[ap.prog].name}`,k:'use'});clearInterval(T.timer);T.timer=null;T.sess=null;T.sheet=null;stack=['t_today'];toast(`จบเซสชัน · ${c.name} เหลือ ${left(c)} ครั้ง`);render();return window.scrollTo(0,0);}
     case 'nsok':{const ap=apptOf(S2.id),c=cl(ap);ap.status='noshow';if(b.dataset.cut==='1'){c.pkg.used++;c.log.unshift({d:dTh(D0),t:'ขาดนัด · ตัด 1 ครั้ง ตามนโยบาย',k:'use'});}T.sheet=null;stack=['t_today'];toast(b.dataset.cut==='1'?'บันทึกขาดนัด · ตัด 1 ครั้ง':'บันทึกขาดนัด · ไม่ตัดครั้ง');return render();}
     case 'cancelok':{apptOf(b.dataset.id).status='cancel';T.sheet=null;stack=['t_today'];toast('ยกเลิกนัดแล้ว · แจ้งลูกเทรนแล้ว');return render();}
-    case 'rsday': T.rs={day:+b.dataset.i,time:null}; return render();
-    case 'rstime': T.rs.time=b.dataset.t; return render();
+    case 'rsday': T.rs={day:+b.dataset.i,time:null,custom:T.rs.custom}; return render();
+    case 'rstime': T.rs.time=b.dataset.t; T.rs.custom=false; return render();
+    case 'rscustom': T.rs.custom=true; T.rs.time=null; render(); {const el=document.getElementById('rsTime'); if(el) el.focus();} return;
     case 'rsok':{const ap=apptOf(T.cur),d=dAdd(D0,T.rs.day);if(T.rs.day===0){ap.time=T.rs.time;T.appts.sort((x,y)=>x.time.localeCompare(y.time));}else{ap.status='moved';ap.moved=`${TH_DOW[d.getDay()]} ${dTh(d)} ${T.rs.time}`;}stack=['t_today'];toast(`เลื่อนเป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${T.rs.time} · แจ้งลูกเทรนแล้ว`);return render();}
     case 'rqok':{const d=dAdd(D0,a.req.day);a.status='moved';a.moved=`${TH_DOW[d.getDay()]} ${dTh(d)} ${a.req.time}`;toast('อนุมัติแล้ว · แจ้งลูกเทรนแล้ว');stack=['t_today'];return render();}
     case 'rqno': a.status='todo'; toast('ปฏิเสธแล้ว · คงนัดเดิม'); stack=['t_today']; return render();
-    case 'rqother': a.status='todo'; T.cur=a.id; T.rs={day:1,time:null}; stack=['t_today','reschedule']; return render();
+    case 'rqother': a.status='todo'; T.cur=a.id; T.rs={day:a.req.day,time:null}; stack=['t_today','reschedule']; return render();
     case 'addpkg': T.sheet={k:'addpkg',pick:null}; return render();
     case 'pkpick': T.sheet.pick=+b.dataset.i; return render();
     case 'addpkgok':{const c=T.clients[T.cc],p=T.prices[S2.pick],rem=left(c);c.pkg={label:`${p.n} ครั้ง / ${p.months} เดือน`,total:p.n+rem,used:0,end:dIso(new Date(D0.getFullYear(),D0.getMonth()+p.months,D0.getDate()))};c.log.unshift({d:dTh(D0),t:`เพิ่มแพ็ก ${p.n} ครั้ง (฿${p.price.toLocaleString('en-US')}) + ยกยอดเดิม ${rem} ครั้ง · โดย ต้น`,k:'add'});T.sheet=null;toast(`เพิ่มแพ็กแล้ว · เหลือ ${left(c)} ครั้ง`);return render();}
@@ -839,6 +852,9 @@ function onInput(el){
   const k=el.dataset.in;
   if(k==='w'||k==='r'){T.sess.ex[el.dataset.e].sets[el.dataset.s][k]=el.value;return;}
   if(k==='note'){T.sess.note=el.value;return;}
+  if(k==='rstime'){T.rs.time=el.value||null;const d=dAdd(D0,T.rs.day),warn=rsConflict(T.rs),ok=document.getElementById('rsOk'),w=document.getElementById('rsWarn');
+    if(w){w.textContent=warn||(T.rs.time?'ว่าง · ใช้เวลานี้ได้':'นัด 1 ชั่วโมง · ระบบเช็กว่าชนกับนัดอื่นไหม');w.style.color=warn?'var(--warn-fg)':'';}
+    if(ok){ok.disabled=!T.rs.time||!!warn;ok.textContent='ยืนยันเลื่อน'+(T.rs.time?` เป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${T.rs.time}`:'');}return;}
   if(k==='reason'&&T.sheet){T.sheet.reason=el.value;const ok=document.querySelector('[data-act="editok"]');if(ok)ok.disabled=!((T.sheet.days||T.sheet.n)&&el.value.trim());}
 }
 
