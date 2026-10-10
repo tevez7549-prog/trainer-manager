@@ -75,6 +75,7 @@ header.top h1{margin:0;font-family:var(--display);font-size:22px;flex:1;min-widt
 .pill{font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap;display:inline-block}
 .s-active{background:var(--ok-bg);color:var(--ok-fg)} .s-expiring{background:var(--warn-bg);color:var(--warn-fg)}
 .s-expired{background:var(--bad-bg);color:var(--bad-fg)} .s-frozen{background:var(--info-bg);color:var(--info-fg)}
+.s-pt{background:var(--info-bg);color:var(--info-fg)} .s-ptno{background:var(--surface2);color:var(--muted)}
 .muted{color:var(--muted)}
 .num{font-variant-numeric:tabular-nums}
 /* check-in */
@@ -142,6 +143,19 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--surface2)} tbody tr:las
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:30;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 .lock{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:40px 20px;color:var(--muted)}
 .foot{font-size:12.5px;color:var(--muted)}
+.offbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-fg);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13.5px}
+.offbar b{font-weight:700}
+.net{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.net i{width:8px;height:8px;border-radius:50%;background:var(--accent)} .net.off i{background:var(--warn-fg)}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;background:var(--surface2);cursor:pointer;color:var(--muted)}
+.drop b{color:var(--fg)} .drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop:focus-within{border-color:var(--accent)}
+.colist{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.colist span{font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--surface)}
+.colist span.req{border-color:var(--accent);font-weight:600}
+tr.r-err td{background:var(--bad-bg)} tr.r-warn td{background:var(--warn-bg)}
+td.issue{font-size:12.5px;line-height:1.4;white-space:normal;min-width:260px}
+.dt{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);color:var(--fg);font:inherit}
 @media (max-width:1100px){.g-main{grid-template-columns:minmax(0,1fr)} .plans{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:820px){
   .shell{flex-direction:column}
@@ -157,12 +171,14 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--surface2)} tbody tr:las
 @media (prefers-reduced-motion:no-preference){.result,.drawer{animation:pop .16s ease-out}@keyframes pop{from{opacity:.5;transform:translateY(4px)}to{opacity:1;transform:none}}}
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <div class="shell">
   <aside class="side" id="side"></aside>
   <div class="main">
     <header class="top">
       <h1 id="ttl">เช็กอิน</h1>
       <span class="clock" id="clock">ส. 10 ต.ค. 2569 · 15:40</span>
+      <button class="net" id="netBtn" aria-pressed="false" title="จำลองเน็ตหลุด"><i></i><span id="netLb">ออนไลน์</span></button>
       <div class="seg" role="group" aria-label="ดูในฐานะ">
         <button id="r-op" class="on">Operator</button><button id="r-own">Owner</button>
       </div>
@@ -186,6 +202,7 @@ const I={
  link:'<path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"/><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/>',
  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+ up:'<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
  logo:'<path d="M6 5v14M18 5v14M3 8v8M21 8v8M6 12h12"/>'
 };
 const ic=(k,s)=>`<svg viewBox="0 0 24 24" width="${s||20}" height="${s||20}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
@@ -216,7 +233,9 @@ let members=[
  {id:'100845',name:'โอ๊ต วรพล',phone:'091-302-7781',plan:'1 ปี',end:'2027-06-14',pt:'ต้น · เหลือ 2 ครั้ง'},
  {id:'100902',name:'นัท ชยพล',phone:'084-990-1515',plan:'6 เดือน',end:'2026-10-13'},
  {id:'101015',name:'เจน วิภา',phone:'087-245-6612',plan:'1 เดือน',end:'2026-11-01'},
- {id:'101022',name:'ต่อ ภาคิน',phone:'080-118-9090',plan:'3 เดือน',end:'2026-12-20',pt:'ฝน · เหลือ 9 ครั้ง'}
+ {id:'101022',name:'ต่อ ภาคิน',phone:'080-118-9090',plan:'3 เดือน',end:'2026-12-20',pt:'ฝน · เหลือ 9 ครั้ง'},
+ {id:'100960',name:'เบียร์ ณัฐพล',phone:'086-555-9090',plan:'PT อย่างเดียว',end:'2026-12-31',ptOnly:true,pt:'ต้น · เหลือ 5 ครั้ง',ptToday:'16:00'},
+ {id:'100971',name:'ฝ้าย กมลา',phone:'089-000-7171',plan:'PT อย่างเดียว',end:'2026-11-30',ptOnly:true,pt:'เจ · เหลือ 3 ครั้ง'}
 ];
 const registered=[{id:'101077',name:'ปอนด์ ภัทร',phone:'081-200-7788',email:'pond@example.com'},{id:'101090',name:'ฟ้า ลลิตา',phone:'092-333-4545',email:'fah@example.com'}];
 let checkins=[
@@ -227,22 +246,25 @@ let walkins=[{t:'13:20',m:'เงินสด'},{t:'11:05',m:'โอน'},{t:'10
 let walkMethod='เงินสด';
 let sales=24500;
 const statusOf=m=>{
+  if(m.ptOnly) return m.ptToday?{k:'pt',lb:'มีนัด PT วันนี้'}:{k:'ptno',lb:'PT อย่างเดียว'};
   if(m.frozenUntil&&d(m.frozenUntil)>=TODAY) return {k:'frozen',lb:'พักอยู่'};
   const left=daysLeft(m.end);
   if(left<0) return {k:'expired',lb:'หมดอายุ'};
   if(left<=7) return {k:'expiring',lb:'ใกล้หมด'};
   return {k:'active',lb:'ใช้งานอยู่'};
 };
-const leftText=m=>{const l=daysLeft(m.end);return l<0?`หมดมาแล้ว ${-l} วัน`:`เหลือ ${l} วัน`};
+const leftText=m=>{if(m.ptOnly)return m.ptToday?`นัด PT ${m.ptToday}`:'ไม่ได้สมัครสมาชิกยิม';const l=daysLeft(m.end);return l<0?`หมดมาแล้ว ${-l} วัน`:`เหลือ ${l} วัน`};
 
 /* state */
-let role='op', page='checkin', result=null, memberFilter='all', memberQuery='', drawer=null, wiz={step:1,user:null,plan:null,method:'เงินสด',q:''};
+let offline=false, queue=[], imp={rows:null,file:'',done:0};
+let role='op', page='checkin', result=null, memberFilter='all', memberQuery='', drawer=null, wiz={step:1,user:null,plan:null,method:'เงินสด',q:'',start:null};
 const NAV=[
  {id:'checkin',lb:'เช็กอิน',icon:'qr',kbd:'F1'},
  {id:'walkin',lb:'ขาจร',icon:'walk',kbd:'F2'},
  {id:'add',lb:'เพิ่มสมาชิก',icon:'plus',kbd:'F3'},
  {id:'members',lb:'สมาชิก',icon:'people',kbd:'F4'},
  {id:'pt',lb:'ตาราง PT วันนี้',icon:'cal'},
+ {id:'import',lb:'นำเข้าจาก Excel',icon:'up',owner:1},
  {id:'overview',lb:'ภาพรวมยิม',icon:'gauge',owner:1},
  {id:'settings',lb:'ตั้งค่ายิม',icon:'gear',owner:1}
 ];
@@ -264,7 +286,7 @@ function vCheckin(){
       <label class="in" for="scanIn">${ic('qr',24)}<input id="scanIn" placeholder="ยิงเครื่องสแกน หรือพิมพ์ UID / รหัสสมาชิก / ชื่อ / เบอร์" aria-label="UID ชื่อ หรือเบอร์โทร"></label>
       <button class="btn p" type="submit">เช็กอิน</button>
     </form>
-    <div class="hints"><span class="muted">ลองพิมพ์ / สแกน:</span>${['100245','นิด','กอล์ฟ','บอส','ประเสริฐ','0891230077'].map(h=>`<button type="button" data-hint="${h}">${h}</button>`).join('')}</div>
+    <div class="hints"><span class="muted">ลองพิมพ์ / สแกน:</span>${['100245','นิด','กอล์ฟ','บอส','เบียร์','ฝ้าย','ประเสริฐ'].map(h=>`<button type="button" data-hint="${h}">${h}</button>`).join('')}</div>
     ${resultHTML()}
   </section>
   <section class="card">
@@ -284,13 +306,15 @@ function resultHTML(){
   if(result.type==='none') return `<div class="result bad"><div class="who"><span class="nm">ไม่พบ "${esc(result.q)}"</span><span>ตรวจ UID อีกครั้ง หรือเพิ่มเป็นสมาชิกใหม่</span></div><div class="acts"><button class="btn" data-nav="add">เพิ่มสมาชิก</button></div></div>`;
   if(result.type==='many') return `<div class="result info" style="flex-direction:column;align-items:stretch"><b>พบ ${result.list.length} คน เลือกคนที่จะเช็กอิน</b><div class="pick">${result.list.map(m=>{const s=statusOf(m);return `<button data-pick="${m.id}"><span><b>${esc(m.name)}</b> <span class="muted">· UID ${m.id} · ${m.phone}</span></span><span class="pill s-${s.k}">${s.lb}</span></button>`}).join('')}</div></div>`;
   const m=members.find(x=>x.id===result.id), s=statusOf(m);
-  const cls={active:'ok',expiring:'warn',expired:'bad',frozen:'info'}[s.k];
+  const cls={active:'ok',expiring:'warn',expired:'bad',frozen:'info',pt:'ok',ptno:'bad'}[s.k];
   let head, right, acts='';
   if(s.k==='active'||s.k==='expiring'){head=`เช็กอินแล้ว ${result.t}`;right=leftText(m);acts=s.k==='expiring'?`<button class="btn sm" data-renew="${m.id}">ต่ออายุเลย</button>`:'';}
   if(s.k==='expired'){head='เข้าไม่ได้ · สมาชิกหมดอายุ';right=leftText(m);acts=`<button class="btn p" data-renew="${m.id}">ต่ออายุ</button><button class="btn sm" data-nav="walkin">ให้เข้าแบบขาจร</button>`;}
+  if(s.k==='pt'){head=`เข้าเทรน PT ${result.t}`;right=`นัด ${m.ptToday}`;acts=`<span class="muted" style="font-size:13px">ไม่ได้สมัครสมาชิกยิม · เข้าได้เฉพาะวันที่มีนัด</span>`;}
+  if(s.k==='ptno'){head='ไม่มีนัด PT วันนี้';right='PT อย่างเดียว';acts=`<button class="btn p" data-nav="walkin">ให้เข้าแบบขาจร</button><button class="btn sm" data-renew="${m.id}">สมัครสมาชิกยิม</button>`;}
   if(s.k==='frozen'){head=`เข้าไม่ได้ · พักสมาชิกถึง ${thDate(d(m.frozenUntil))}`;right='หยุดนับวัน';acts=`<button class="btn" data-unfreeze="${m.id}">ยกเลิกพัก แล้วเช็กอิน</button>`;}
   return `<div class="result ${cls}"><div class="av">${esc(initials(m.name))}</div>
-    <div class="who"><span class="pill s-${s.k}" style="align-self:flex-start">${head}</span><span class="nm">${esc(m.name)}</span><span class="muted">${m.noapp?'รหัส':'UID'} ${m.id}${m.noapp?' (ไม่มีแอป)':''} · ${esc(m.plan)} · หมด ${thDate(d(m.end))}${m.pt?` · PT ${esc(m.pt)}`:''}</span></div>
+    <div class="who"><span class="pill s-${s.k}" style="align-self:flex-start">${head}</span><span class="nm">${esc(m.name)}</span><span class="muted">${m.noapp?'รหัส':'UID'} ${m.id}${m.noapp?' (ไม่มีแอป)':''} · ${esc(m.plan)}${m.ptOnly?'':` · หมด ${thDate(d(m.end))}`}${m.pt?` · PT ${esc(m.pt)}`:''}</span></div>
     <div class="acts"><span class="big">${right}</span>${acts}</div></div>`;
 }
 function doScan(q){
@@ -305,7 +329,7 @@ function doScan(q){
 function checkIn(id){
   const m=members.find(x=>x.id===id), s=statusOf(m);
   clockMin++; const t=now();
-  if(s.k==='active'||s.k==='expiring'){checkins.unshift({t,id});checkinTotal++;}
+  if(s.k==='active'||s.k==='expiring'||s.k==='pt'){checkins.unshift({t,id});checkinTotal++;if(offline)queue.push({t,k:'เช็กอิน',n:m.name});}
   result={type:'one',id,t};
 }
 
@@ -314,7 +338,7 @@ function vWalkin(){
   return `<div class="grid g-main">
   <section class="card">
     <h2>บันทึกขาจรรายวัน</h2>
-    <p class="muted" style="margin:0 0 16px">ขาจรไม่ต้องมีบัญชี ไม่ต้องใส่ชื่อ · ราคาวันละ ${baht(WALKIN_PRICE)} (ตั้งได้ในตั้งค่ายิม)</p>
+    <p class="muted" style="margin:0 0 16px">ขาจรไม่ต้องมีบัญชี ไม่ต้องใส่ชื่อ · ราคาวันละ ${baht(WALKIN_PRICE)} (ตั้งได้ในตั้งค่ายิม) · ลูกเทรนที่เทรนเนอร์ข้างนอกพามา ก็บันทึกเป็นขาจร</p>
     <div class="walk">
       <button class="plus" id="walkAdd" aria-label="บันทึกขาจร 1 คน">+1</button>
       <div><div class="count">${walkins.length} คน</div><div class="muted">วันนี้ · รับเงิน ${baht(total)}</div></div>
@@ -329,12 +353,13 @@ function vWalkin(){
 }
 
 function vMembers(){
-  const counts={all:members.length,active:0,expiring:0,expired:0,frozen:0};
-  members.forEach(m=>counts[statusOf(m).k]++);
+  const counts={all:members.length,active:0,expiring:0,expired:0,frozen:0,ptonly:0};
+  const fk=m=>{const k=statusOf(m).k;return k==='pt'||k==='ptno'?'ptonly':k};
+  members.forEach(m=>counts[fk(m)]++);
   const q=memberQuery.trim();
-  const rows=members.filter(m=>(memberFilter==='all'||statusOf(m).k===memberFilter)&&(!q||m.name.includes(q)||m.id.includes(q)||m.phone.replace(/-/g,'').includes(q.replace(/-/g,''))))
-    .sort((a,b)=>daysLeft(a.end)-daysLeft(b.end));
-  const F=[['all','ทั้งหมด'],['active','ใช้งานอยู่'],['expiring','ใกล้หมด'],['expired','หมดอายุ'],['frozen','พักอยู่']];
+  const rows=members.filter(m=>(memberFilter==='all'||fk(m)===memberFilter)&&(!q||m.name.includes(q)||m.id.includes(q)||m.phone.replace(/-/g,'').includes(q.replace(/-/g,''))))
+    .sort((a,b)=>(!!a.ptOnly-!!b.ptOnly)||daysLeft(a.end)-daysLeft(b.end));
+  const F=[['all','ทั้งหมด'],['active','ใช้งานอยู่'],['expiring','ใกล้หมด'],['expired','หมดอายุ'],['frozen','พักอยู่'],['ptonly','PT อย่างเดียว']];
   return `<section class="card">
     <div class="row" style="justify-content:space-between;margin-bottom:14px">
       <label class="search">${ic('search')}<input id="mq" value="${esc(memberQuery)}" placeholder="ค้นหาชื่อ UID เบอร์" aria-label="ค้นหาสมาชิก"></label>
@@ -342,7 +367,7 @@ function vMembers(){
     </div>
     <div class="chips" style="margin-bottom:14px">${F.map(f=>`<button class="chip ${memberFilter===f[0]?'on':''}" data-mf="${f[0]}">${f[1]} <span class="num">${counts[f[0]]}</span></button>`).join('')}</div>
     <div class="tbl-wrap"><table><thead><tr><th>ชื่อ</th><th>UID</th><th>เบอร์โทร</th><th>แบบสมาชิก</th><th>หมดอายุ</th><th>เหลือ</th><th>สถานะ</th><th>แอป</th><th>PT</th></tr></thead>
-    <tbody>${rows.map(m=>{const s=statusOf(m);return `<tr data-open="${m.id}" tabindex="0"><td><b>${esc(m.name)}</b></td><td class="num">${m.id}</td><td class="num">${m.phone}</td><td>${esc(m.plan)}</td><td class="num">${thDate(d(m.end))}</td><td class="num">${daysLeft(m.end)<0?'–':daysLeft(m.end)+' วัน'}</td><td><span class="pill s-${s.k}">${s.lb}</span></td><td>${m.noapp?'<span class="muted">ไม่มี</span>':'มี'}</td><td class="muted">${m.pt?esc(m.pt):'–'}</td></tr>`}).join('')||`<tr><td colspan="9" class="muted">ไม่พบสมาชิกที่ตรงกับ "${esc(q)}"</td></tr>`}</tbody></table></div>
+    <tbody>${rows.map(m=>{const s=statusOf(m);return `<tr data-open="${m.id}" tabindex="0"><td><b>${esc(m.name)}</b></td><td class="num">${m.id}</td><td class="num">${m.phone}</td><td>${esc(m.plan)}</td><td class="num">${m.ptOnly?'–':thDate(d(m.end))}</td><td class="num">${m.ptOnly||daysLeft(m.end)<0?'–':daysLeft(m.end)+' วัน'}</td><td><span class="pill s-${s.k}">${s.lb}</span></td><td>${m.noapp?'<span class="muted">ไม่มี</span>':'มี'}</td><td class="muted">${m.pt?esc(m.pt):'–'}</td></tr>`}).join('')||`<tr><td colspan="9" class="muted">ไม่พบสมาชิกที่ตรงกับ "${esc(q)}"</td></tr>`}</tbody></table></div>
     <p class="foot" style="margin:10px 0 0">ตัวอย่าง ${members.length} คน · ในยิมจริงแสดง 212 คน เรียงตามวันหมดอายุใกล้สุด</p>
   </section>`;
 }
@@ -351,16 +376,16 @@ function drawerHTML(){
   const m=members.find(x=>x.id===drawer.id), s=statusOf(m);
   let body;
   if(drawer.mode==='renew'){
-    const base=daysLeft(m.end)<0?TODAY:d(m.end);
-    body=`<h2 style="margin:0;font-family:var(--display)">ต่ออายุ · ${esc(m.name)}</h2>
+    const base=m.ptOnly||daysLeft(m.end)<0?TODAY:d(m.end);
+    body=`<h2 style="margin:0;font-family:var(--display)">${m.ptOnly?'สมัครสมาชิกยิม':'ต่ออายุ'} · ${esc(m.name)}</h2>
     <div class="plans" style="grid-template-columns:repeat(2,minmax(0,1fr))">${PLANS.map(p=>{const ne=new Date(base);ne.setMonth(ne.getMonth()+p.months);return `<button class="plan ${drawer.plan===p.k?'on':''}" data-rp="${p.k}"><b>${p.name}</b><span class="pr">${baht(p.price)}</span><span class="muted" style="font-size:12.5px">หมดใหม่ ${thDate(ne)}</span></button>`}).join('')}</div>
-    <p class="muted" style="margin:0;font-size:13px">${daysLeft(m.end)<0?'หมดอายุแล้ว เริ่มนับใหม่จากวันนี้':'ยังไม่หมด ต่อจากวันหมดเดิม ไม่เสียวัน'}</p>
+    <p class="muted" style="margin:0;font-size:13px">${m.ptOnly?'เริ่มนับจากวันนี้ · แพ็ก PT เดิมยังอยู่':daysLeft(m.end)<0?'หมดอายุแล้ว เริ่มนับใหม่จากวันนี้':'ยังไม่หมด ต่อจากวันหมดเดิม ไม่เสียวัน'}</p>
     <div class="methods">${['เงินสด','โอน','QR'].map(x=>`<button class="chip ${drawer.method===x?'on':''}" data-rm="${x}">${x}</button>`).join('')}</div>
     <button class="btn p" id="renewGo" ${drawer.plan?'':'disabled'}>รับเงินและต่ออายุ</button>`;
   } else {
     body=`<div class="row"><div class="av" style="background:var(--accent-soft)">${esc(initials(m.name))}</div><div><h2 style="margin:0;font-family:var(--display)">${esc(m.name)}</h2><span class="pill s-${s.k}">${s.lb}</span></div></div>
-    <dl class="kv"><dt>${m.noapp?'รหัสสมาชิก':'UID'}</dt><dd class="num">${m.id}${m.noapp?' · <span class="muted">ไม่มีแอป</span>':''}</dd><dt>เบอร์โทร</dt><dd class="num">${m.phone}</dd><dt>แบบสมาชิก</dt><dd>${esc(m.plan)}</dd><dt>หมดอายุ</dt><dd>${thDate(d(m.end))} · ${leftText(m)}</dd>${m.frozenUntil?`<dt>พักถึง</dt><dd>${thDate(d(m.frozenUntil))}</dd>`:''}<dt>แพ็ก PT</dt><dd>${m.pt?esc(m.pt):'ไม่มี'}</dd></dl>
-    <div class="row"><button class="btn p" data-renew="${m.id}">ต่ออายุ</button><button class="btn" data-ci="${m.id}">เช็กอินให้</button><button class="btn" id="freezeBtn">${m.frozenUntil?'ยกเลิกพัก':'พักสมาชิก'}</button></div>
+    <dl class="kv"><dt>${m.noapp?'รหัสสมาชิก':'UID'}</dt><dd class="num">${m.id}${m.noapp?' · <span class="muted">ไม่มีแอป</span>':''}</dd><dt>เบอร์โทร</dt><dd class="num">${m.phone}</dd><dt>แบบสมาชิก</dt><dd>${esc(m.plan)}</dd>${m.ptOnly?`<dt>สมาชิกยิม</dt><dd>ไม่ได้สมัคร · เข้ายิมได้เฉพาะวันที่มีนัด PT</dd>`:`<dt>หมดอายุ</dt><dd>${thDate(d(m.end))} · ${leftText(m)}</dd>`}${m.frozenUntil?`<dt>พักถึง</dt><dd>${thDate(d(m.frozenUntil))}</dd>`:''}<dt>แพ็ก PT</dt><dd>${m.pt?esc(m.pt):'ไม่มี'}</dd></dl>
+    <div class="row"><button class="btn p" data-renew="${m.id}">${m.ptOnly?'สมัครสมาชิกยิม':'ต่ออายุ'}</button><button class="btn" data-ci="${m.id}">เช็กอินให้</button><button class="btn" id="freezeBtn">${m.frozenUntil?'ยกเลิกพัก':'พักสมาชิก'}</button></div>
     ${m.noapp?`<div class="row"><button class="btn sm" data-soon="1">พิมพ์บัตรสมาชิก QR</button><button class="btn sm" data-soon="1">ส่ง QR ทาง LINE / SMS</button></div><p class="foot" style="margin:0">ลูกค้าสมัครแอปด้วยเบอร์ ${m.phone} เมื่อไร ระบบเชื่อมประวัติให้อัตโนมัติ</p>`:''}
     <p class="foot" style="margin:0">ประวัติชำระ ประวัติเช็กอิน และบันทึกการแก้ไข จะอยู่ในหน้านี้ (ทำในขั้นถัดไป)</p>`;
   }
@@ -387,14 +412,17 @@ function vAdd(){
     ${found.length?`<div class="pick" style="margin-top:14px">${found.map(u=>`<button data-user="${u.id}"><span><b>${esc(u.name)}</b> <span class="muted">· UID ${u.id} · ${u.phone}</span></span><span class="pill s-active">เลือก</span></button>`).join('')}</div>`:(q.length>=2?`<p class="muted" style="margin-top:14px">ไม่พบผู้ใช้ ให้ลูกค้าสมัครแอปก่อน หรือส่งลิงก์เชิญ</p>`:'')}`;
   }
   if(wiz.step===2){
+    if(!wiz.start) wiz.start=iso(TODAY);
     body=`<p style="margin:0 0 14px">สมาชิกใหม่: <b>${esc(wiz.user.name)}</b> <span class="muted">· ${wiz.user.noapp?'รหัสสมาชิก':'UID'} ${wiz.user.id}</span>${wiz.user.noapp?' <span class="pill s-expiring">ไม่มีแอป</span>':''}</p>
-    <div class="plans">${PLANS.map(p=>{const ne=new Date(TODAY);ne.setMonth(ne.getMonth()+p.months);return `<button class="plan ${wiz.plan===p.k?'on':''}" data-wp="${p.k}"><b>${p.name}</b><span class="pr">${baht(p.price)}</span><span class="muted" style="font-size:12.5px">ถึง ${thDate(ne)}</span></button>`}).join('')}</div>
+    <div class="plans">${PLANS.map(p=>{const ne=d(wiz.start);ne.setMonth(ne.getMonth()+p.months);return `<button class="plan ${wiz.plan===p.k?'on':''}" data-wp="${p.k}"><b>${p.name}</b><span class="pr">${baht(p.price)}</span><span class="muted" style="font-size:12.5px">ถึง ${thDate(ne)}</span></button>`}).join('')}</div>
     <p class="foot">ราคาตัวอย่าง · ตั้งจริงที่ ตั้งค่ายิม › ราคาแพ็กเกจสมาชิก · ขาจรรายวันใช้เมนูขาจร</p>
     <div class="row" style="margin-top:8px"><button class="btn" data-wstep="1">ย้อนกลับ</button><button class="btn p" data-wstep="3" ${wiz.plan?'':'disabled'}>ต่อไป</button></div>`;
   }
   if(wiz.step===3){
-    const p=PLANS.find(x=>x.k===wiz.plan);
-    body=`<dl class="kv" style="max-width:480px"><dt>สมาชิก</dt><dd><b>${esc(wiz.user.name)}</b> · UID ${wiz.user.id}</dd><dt>แบบ</dt><dd>${p.name}</dd><dt>ยอด</dt><dd><b style="font-family:var(--display);font-size:22px">${baht(p.price)}</b></dd></dl>
+    const p=PLANS.find(x=>x.k===wiz.plan);const ne=d(wiz.start);ne.setMonth(ne.getMonth()+p.months);
+    body=`<dl class="kv" style="max-width:520px"><dt>สมาชิก</dt><dd><b>${esc(wiz.user.name)}</b> · ${wiz.user.noapp?'รหัส':'UID'} ${wiz.user.id}</dd><dt>แบบ</dt><dd>${p.name}</dd>
+    <dt><label for="wStart">เริ่มนับวันที่</label></dt><dd><input type="date" id="wStart" class="dt" value="${wiz.start}" min="${iso(TODAY)}"> <span class="muted" style="font-size:13px">ค่าเริ่มต้นคือวันนี้ · เลือกวันอื่นได้ถ้าลูกค้าจะเริ่มเล่นทีหลัง</span></dd>
+    <dt>หมดอายุ</dt><dd><b>${thDate(ne)}</b></dd><dt>ยอด</dt><dd><b style="font-family:var(--display);font-size:22px">${baht(p.price)}</b></dd></dl>
     <p style="margin:16px 0 8px" class="muted">รับเงินแบบ</p><div class="methods">${['เงินสด','โอน','QR'].map(x=>`<button class="chip ${wiz.method===x?'on':''}" data-wm2="${x}">${x}</button>`).join('')}</div>
     <div class="row" style="margin-top:18px"><button class="btn" data-wstep="2">ย้อนกลับ</button><button class="btn p" id="wizDone">รับเงินและเพิ่มสมาชิก</button></div>
     <p class="foot" style="margin-top:10px">${wiz.user.noapp?'ไม่มีแอป: เช็กอินด้วยเบอร์โทร ชื่อ หรือบัตรสมาชิก QR ที่พิมพ์ให้ (ปุ่มพิมพ์บัตร / ส่ง QR ทาง LINE) · ถ้าวันหลังลูกค้าสมัครแอปด้วยเบอร์นี้ ระบบเชื่อมประวัติให้อัตโนมัติ':'บัตรสมาชิก (QR) จะขึ้นในแอปของลูกค้าทันที'}</p>`;
@@ -434,20 +462,153 @@ function vSettings(){
   return `<section class="card"><h2>ตั้งค่ายิม</h2><div class="list">${S.map(s=>`<div class="li"><span class="n"><b>${s[0]}</b><br><span class="muted" style="font-size:13px">${s[1]}</span></span><button class="btn sm" data-soon="1">แก้ไข</button></div>`).join('')}</div><p class="foot" style="margin:10px 0 0">หน้าตั้งค่าแต่ละหัวข้อจะออกแบบในขั้นถัดไป</p></section>`;
 }
 
-const TITLES={checkin:'เช็กอิน',walkin:'ขาจรรายวัน',add:'เพิ่มสมาชิก',members:'สมาชิก',pt:'ตาราง PT วันนี้',overview:'ภาพรวมยิม',settings:'ตั้งค่ายิม'};
+function offBar(){
+  if(!offline) return '';
+  return `<div class="offbar" role="status"><b>เน็ตหลุด · ทำงานแบบออฟไลน์</b><span>เช็กอินและขาจรยังทำได้ เก็บไว้ในเครื่องก่อน${queue.length?` (รอส่ง ${queue.length} รายการ)`:''} · รับเงินต่ออายุ เพิ่มสมาชิก และนำเข้าข้อมูล ต้องรอเน็ตกลับมา</span></div>`;
+}
+
+/* ---------- Excel import ---------- */
+const COLS=[['ชื่อ-นามสกุล',1],['เบอร์โทร',1],['แบบสมาชิก',1],['วันเริ่ม',0],['วันหมดอายุ',1],['เทรนเนอร์ PT',0],['ครั้ง PT คงเหลือ',0],['PT หมดอายุ',0],['หมายเหตุ',0]];
+const TRAINERS=['ต้น','เจ','ฝน','บี'];
+const TPL_ROWS=[
+ ['สมชาย ตัวอย่าง','081-111-2222','3 เดือน','01/09/2569','01/12/2569','','','','ลบแถวตัวอย่างนี้ก่อนอัปโหลด'],
+ ['สุดา ตัวอย่าง','089-333-4444','1 ปี','15/01/2569','15/01/2570','ต้น',8,'31/12/2569',''],
+ ['ก้อง ตัวอย่าง','086-555-6666','PT อย่างเดียว','','','เจ',10,'28/02/2570','มาเฉพาะวันเทรน']
+];
+const DEMO_ROWS=[
+ ['วิชัย รักดี','081-777-1001','3 เดือน','01/09/2569','01/12/2569','','','',''],
+ ['อร อรุณี','0897771002','1 ปี','2026-03-15','2027-03-15','ฝน',12,'30/06/2570',''],
+ ['พี่หนุ่ม สายฟ้า','086-777-1003','PT อย่างเดียว','','','ต้น',6,'31/01/2570','มาแค่วันเทรน'],
+ ['ลุงชัย','082-410-8890','6 เดือน','01/07/2569','01/01/2570','','','','เบอร์ซ้ำกับมิ้นท์'],
+ ['น้องเมย์','','1 เดือน','01/10/2569','01/11/2569','','','',''],
+ ['เก่ง ภูมิ','091-777-1006','2 เดือน','01/10/2569','01/12/2569','','','',''],
+ ['ปุ๋ย ศศิ','093-777-1007','1 เดือน','01/10/2569','31/13/2569','','','',''],
+ ['แบงค์ ธนา','094-777-1008','3 เดือน','','05/01/2570','โจ้',4,'','']
+];
+const PLAN_ALIAS={'1 เดือน':'1 เดือน','1เดือน':'1 เดือน','3 เดือน':'3 เดือน','3เดือน':'3 เดือน','6 เดือน':'6 เดือน','6เดือน':'6 เดือน','1 ปี':'1 ปี','1ปี':'1 ปี','12 เดือน':'1 ปี','12เดือน':'1 ปี','pt อย่างเดียว':'PT อย่างเดียว','pt':'PT อย่างเดียว','ptอย่างเดียว':'PT อย่างเดียว'};
+function parseDate(v){
+  if(v===''||v==null) return '';
+  if(v instanceof Date&&!isNaN(v)){let y=v.getFullYear();if(y>2400)y-=543;return iso(new Date(y,v.getMonth(),v.getDate()));}
+  if(typeof v==='number'){const dt=new Date(Math.round((v-25569)*86400000));return iso(new Date(dt.getUTCFullYear(),dt.getUTCMonth(),dt.getUTCDate()));}
+  const t=String(v).trim();let y,m,dd,mm;
+  if((mm=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))){y=+mm[1];m=+mm[2];dd=+mm[3];}
+  else if((mm=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/))){dd=+mm[1];m=+mm[2];y=+mm[3];if(y<100)y+=y>40?2500:2000;}
+  else return null;
+  if(y>2400)y-=543;
+  const dt=new Date(y,m-1,dd);
+  if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==dd) return null;
+  return iso(dt);
+}
+function checkRows(raw){
+  const seen={};
+  return raw.filter(r=>r.some(c=>String(c).trim()!=='')).map((r,i)=>{
+    const [name,phone,plan,start,end,tr,ptn,ptend,note]=COLS.map((c,j)=>r[j]===undefined?'':r[j]);
+    const errs=[],warns=[];const ph=String(phone).replace(/\D/g,'');
+    const o={line:i+2,name:String(name).trim(),phone:String(phone).trim(),note:String(note).trim()};
+    if(!o.name) errs.push('ไม่มีชื่อ');
+    if(!ph) errs.push('ไม่มีเบอร์โทร');
+    else if(ph.length<9||ph.length>10) errs.push('เบอร์โทรไม่ครบ');
+    else if(members.find(m=>m.phone.replace(/\D/g,'')===ph)) errs.push('เบอร์ซ้ำกับสมาชิกที่มีอยู่: '+members.find(m=>m.phone.replace(/\D/g,'')===ph).name);
+    else if(seen[ph]) errs.push('เบอร์ซ้ำกับแถว '+seen[ph]);
+    if(ph) seen[ph]=seen[ph]||o.line;
+    o.plan=PLAN_ALIAS[String(plan).trim().toLowerCase()]||PLAN_ALIAS[String(plan).trim()];
+    if(!String(plan).trim()) errs.push('ไม่ได้ใส่แบบสมาชิก');
+    else if(!o.plan) errs.push(`ไม่รู้จักแบบ "${String(plan).trim()}" (ใช้ 1 เดือน / 3 เดือน / 6 เดือน / 1 ปี / PT อย่างเดียว)`);
+    o.ptOnly=o.plan==='PT อย่างเดียว';
+    o.start=parseDate(start); if(o.start===null) errs.push('วันเริ่มอ่านไม่ได้');
+    o.end=parseDate(end);
+    if(o.end===null) errs.push('วันหมดอายุอ่านไม่ได้');
+    else if(!o.end&&!o.ptOnly) errs.push('ไม่มีวันหมดอายุ');
+    else if(o.end&&o.start&&o.end<o.start) errs.push('วันหมดอายุมาก่อนวันเริ่ม');
+    o.tr=String(tr).trim(); o.ptn=ptn===''?0:Number(ptn); o.ptend=parseDate(ptend);
+    if(isNaN(o.ptn)||o.ptn<0) errs.push('จำนวนครั้ง PT ต้องเป็นตัวเลข');
+    if(o.ptend===null) errs.push('วันหมด PT อ่านไม่ได้');
+    if(o.ptOnly&&!o.ptn) errs.push('PT อย่างเดียว ต้องมีครั้ง PT คงเหลือ');
+    if(o.ptn&&!o.tr) warns.push('มีครั้ง PT แต่ไม่ระบุเทรนเนอร์');
+    if(o.tr&&!TRAINERS.includes(o.tr)) warns.push(`ไม่พบเทรนเนอร์ "${o.tr}" ในยิม · นำเข้าได้ แล้วค่อยจับคู่ทีหลัง`);
+    if(o.end&&!o.ptOnly&&o.end<iso(TODAY)) warns.push('หมดอายุแล้ว · จะนำเข้าเป็นสถานะหมดอายุ');
+    if(o.ptOnly&&!o.end&&o.ptend) o.end=o.ptend;
+    if(o.ptOnly&&!o.end){const e=new Date(TODAY);e.setMonth(e.getMonth()+3);o.end=iso(e);}
+    o.errs=errs;o.warns=warns;o.st=errs.length?'err':warns.length?'warn':'ok';
+    return o;
+  });
+}
+function loadRows(raw,file){imp={rows:checkRows(raw),file,done:0};render();}
+function vImport(){
+  if(role==='op') return locked();
+  const R2=imp.rows;
+  const cnt=R2?{ok:R2.filter(r=>r.st==='ok').length,warn:R2.filter(r=>r.st==='warn').length,err:R2.filter(r=>r.st==='err').length}:null;
+  const fmt=v=>v?thDate(d(v)):'–';
+  const tbl=R2?`<section class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">ตรวจข้อมูล · ${esc(imp.file)}</h2>
+      <div class="row"><span class="pill s-active">พร้อม ${cnt.ok}</span><span class="pill s-expiring">มีข้อสังเกต ${cnt.warn}</span><span class="pill s-expired">ต้องแก้ ${cnt.err}</span></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>แถว</th><th>ชื่อ</th><th>เบอร์โทร</th><th>แบบ</th><th>เริ่ม</th><th>หมดอายุ</th><th>PT</th><th>ผลตรวจ</th></tr></thead>
+    <tbody>${R2.map(r=>`<tr class="r-${r.st}"><td class="num">${r.line}</td><td><b>${esc(r.name||'–')}</b></td><td class="num">${esc(r.phone||'–')}</td><td>${esc(r.plan||'–')}</td><td class="num">${r.start?fmt(r.start):'–'}</td><td class="num">${r.end&&!r.ptOnly?fmt(r.end):'–'}</td><td>${r.ptn?`${esc(r.tr||'?')} · ${r.ptn} ครั้ง`:'–'}</td><td class="issue">${r.st==='ok'?'<span class="pill s-active">พร้อม</span>':[...r.errs.map(x=>'✕ '+esc(x)),...r.warns.map(x=>'! '+esc(x))].join('<br>')}</td></tr>`).join('')}</tbody></table></div>
+    <div class="row" style="margin-top:14px;justify-content:space-between">
+      <span class="muted" style="font-size:13px">${cnt.err?`แถวที่ต้องแก้ ${cnt.err} แถวจะไม่ถูกนำเข้า · แก้ในไฟล์แล้วอัปโหลดใหม่ได้ (เบอร์ที่นำเข้าแล้วจะไม่ซ้ำ)`:'ทุกแถวพร้อมนำเข้า'}</span>
+      <div class="row"><button class="btn" id="impClear">ยกเลิก</button><button class="btn p" id="impGo" ${cnt.ok+cnt.warn&&!imp.done?'':'disabled'}>${imp.done?`นำเข้าแล้ว ${imp.done} คน`:`นำเข้า ${cnt.ok+cnt.warn} คน`}</button></div></div>
+  </section>`:'';
+  return `<div class="grid g-main">
+  <section class="card">
+    <h2>1 · ดาวน์โหลดแบบฟอร์มของเรา</h2>
+    <p class="muted" style="margin:0 0 10px;font-size:13.5px">กรอกข้อมูลสมาชิกเดิมของยิมตามคอลัมน์นี้ ห้ามเปลี่ยนชื่อหัวคอลัมน์ · 1 แถว = 1 คน</p>
+    <div class="colist">${COLS.map(c=>`<span class="${c[1]?'req':''}">${c[0]}${c[1]?' *':''}</span>`).join('')}</div>
+    <p class="foot" style="margin:8px 0 12px">* ต้องกรอก · วันที่ใช้ วว/ดด/ปปปป เป็น พ.ศ. หรือ ค.ศ. ก็ได้ · PT อย่างเดียว ไม่ต้องใส่วันหมดอายุสมาชิก แต่ต้องมีครั้ง PT คงเหลือ</p>
+    <button class="btn" id="tplDl">${ic('up')}ดาวน์โหลดแบบฟอร์ม (.xlsx)</button>
+  </section>
+  <section class="card">
+    <h2>2 · อัปโหลดไฟล์ที่กรอกแล้ว</h2>
+    <label class="drop" style="position:relative">${ic('up',28)}<b>เลือกไฟล์ .xlsx หรือ .csv</b><span style="font-size:13px">ระบบจะตรวจให้ก่อน ยังไม่บันทึกจนกว่าจะกดนำเข้า</span><input type="file" id="impFile" accept=".xlsx,.xls,.csv"></label>
+    <div class="row" style="margin-top:12px"><button class="btn sm" id="impDemo">ลองด้วยข้อมูลตัวอย่าง</button>${offline?'<span class="muted" style="font-size:13px">ออฟไลน์อยู่ · นำเข้าไม่ได้</span>':''}</div>
+    <p class="foot" style="margin:10px 0 0">สมาชิกที่นำเข้าจะได้รหัส M-xxxx แบบไม่มีแอป · ถ้าลูกค้าสมัครแอปด้วยเบอร์เดียวกัน ระบบเชื่อมประวัติให้อัตโนมัติ</p>
+  </section></div>
+  ${tbl}`;
+}
+function dlTemplate(){
+  const head=COLS.map(c=>c[0]);
+  if(typeof XLSX==='undefined'){
+    const csv='\ufeff'+[head,...TPL_ROWS].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='trainer-manager-template.csv';a.click();
+    return toast('ดาวน์โหลดแบบฟอร์ม .csv แล้ว');
+  }
+  try{
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([head,...TPL_ROWS]);
+    ws['!cols']=[22,14,14,12,12,12,14,12,24].map(w=>({wch:w}));
+    XLSX.utils.book_append_sheet(wb,ws,'สมาชิก');
+    const how=XLSX.utils.aoa_to_sheet([['วิธีกรอก'],['1 แถว = 1 คน · ห้ามเปลี่ยนชื่อหัวคอลัมน์ในชีต "สมาชิก"'],['ต้องกรอก: ชื่อ-นามสกุล, เบอร์โทร, แบบสมาชิก, วันหมดอายุ'],['แบบสมาชิก: 1 เดือน / 3 เดือน / 6 เดือน / 1 ปี / PT อย่างเดียว'],['วันที่: วว/ดด/ปปปป เช่น 01/12/2569 (พ.ศ.) หรือ 01/12/2026 (ค.ศ.)'],['PT อย่างเดียว: ไม่ต้องใส่วันหมดอายุสมาชิก แต่ต้องใส่ครั้ง PT คงเหลือ'],['เทรนเนอร์ PT: ใช้ชื่อเล่นตามที่ตั้งในแอป เช่น ต้น, เจ'],['ลบแถวตัวอย่างก่อนอัปโหลด']]);
+    how['!cols']=[{wch:70}];
+    XLSX.utils.book_append_sheet(wb,how,'วิธีกรอก');
+    XLSX.writeFile(wb,'trainer-manager-template.xlsx');
+    toast('ดาวน์โหลดแบบฟอร์มแล้ว');
+  }catch(err){toast('เบราว์เซอร์นี้บล็อกการดาวน์โหลด · ลองเปิดจากลิงก์เว็บ');}
+}
+function readFile(f){
+  const r=new FileReader();
+  if(/\.csv$/i.test(f.name)||typeof XLSX==='undefined'){
+    r.onload=()=>{const rows=String(r.result).replace(/^\ufeff/,'').split(/\r?\n/).map(l=>{const out=[];let cur='',q=false;for(let i=0;i<l.length;i++){const c=l[i];if(q){if(c==='"'&&l[i+1]==='"'){cur+='"';i++;}else if(c==='"')q=false;else cur+=c;}else if(c==='"')q=true;else if(c===','){out.push(cur);cur='';}else cur+=c;}out.push(cur);return out;});loadRows(rows.slice(1),f.name);};
+    r.readAsText(f,'utf-8');
+  } else {
+    r.onload=()=>{try{const wb=XLSX.read(new Uint8Array(r.result),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});loadRows(rows.slice(1),f.name);}catch(err){toast('อ่านไฟล์ไม่ได้ · ใช้แบบฟอร์มของเราแล้วลองใหม่');}};
+    r.readAsArrayBuffer(f);
+  }
+}
+
+const TITLES={checkin:'เช็กอิน',walkin:'ขาจรรายวัน',add:'เพิ่มสมาชิก',members:'สมาชิก',pt:'ตาราง PT วันนี้',import:'นำเข้าข้อมูลสมาชิก',overview:'ภาพรวมยิม',settings:'ตั้งค่ายิม'};
 function render(){
   side();
   $('#ttl').textContent=TITLES[page];
   $('#clock').textContent=`ส. 10 ต.ค. 2569 · ${now()}`;
-  const V={checkin:vCheckin,walkin:vWalkin,add:vAdd,members:vMembers,pt:vPT,overview:vOverview,settings:vSettings}[page];
-  $('#view').innerHTML=V();
+  const V={checkin:vCheckin,walkin:vWalkin,add:vAdd,members:vMembers,pt:vPT,import:vImport,overview:vOverview,settings:vSettings}[page];
+  $('#view').innerHTML=offBar()+V();
+  $('#netBtn').classList.toggle('off',offline);$('#netBtn').setAttribute('aria-pressed',offline);$('#netLb').textContent=offline?`ออฟไลน์${queue.length?' · รอส่ง '+queue.length:''}`:'ออนไลน์';
   $('#layer').innerHTML=drawerHTML();
   $('#r-op').classList.toggle('on',role==='op'); $('#r-own').classList.toggle('on',role==='own');
   if(page==='checkin'){const el=$('#scanIn'); if(el && !drawer) el.focus({preventScroll:true});}
 }
 let toastT;
 function toast(msg){clearTimeout(toastT);let t=document.querySelector('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=msg;toastT=setTimeout(()=>t.remove(),2400);}
-function go(p){page=p;drawer=null;if(p==='add'&&wiz.done){wiz={step:1,user:null,plan:null,method:'เงินสด',q:''};}render();window.scrollTo(0,0);}
+function go(p){page=p;drawer=null;if(p==='add'&&wiz.done){wiz={step:1,user:null,plan:null,method:'เงินสด',q:'',start:null};}render();window.scrollTo(0,0);}
 
 let nextCode=124;
 document.addEventListener('submit',e=>{
@@ -455,6 +616,10 @@ document.addEventListener('submit',e=>{
   if(e.target.id==='noAppForm'){e.preventDefault();const n=$('#nName').value.trim(),ph=$('#nPhone').value.trim();if(!n||!ph)return;
     const dup=members.find(m=>m.phone.replace(/-/g,'')===ph.replace(/-/g,''));if(dup){toast(`เบอร์นี้เป็นสมาชิกอยู่แล้ว: ${dup.name}`);return;}
     wiz.user={id:'M-0'+(nextCode++),name:n,phone:ph,noapp:true};wiz.step=2;render();}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='wStart'&&e.target.value){wiz.start=e.target.value<iso(TODAY)?iso(TODAY):e.target.value;render();}
+  if(e.target.id==='impFile'&&e.target.files[0]){if(offline){toast('ออฟไลน์อยู่ · นำเข้าได้เมื่อเน็ตกลับมา');return;}readFile(e.target.files[0]);}
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='mq'){memberQuery=e.target.value;const pos=e.target.selectionStart;render();const el=$('#mq');el.focus();el.setSelectionRange(pos,pos);}
@@ -482,8 +647,8 @@ document.addEventListener('click',e=>{
   if(b.id==='freezeBtn'){const m=members.find(x=>x.id===drawer.id);if(m.frozenUntil){m.frozenUntil=null;toast('ยกเลิกพักแล้ว');}else{m.frozenUntil='2026-10-24';const e2=d(m.end);e2.setDate(e2.getDate()+14);m.end=iso(e2);toast('พัก 14 วัน · วันหมดอายุเลื่อนออกไป 14 วัน');}return render();}
   if(D.rp){drawer.plan=D.rp;return render();}
   if(D.rm){drawer.method=D.rm;return render();}
-  if(b.id==='renewGo'){const m=members.find(x=>x.id===drawer.id),p=PLANS.find(x=>x.k===drawer.plan);const base=daysLeft(m.end)<0?new Date(TODAY):d(m.end);base.setMonth(base.getMonth()+p.months);m.end=iso(base);m.plan=p.name;sales+=p.price;toast(`ต่ออายุ ${m.name} ${p.name} · รับ${drawer.method} ${baht(p.price)}`);drawer=null;if(result&&result.id===m.id&&page==='checkin'){result=null;}return render();}
-  if(b.id==='walkAdd'){clockMin++;walkins.unshift({t:now(),m:walkMethod});sales+=WALKIN_PRICE;toast(`บันทึกขาจร +1 · ${walkMethod} ${baht(WALKIN_PRICE)}`);return render();}
+  if(b.id==='renewGo'){const m=members.find(x=>x.id===drawer.id),p=PLANS.find(x=>x.k===drawer.plan);if(offline){toast('ออฟไลน์อยู่ · รับเงินและต่ออายุได้เมื่อเน็ตกลับมา');return;}const base=m.ptOnly||daysLeft(m.end)<0?new Date(TODAY):d(m.end);base.setMonth(base.getMonth()+p.months);m.end=iso(base);m.plan=p.name;m.ptOnly=false;sales+=p.price;toast(`ต่ออายุ ${m.name} ${p.name} · รับ${drawer.method} ${baht(p.price)}`);drawer=null;if(result&&result.id===m.id&&page==='checkin'){result=null;}return render();}
+  if(b.id==='walkAdd'){clockMin++;walkins.unshift({t:now(),m:walkMethod});sales+=WALKIN_PRICE;if(offline)queue.push({t:now(),k:'ขาจร',n:walkMethod});toast(`บันทึกขาจร +1 · ${walkMethod} ${baht(WALKIN_PRICE)}`);return render();}
   if(D.undo){walkins.shift();sales-=WALKIN_PRICE;toast('ยกเลิกรายการล่าสุดแล้ว');return render();}
   if(D.wm){walkMethod=D.wm;return render();}
   if(D.demoScan){wiz.user=registered[1];wiz.step=2;toast(`สแกนพบ ${registered[1].name}`);return render();}
@@ -492,8 +657,13 @@ document.addEventListener('click',e=>{
   if(D.wp){wiz.plan=D.wp;return render();}
   if(D.wstep){wiz.step=Number(D.wstep);return render();}
   if(D.wm2){wiz.method=D.wm2;return render();}
-  if(b.id==='wizDone'){const p=PLANS.find(x=>x.k===wiz.plan);const e2=new Date(TODAY);e2.setMonth(e2.getMonth()+p.months);if(!members.find(m=>m.id===wiz.user.id))members.push({id:wiz.user.id,name:wiz.user.name,phone:wiz.user.phone,plan:p.name,end:iso(e2),noapp:wiz.user.noapp});sales+=p.price;toast(`เพิ่ม ${wiz.user.name} แล้ว · ${p.name} ${baht(p.price)}`);wiz={step:1,user:null,plan:null,method:'เงินสด',q:'',done:1};page='members';memberQuery=wiz.user?'':memberQuery;return render();}
+  if(b.id==='wizDone'){if(offline){toast('ออฟไลน์อยู่ · เพิ่มสมาชิกได้เมื่อเน็ตกลับมา');return;}const p=PLANS.find(x=>x.k===wiz.plan);const e2=d(wiz.start||iso(TODAY));e2.setMonth(e2.getMonth()+p.months);if(!members.find(m=>m.id===wiz.user.id))members.push({id:wiz.user.id,name:wiz.user.name,phone:wiz.user.phone,plan:p.name,start:wiz.start,end:iso(e2),noapp:wiz.user.noapp});sales+=p.price;toast(`เพิ่ม ${wiz.user.name} แล้ว · ${p.name} ${baht(p.price)}`);wiz={step:1,user:null,plan:null,method:'เงินสด',q:'',start:null,done:1};page='members';memberQuery=wiz.user?'':memberQuery;return render();}
   if(D.mf){memberFilter=D.mf;return render();}
+  if(b.id==='netBtn'){offline=!offline;if(!offline){const n=queue.length;queue=[];toast(n?`เน็ตกลับมาแล้ว · ส่งข้อมูล ${n} รายการขึ้นระบบแล้ว`:'เน็ตกลับมาแล้ว');}else toast('จำลองเน็ตหลุด · เช็กอินและขาจรยังใช้ได้');return render();}
+  if(b.id==='tplDl') return dlTemplate();
+  if(b.id==='impDemo'){if(offline){toast('ออฟไลน์อยู่ · นำเข้าได้เมื่อเน็ตกลับมา');return;}return loadRows(DEMO_ROWS,'ข้อมูลตัวอย่าง.xlsx');}
+  if(b.id==='impClear'){imp={rows:null,file:'',done:0};return render();}
+  if(b.id==='impGo'){if(offline){toast('ออฟไลน์อยู่ · นำเข้าได้เมื่อเน็ตกลับมา');return;}let n=0;imp.rows.filter(r=>r.st!=='err').forEach(r=>{if(members.find(m=>m.phone.replace(/\D/g,'')===r.phone.replace(/\D/g,'')))return;members.push({id:'M-0'+(nextCode++),name:r.name,phone:r.phone,plan:r.plan,start:r.start,end:r.end,noapp:true,ptOnly:r.ptOnly||undefined,pt:r.ptn?`${r.tr||'?'} · เหลือ ${r.ptn} ครั้ง`:undefined});n++;});imp.done=n;toast(`นำเข้าแล้ว ${n} คน · ดูได้ในหน้าสมาชิก`);return render();}
   if(D.soon){toast('หน้านี้จะออกแบบในขั้นถัดไป');return;}
 });
 render();
