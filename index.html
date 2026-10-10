@@ -319,7 +319,7 @@ ph('c_report_card','ส่งสรุปผลให้ลูกเทรน',[
 ph('c_package','แพ็กเกจ / ครั้งคงเหลือ',['"เหลือ 4 ครั้ง" ตัวใหญ่ · วันหมดอายุตัวเล็ก','เลยวันหมดอายุแต่ยังเหลือครั้ง → ป้าย "เลยกำหนด 5 วัน" ยังนัดได้','ปุ่ม "เพิ่มแพ็ก" (บันทึกว่าลูกค้าซื้อแพ็กไหน ไม่มีเก็บเงินในแอป)','แก้วันหมดอายุ: +7 วัน / +14 วัน / +1 เดือน','เพิ่ม / ลดจำนวนครั้ง (แถม / หักคืน)','ทุกการแก้ต้องใส่เหตุผล + บันทึกว่าใครแก้']);
 ph('c_appts','นัดของลูกเทรนคนนี้',['นัดที่จะถึง','ประวัติ มา / ขาด / เลื่อน']);
 ph('c_chat','แชตกับลูกเทรน',['ส่งข้อความ รูป คลิปท่า','ลูกเทรนส่งคลิปให้ช่วยดูฟอร์ม'],1);
-ph('exercises','คลังท่าออกกำลังกาย',['แยกตามส่วน: อก หลัง ขา ไหล่ แขน หน้าท้อง','แต่ละท่ามีคลิป/ภาพ วิธีทำ กล้ามเนื้อที่ใช้','ค้นหา + เพิ่มท่าของตัวเอง']);
+ph('exercises','คลังท่าออกกำลังกาย',['แยกตามส่วน: อก หลัง ขา ไหล่ แขน หน้าท้อง คาร์ดิโอ ยืดเหยียด','คาร์ดิโอบันทึกเป็นเวลา / ระยะทาง / ความชัน · ยืดเหยียดบันทึกเป็นวินาทีต่อท่า','แต่ละท่ามีคลิป/ภาพ วิธีทำ กล้ามเนื้อที่ใช้','ค้นหา + เพิ่มท่าของตัวเอง']);
 ph('ex_part','ท่าตามส่วน',['รายการท่าของส่วนที่เลือก','กดดูวิธีทำ / เพิ่มเข้าโปรแกรม']);
 ph('templates','เทมเพลตของฉัน',['เช่น Push / Pull / Legs','ใช้ซ้ำกับลูกเทรนหลายคน']);
 ph('template_new','สร้างเทมเพลตใหม่',['ชื่อ ท่า เซ็ต เรป เริ่มต้น']);
@@ -569,7 +569,7 @@ const ROLES = {
   self:{name:'ผู้ใช้ · เล่นเอง', tabs:[['u_home_s','หน้าหลัก','home'],['u_train','ออกกำลัง','dumbbell'],['u_food','อาหาร','food'],['u_find','หาเทรนเนอร์','pin'],['u_me_s','ฉัน','me']]}
 };
 
-const PARTS = [['อก','dumbbell'],['หลัง','dumbbell'],['ขา','dumbbell'],['ไหล่','dumbbell'],['แขน','dumbbell'],['หน้าท้อง','dumbbell']];
+const PARTS = [['อก','dumbbell'],['หลัง','dumbbell'],['ขา','dumbbell'],['ไหล่','dumbbell'],['แขน','dumbbell'],['หน้าท้อง','dumbbell'],['คาร์ดิโอ','fire'],['ยืดเหยียด','people']];
 
 let role = null, stack = [];
 const app = document.getElementById('app');
@@ -585,7 +585,7 @@ function itemHTML(it){
   if(it.type==='hero') return `<div class="hero"><div class="eb">${esc(it.eb)}</div><div class="tt">${esc(it.tt)}</div><div class="sb">${esc(it.sb)}</div><div class="acts">${it.acts.map(a=>`<button class="${a.p?'p':''}" data-to="${a.to}">${esc(a.label)}</button>`).join('')}</div></div>`;
   if(it.type==='tiles') return `<div class="tiles" style="grid-template-columns:repeat(${it.items.length===3?3:2},minmax(0,1fr))">${it.items.map(t=>`<button class="tile ${t.warn?'warn':''}" data-to="${t.to}"><span class="l">${esc(t.l)}</span><span class="v">${esc(t.v)}</span></button>`).join('')}</div>`;
   if(it.type==='big2'||it.type==='big3') return `<div class="grid2" style="grid-template-columns:repeat(${it.items.length},minmax(0,1fr))">${it.items.map(b=>`<button class="big ${b.p?'p':''}" data-to="${b.to}">${svg(b.icon)}<span>${esc(b.label)}</span></button>`).join('')}</div>`;
-  if(it.type==='parts') return `<div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))">${PARTS.map(p=>`<button class="big" style="min-height:64px;align-items:center;justify-content:center" data-to="${it.to}"><span>${esc(p[0])}</span></button>`).join('')}</div>`;
+  if(it.type==='parts') return `<div class="grid2" style="grid-template-columns:repeat(4,minmax(0,1fr))">${PARTS.map(p=>`<button class="big" style="min-height:64px;align-items:center;justify-content:center" data-to="${it.to}"><span>${esc(p[0])}</span></button>`).join('')}</div>`;
   if(it.type==='streak'){
     const d=['จ','อ','พ','พฤ','ศ','ส','อา'], on=[1,1,1,1,1,1,0];
     return `<button class="streak" data-to="${it.to}"><span class="hd"><span class="fl">${svg('fire')}</span><span style="display:flex;flex-direction:column"><span class="t">ออกกำลังต่อเนื่อง 6 วัน</span><span class="s">อีก 1 วัน ได้เหรียญ "สัปดาห์เต็ม" · ตัวอย่าง</span></span><span class="flag" style="margin-left:auto">ข้อเสนอ</span></span><span class="days">${d.map((x,i)=>`<span class="d"><i class="${on[i]?'on':''}"></i>${x}</span>`).join('')}</span></button>`;
