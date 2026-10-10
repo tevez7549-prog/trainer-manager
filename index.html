@@ -298,7 +298,6 @@ ph('week','ตารางทั้งสัปดาห์',['ปฏิทิ�
 ph('availability','เวลาว่างของฉัน',['วันและช่วงเวลาที่รับเทรน','วันหยุด / ลา']);
 ph('gcal_sync','ซิงก์ Google Calendar',['นัดในแอปขึ้นในปฏิทินมือถือ'],1);
 ph('search_client','ค้นหาลูกเทรน',['ค้นด้วยชื่อหรือเบอร์','กรอง: รอบใกล้หมด / ไม่ได้มานาน']);
-ph('t_inactive','ลูกเทรนที่หายไปนาน',['ไม่ได้นัดเกิน 14 วัน','ปุ่มทักชวนกลับมาเทรน'],1);
 ph('t_online','ลูกเทรนออนไลน์',['โค้ชทางไกล: ส่งโปรแกรม + ดูอาหารโดยไม่ต้องเจอตัว','ขายแพ็กรายเดือนได้'],1);
 ph('c_plan_ahead','วางโปรแกรมล่วงหน้า',['กำหนดท่า เซ็ต เรป น้ำหนักเป้า แต่ละวันล่วงหน้า','ใช้เทมเพลต หรือคัดลอกจากสัปดาห์ก่อน','ลูกเทรนเห็นโปรแกรมในแอป']);
 ph('c_history','ประวัติการเทรน',['ทุกเซสชันย้อนหลัง ท่า เซ็ต น้ำหนัก','กดดูวันไหนก็ได้']);
@@ -448,7 +447,7 @@ t_today:{title:'วันนี้', sections:[
     R('คุณมิ้นท์','appt_detail',{ic:'10:00',sb:'ขา + ก้น'}),
     R('คุณโอ๊ต','appt_detail',{ic:'13:00',sb:'หลัง + แขน',badge:['เหลือ 2 รอบ','warn']}),
     R('คุณบอส','requests',{ic:'19:00',sb:'ขอเลื่อนเป็นพรุ่งนี้',badge:['รออนุมัติ','wait']})]},
-  {title:'อื่น ๆ',items:[R('คำขอเลื่อนนัด','requests',{icon:'swap',sb:'1 รายการรอตอบ'}),R('ลูกเทรนที่หายไปนาน','t_inactive',{icon:'bell',nw:1}),R('การแจ้งเตือน','notifications',{icon:'bell'})]}
+  {title:'อื่น ๆ',items:[R('คำขอเลื่อนนัด','requests',{icon:'swap',sb:'1 รายการรอตอบ'}),R('การแจ้งเตือน','notifications',{icon:'bell'})]}
 ]},
 t_cal:{title:'ปฏิทิน', sections:[
   {items:[{type:'big2',items:[{label:'สร้างนัดใหม่',icon:'cal',to:'appt_new',p:1},{label:'ตารางทั้งสัปดาห์',icon:'today',to:'week'}]}]},
@@ -697,7 +696,7 @@ C.t_today={title:'วันนี้',render(){
   const hero=next?(()=>{const c=cl(next),b=pkgBadge(c);return `<div class="hero"><div class="eb">${next.status==='live'?'กำลังเทรนอยู่':'นัดถัดไป'} · ${next.time} · ส. ${dTh(D0)}</div><div class="tt">${esc(c.name)}</div><div class="sb">${esc(PROG[next.prog].name)} · ครั้งที่ ${c.pkg.used+1}/${c.pkg.total}${b?` · ${b[0]}`:''}</div><div class="acts"><button class="p" data-act="start" data-id="${next.id}">${next.status==='live'?'กลับไปบันทึกต่อ':'เริ่มเทรน'}</button><button data-act="resched" data-id="${next.id}">เลื่อนนัด</button></div></div>`})():`<div class="empty"><h2>วันนี้เทรนครบแล้ว</h2><p>เสร็จ ${done} นัด · พรุ่งนี้มีนัดแรก 07:00 (ตัวอย่าง)</p></div>`;
   return `<section class="sec">${hero}</section>
   <section class="sec"><h2>ตารางวันนี้ · ${T.appts.length} นัด · เสร็จ ${done}</h2><div class="list">${T.appts.map(apptRow).join('')}</div></section>
-  <section class="sec"><h2>อื่น ๆ</h2><div class="list">${rowHTML({icon:'swap',lb:'คำขอเลื่อนนัด',sb:reqs?`${reqs} รายการรอตอบ`:'ไม่มีคำขอค้าง',to:'requests'})}${rowHTML({icon:'bell',lb:'ลูกเทรนที่หายไปนาน',to:'t_inactive',nw:1})}${rowHTML({icon:'bell',lb:'การแจ้งเตือน',to:'notifications'})}</div></section>`;
+  <section class="sec"><h2>อื่น ๆ</h2><div class="list">${rowHTML({icon:'swap',lb:'คำขอเลื่อนนัด',sb:reqs?`${reqs} รายการรอตอบ`:'ไม่มีคำขอค้าง',to:'requests'})}${rowHTML({icon:'bell',lb:'การแจ้งเตือน',to:'notifications'})}</div></section>`;
 }};
 
 C.appt_detail={title:'รายละเอียดนัด',render(){
