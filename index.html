@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6b4d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Trainer">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Trainer Manager</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: phone-width app shell centred on larger screens; sticky header, scrolling body, fixed bottom tab bar */
+:root{
+  --bg:#f2f4f1; --surface:#ffffff; --fg:#15211c; --muted:#55645d; --line:#dfe5e1;
+  --accent:#0b6b4d; --accent-fg:#ffffff; --accent-soft:#e3f1ea; --accent-ink:#0b4d38;
+  --warn-bg:#fde7d6; --warn-fg:#8a3d0c; --wait-bg:#fff4c7; --wait-fg:#5c4600;
+  --ghost:#e2e8e4; --stage:#dde3df; --new-bg:#e3ecfb; --new-fg:#1f4aa8; --m-p:#2f6fd6; --m-c:#c97a0e; --m-f:#a8457f; --over:#c2410c;
+  --display:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#18211d; --fg:#e4ece8; --muted:#9aaca4; --line:#2a3531;
+  --accent:#3fbf86; --accent-fg:#06281b; --accent-soft:#1a2e25; --accent-ink:#8fe0bb;
+  --warn-bg:#3a2414; --warn-fg:#f5b585; --wait-bg:#352d0f; --wait-fg:#f0d77a;
+  --ghost:#222c28; --stage:#0a0f0d; --new-bg:#1b2a45; --new-fg:#a9c4f5; --m-p:#7aa7f5; --m-c:#f0b25a; --m-f:#e08ac4; --over:#fb923c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#18211d; --fg:#e4ece8; --muted:#9aaca4; --line:#2a3531;
+  --accent:#3fbf86; --accent-fg:#06281b; --accent-soft:#1a2e25; --accent-ink:#8fe0bb;
+  --warn-bg:#3a2414; --warn-fg:#f5b585; --wait-bg:#352d0f; --wait-fg:#f0d77a;
+  --ghost:#222c28; --stage:#0a0f0d; --new-bg:#1b2a45; --new-fg:#a9c4f5; --m-p:#7aa7f5; --m-c:#f0b25a; --m-f:#e08ac4; --over:#fb923c; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--stage);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+#app{max-width:440px;margin:0 auto;min-height:100%;background:var(--bg);display:flex;flex-direction:column;position:relative}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);min-height:56px;box-sizing:border-box}
+header.top h1{flex:1;margin:0;font-family:var(--display);font-size:19px;font-weight:700;text-wrap:balance;min-width:0}
+.iconbtn{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.iconbtn:active{background:var(--ghost)}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap}
+main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:18px}
+.sec{display:flex;flex-direction:column;gap:8px}
+.sec h2{margin:0;font-family:var(--display);font-size:15px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+.hero{background:var(--accent);color:var(--accent-fg);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.hero .eb{font-size:13px;opacity:.85}
+.hero .tt{font-family:var(--display);font-size:22px;font-weight:700}
+.hero .sb{font-size:14px;opacity:.92}
+.hero .acts{display:flex;gap:8px;margin-top:8px}
+.hero .acts button{flex:1;border-radius:12px;padding:12px 0;font-weight:600;border:1.5px solid currentColor;background:transparent;color:inherit}
+.hero .acts button.p{background:var(--accent-fg);color:var(--accent);border-color:var(--accent-fg)}
+.list{background:var(--surface);border-radius:16px;overflow:hidden}
+.row{width:100%;border:0;background:transparent;display:flex;align-items:center;gap:12px;padding:13px 14px;text-align:left;min-height:56px;box-sizing:border-box}
+.row + .row{border-top:1px solid var(--line)}
+.row:active{background:var(--ghost)}
+.row .ic{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;flex:none;font-weight:600;font-size:13px}
+.row .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.row .lb{font-weight:600}
+.row .sb{font-size:12.5px;color:var(--muted)}
+.row .chev{color:var(--muted);flex:none}
+.badge{font-size:12px;font-weight:600;border-radius:7px;padding:2px 8px;white-space:nowrap}
+.b-warn{background:var(--warn-bg);color:var(--warn-fg)}
+.b-wait{background:var(--wait-bg);color:var(--wait-fg)}
+.b-ok{background:var(--accent-soft);color:var(--accent-ink)}
+.b-new{background:var(--new-bg);color:var(--new-fg)}
+.streak{border:0;background:var(--surface);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;text-align:left;width:100%}
+.streak .hd{display:flex;align-items:center;gap:10px}
+.streak .fl{width:40px;height:40px;border-radius:12px;background:var(--warn-bg);color:var(--warn-fg);display:flex;align-items:center;justify-content:center;flex:none}
+.streak .t{font-family:var(--display);font-weight:700;font-size:17px}
+.streak .s{font-size:12.5px;color:var(--muted)}
+.streak .days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;text-align:center;font-size:11px;color:var(--muted)}
+.streak .d{display:flex;flex-direction:column;align-items:center;gap:3px}
+.streak .d i{width:22px;height:22px;border-radius:50%;background:var(--ghost);display:block}
+.streak .d i.on{background:var(--accent)}
+.macro{border:0;background:var(--surface);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:12px;width:100%;text-align:left}
+.macro .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.macro .hd .t{font-family:var(--display);font-weight:600;font-size:15px}
+.macro .hd .s{font-size:12px;color:var(--muted)}
+.mrow{display:flex;flex-direction:column;gap:5px}
+.mrow .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px}
+.mrow .top b{font-weight:600}
+.mrow .top span{color:var(--muted);font-variant-numeric:tabular-nums}
+.mrow.cal .top{font-size:14px}
+.mrow.cal .top .kc{font-family:var(--display);font-size:22px;font-weight:700;color:var(--fg)}
+.bar{height:9px;border-radius:5px;background:var(--ghost);overflow:hidden}
+.mrow.cal .bar{height:14px;border-radius:7px}
+.bar i{display:block;height:100%;border-radius:inherit}
+.mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.mrow .left{font-size:11.5px;color:var(--muted)}
+.mrow .left.over{color:var(--over);font-weight:600}
+.flag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:7px;padding:2px 8px;background:var(--new-bg);color:var(--new-fg)}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{border:0;background:var(--surface);border-radius:14px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .v{font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.tile .l{font-size:12px;color:var(--muted)}
+.tile.warn{background:var(--warn-bg);color:var(--warn-fg)}
+.tile.warn .l{color:var(--warn-fg)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.big{border:0;background:var(--surface);border-radius:16px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:10px;min-height:96px;font-weight:600}
+.big.p{background:var(--accent);color:var(--accent-fg)}
+.big svg{width:26px;height:26px}
+nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;background:var(--surface);border-top:1px solid var(--line);display:grid;padding-bottom:env(safe-area-inset-bottom,0px);z-index:6}
+nav.tabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 10px;font-size:11.5px;color:var(--muted);min-height:60px}
+nav.tabs button.on{color:var(--accent);font-weight:600}
+nav.tabs svg{width:22px;height:22px}
+.empty{background:var(--surface);border-radius:18px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.empty .box{width:64px;height:64px;border-radius:18px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.empty h2{margin:0;font-family:var(--display);font-size:20px}
+.empty p{margin:0;color:var(--muted);max-width:32ch}
+.spec{background:var(--surface);border-radius:16px;padding:14px 16px}
+.spec h3{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+.spec ul{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:4px}
+.cta{border:0;background:var(--accent);color:var(--accent-fg);border-radius:14px;padding:14px;font-weight:600;width:100%}
+.ghostbtn{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:13px;font-weight:600;width:100%}
+.brand{padding:40px 8px 8px;display:flex;flex-direction:column;gap:6px}
+.brand .logo{width:56px;height:56px;border-radius:16px;background:var(--accent);color:var(--accent-fg);display:flex;align-items:center;justify-content:center}
+.brand h1{margin:8px 0 0;font-family:var(--display);font-size:32px;font-weight:700}
+.brand p{margin:0;color:var(--muted)}
+.note{font-size:12.5px;color:var(--muted);text-align:center}
+.crumb{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){main{animation:in .18s ease-out}@keyframes in{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+
+<div id="app"></div>
+
+<script>
+(function(){
+const I = {
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  chev:'<path d="M9 5l7 7-7 7"/>',
+  today:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+  cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h3v3H7z"/>',
+  people:'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 1 0 0-6M22 21c0-3-2-5-5-5.5"/>',
+  dumbbell:'<path d="M6 5v14M18 5v14M3 8v8M21 8v8M6 12h12"/>',
+  me:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+  home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  food:'<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-3 5-3 8h3v10"/>',
+  chart:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  pencil:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  gauge:'<path d="M4 14a8 8 0 0 1 16 0"/><path d="M12 14l4-4"/><path d="M3 18h18"/>',
+  team:'<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c0-3 3-5 6-5s6 2 6 5M14 15c3 0 8 1 8 5"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  shop:'<path d="M4 7h16l-1 13H5z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  logo:'<path d="M6 5v14M18 5v14M3 8v8M21 8v8M6 12h12"/>',
+  blank:'<rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/>',
+  swap:'<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  qr:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v7h-4M14 21h0"/>',
+  pin:'<path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  money:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  fire:'<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/>',
+  share:'<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 11l7.6-4M8.2 13l7.6 4"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+  play:'<path d="M7 4l13 8-13 8z"/>',
+  card:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>'
+};
+const svg = (k,s) => `<svg viewBox="0 0 24 24" width="${s||22}" height="${s||22}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
+
+/* ---------- Placeholder pages: title, what will go there, proposed-by-Claude flag ---------- */
+const P = {};
+const ph = (id,title,spec,nw) => { P[id] = {title, spec, nw:!!nw}; };
+
+/* ===== account ===== */
+ph('login','เข้าสู่ระบบ',['เบอร์โทรหรืออีเมล + รหัสผ่าน','เข้าด้วย LINE / Google / Apple','ลืมรหัสผ่าน']);
+ph('register','สมัครสมาชิก',['สมัครที่เดียวสำหรับทุกคน → ได้ UID ประจำตัว','ยืนยันตัวตนด้วยเบอร์โทรหรืออีเมล','ข้อมูลร่างกาย + เป้าหมาย → เริ่มใช้ฟรีเป็นผู้ใช้ทั่วไป','อยากเป็นเทรนเนอร์ / เปิดยิม → เปิดโหมดเพิ่มในแอปภายหลัง','ยินยอม PDPA']);
+/* invites (item 1) */
+ph('inv_link','สร้างลิงก์เชิญ',['สร้างลิงก์แล้วส่งทาง LINE / แชต','คนรับต้องล็อกอินก่อน แล้วกดยอมรับคำเชิญ','กำหนดวันหมดอายุของลิงก์ / ยกเลิกลิงก์ได้']);
+ph('inv_search','ค้นหาด้วย UID / เบอร์ / อีเมล',['พิมพ์ UID เบอร์โทร หรืออีเมล','เห็นชื่อและรูปก่อนยืนยัน','ส่งคำเชิญ → อีกฝ่ายกดยอมรับในแอป']);
+ph('inv_scan','สแกน QR',['เปิดกล้องสแกน QR จากหน้า "ฉัน" ของอีกฝ่าย','ยืนยัน → ส่งคำเชิญทันที']);
+ph('my_qr','UID และ QR ของฉัน',['แสดง UID + QR ของตัวเอง','ให้ยิม / เทรนเนอร์ สแกนเพื่อเพิ่มเข้าระบบ','คำเชิญที่รอตอบรับ']);
+/* modes & plans (item 4) */
+ph('switch_mode','สลับโหมด',['เมนูบนสุด สลับได้เหมือนสลับบัญชีใน IG','ส่วนตัว / ลูกค้าของฉัน (เทรนเนอร์) / ยิม ABC','คนเดียวมีได้หลายโหมด เช่น เจ้าของยิมที่รับลูกเทรนเองด้วย','ปุ่ม "เปิดโหมดใหม่" → ไปหน้าแผนและราคา']);
+ph('plans','แผนและราคา',['ผู้ใช้: AI ถ่ายรูปอาหารไม่จำกัด + ฟีเจอร์เต็ม','เทรนเนอร์: จัดการลูกค้า + ได้ของผู้ใช้ด้วย','ยิม: ระบบยิม + เจ้าของรับลูกเทรนเองได้ · คิดเพิ่มตามจำนวนเทรนเนอร์','Admin / Operator / เทรนเนอร์ในทีม ไม่ต้องจ่ายเอง นับเป็นที่นั่งในแพ็กยิม','ลูกเทรนที่ยังเทรนอยู่ ได้ฟีเจอร์ผู้ใช้ฟรี (ดูเงื่อนไขในหน้าสิทธิ์ลูกเทรน)','ทดลองใช้ฟรี 7 วัน ทุกแผน (เปิดโหมดเทรนเนอร์ / ยิมครั้งแรก ได้ทดลองของโหมดนั้น 7 วัน)','ระหว่างทดลองเห็นนับถอยหลัง + เตือนก่อนหมด 2 วัน','หมดทดลองแล้วไม่จ่าย → กลับเป็นผู้ใช้ฟรี ข้อมูลไม่หาย ดูได้แต่แก้ไม่ได้ จนกว่าจะสมัคร','ตัวเลขราคา: ไว้กำหนดทีหลัง']);
+ph('client_perk','สิทธิ์ฟรีของลูกเทรน',['ลูกเทรนได้ฟีเจอร์ผู้ใช้ฟรี เมื่อมีเซสชันที่บันทึกจริงใน 30 วันล่าสุด','ไม่ได้เทรนเกิน 30 วัน → สิทธิ์หมดเอง ไม่ขึ้นกับวันหมดอายุแพ็ก (กันการกดต่ออายุแพ็กไปเรื่อย ๆ)','แต่ละแผนให้สิทธิ์ฟรีได้ไม่เกินจำนวนที่กำหนด เช่น เทรนเนอร์ 15 คน / ยิมตามที่นั่ง','เทรนเนอร์เห็นว่าใช้สิทธิ์ไปกี่คนแล้ว · ลูกเทรนที่หมดสิทธิ์ อัปเกรดจ่ายเองได้'])
+ph('notifications','การแจ้งเตือน',['นัดใกล้ถึง','คำขอเลื่อนนัด','แพ็ก/สมาชิกใกล้หมด','ลูกเทรนบันทึกอาหารใหม่']);
+ph('logout','ออกจากระบบ',['ยืนยันการออกจากระบบ']);
+ph('notify_settings','ตั้งค่าการแจ้งเตือน',['แจ้งก่อนนัดกี่ชั่วโมง','เลือกเรื่องที่อยากรับแจ้ง']);
+ph('line_connect','เชื่อมต่อ LINE',['รับแจ้งเตือนผ่าน LINE','ส่งลิงก์เชิญผ่าน LINE']);
+
+/* ===== owner / staff ===== */
+ph('o_today_appts','นัด PT วันนี้ทั้งยิม',['ทุกนัดของทุกเทรนเนอร์ เรียงตามเวลา','สถานะ: รอ / กำลังเทรน / เสร็จ / ขาด']);
+ph('o_checkins','เช็กอินวันนี้',['ใครเข้ายิมกี่โมง','ช่วงเวลาที่คนเยอะ (ใช้จัดตารางพนักงาน)'],1);
+ph('o_checkin_scan','เช็กอินสมาชิก',['สแกน QR จากแอปสมาชิก หรือค้นชื่อ','เตือนถ้าสมาชิกหมดอายุ / ถูกพัก'],1);
+ph('o_finance','รายได้และยอดขาย',['ยอดขายสมาชิก + แพ็ก PT แยกรายวัน/เดือน (บาท)','ค้างชำระ / ผ่อนจ่าย','ส่งออก Excel'],1);
+ph('o_report','รายงานประจำเดือน',['รอบ PT ต่อเทรนเนอร์','สมาชิกใหม่ / ต่ออายุ / หลุด','อัตราขาดนัด']);
+ph('o_schedule_day','ตารางยิมวันนี้',['ตารางแนวตั้ง 1 คอลัมน์ต่อเทรนเนอร์','เห็นช่องว่างของแต่ละคนทันที']);
+ph('o_schedule_week','ตารางยิมทั้งสัปดาห์',['ความหนาแน่นของนัดทั้งสัปดาห์']);
+ph('o_free_slots','เวลาว่างของเทรนเนอร์',['เลือกวัน → เห็นเทรนเนอร์ที่ว่างแต่ละช่วงเวลา','กดจองนัดให้ลูกเทรนได้เลย']);
+ph('o_classes','คลาสกลุ่ม',['ตารางคลาส เช่น Yoga, HIIT','จำนวนที่นั่ง คนจอง เช็กชื่อ'],1);
+ph('o_trainer_clients','ลูกเทรนในความดูแล',['ชื่อ รอบคงเหลือ วันหมดอายุ','เรียงตามรอบเหลือน้อย']);
+ph('o_trainer_sched','ตารางและเวลาว่างของเทรนเนอร์',['นัดวันนี้และสัปดาห์นี้','ช่วงเวลาที่ยังว่าง']);
+ph('o_trainer_stats','ผลงานเทรนเนอร์',['รอบที่เทรนเดือนนี้','ลูกเทรนใหม่ / ต่อคอร์ส','คะแนนรีวิว']);
+ph('o_commission','ค่าคอมมิชชันเทรนเนอร์',['ตั้งเรตต่อรอบ หรือ % ต่อแพ็ก','สรุปค่าคอมแต่ละคนสิ้นเดือน'],1);
+ph('o_trainer_rate','ราคาและค่าคอมของเทรนเนอร์',['ตั้งราคาแต่ละแพ็กของเทรนเนอร์คนนี้ เช่น 10 ครั้ง ฿6,000 / 20 ครั้ง ฿11,000','คัดลอกราคาจากเทรนเนอร์คนอื่นมาแก้ต่อได้','ตั้งค่าคอมของคนนี้']);
+ph('o_walkin','ขาจรรายวัน',['ยอดขาจรวันนี้ / รายเดือน (คน + บาท)','ไม่ต้องมีบัญชี ไม่นับเป็นสมาชิก']);
+ph('o_walkin_add','บันทึกขาจร',['กด +1 คน แล้วรับเงินตามราคารายวัน','ไม่ต้องใส่ชื่อ','บันทึกลงยอดขาจรของวันนี้']);
+ph('o_closed_weekly','วันปิดประจำ',['แตะเลือกวัน จ อ พ พฤ ศ ส อา ที่ยิมปิด','วันที่เลือกไม่นับอายุสมาชิก / แพ็ก PT']);
+ph('o_holidays','วันหยุดพิเศษ',['เลือกช่วงวันบนปฏิทิน + ตั้งชื่อ เช่น "หยุดปีใหม่"','ปุ่ม "ดึงวันหยุดราชการ" แล้วติ๊กเฉพาะวันที่ปิดจริง','ก่อนบันทึก: "สมาชิก 212 คน จะเลื่อนวันหมดอายุออกไป 3 วัน"','ส่งประกาศแจ้งสมาชิกในขั้นตอนเดียว']);
+ph('o_freeze_person','พักสมาชิกรายคน',['ค้นหาสมาชิก → เลือกวันเริ่มพัก / วันกลับ','เห็นวันหมดอายุเดิม → ใหม่ทันที','ระหว่างพักเช็กอินไม่ได้']);
+ph('o_freeze_rules','กติกาการพัก',['พักได้สูงสุดกี่วันต่อปี','พักขั้นต่ำครั้งละกี่วัน','วันปิดยิมเลื่อนแพ็ก PT ด้วย (เปิด / ปิด)']);
+ph('o_move','ย้ายลูกเทรน',['เลือกลูกเทรน → เทรนเนอร์คนใหม่','รอบคงเหลือย้ายตามไป','ประวัติการเทรนไม่หาย']);
+ph('o_members_list','รายชื่อสมาชิก',['ชื่อ แบบสมาชิก วันหมดอายุ เหลือกี่วัน','"เหลือ 12 วัน (รวมเลื่อนจากวันปิดยิมแล้ว)"','กรองตามแบบ / สถานะ · ค้นหาด้วยชื่อหรือเบอร์','กดชื่อ → ข้อมูลสมาชิก: ประวัติชำระ เช็กอิน ต่ออายุ / พัก']);
+ph('o_member_noapp','ลงทะเบียนสมาชิกไม่มีแอป',['กรอกชื่อ + เบอร์โทร (ถ่ายรูปหน้าไว้ยืนยันตัวได้)','ได้รหัสสมาชิก เช่น M-0124 แทน UID','เช็กอินด้วยเบอร์ ชื่อ หรือบัตร QR ที่พิมพ์ให้ / ส่ง QR ทาง LINE','สมัครแอปทีหลังด้วยเบอร์เดิม → ระบบเชื่อมประวัติให้อัตโนมัติ']);
+ph('o_member_plan_pick','เลือกแบบสมาชิกและรับชำระ',['เลือกแบบ 1 / 3 / 6 เดือน / 1 ปี','ราคาดึงจากหน้าตั้งราคา','บัตรสมาชิก (QR) เข้าแอปของคนนั้นทันที']);
+ph('o_renew','ต่ออายุสมาชิก',['ค้นสมาชิก → เลือกแบบใหม่ → ชำระ']);
+ph('o_expiring','สมาชิกใกล้หมดอายุ',['เหลือ ≤ 7 วัน','ส่งข้อความชวนต่ออายุ (LINE) ในคลิกเดียว']);
+ph('o_expired','หมดอายุแล้ว',['สมาชิกที่หมดในเดือนนี้','ติดตามชวนกลับมา']);
+ph('o_all_clients','ลูกเทรน PT ทั้งหมด',['ชื่อ เทรนเนอร์ผู้ดูแล ครั้งคงเหลือ','กรองตามเทรนเนอร์']);
+ph('o_pt_expiring','แพ็ก PT ใกล้หมด',['เหลือ ≤ 2 ครั้ง หรือเลยกำหนด','แจ้งเทรนเนอร์ให้เสนอต่อคอร์ส']);
+ph('o_sell','ขายหน้าร้าน',['เลือก: สมาชิก / แพ็ก PT / อื่น ๆ','แพ็ก PT: เลือกเทรนเนอร์ก่อน ระบบดึงราคาของเทรนเนอร์คนนั้นให้เอง','รับเงินสด / โอน · ออกใบเสร็จ']);
+ph('o_staff_roles','สิทธิ์แต่ละระดับ',['Owner: ทุกอย่าง รวมการเงินและลบข้อมูล','Admin: จัดการสมาชิก เทรนเนอร์ ตาราง ดูรายงาน','Operator: หน้าร้าน เช็กอิน ขาย ต่ออายุ','ปรับได้ว่าใครแก้แพ็ก PT / วันหมดอายุได้']);
+ph('o_activity','บันทึกการใช้งาน',['ใครแก้อะไร เมื่อไร (เช่น ลบสมาชิก ให้ส่วนลด)'],1);
+ph('o_gym_info','ข้อมูลยิมและสาขา',['ชื่อ ที่อยู่ เวลาเปิดปิด โลโก้','ปักหมุดตำแหน่งยิมบนแผนที่ (ลากหมุด หรือกด "ใช้ตำแหน่งปัจจุบัน")','หมุดนี้ใช้ในหน้า "หาเทรนเนอร์ / ยิมใกล้ฉัน" ของผู้ใช้ทั่วไป','หลายสาขาในบัญชีเดียว แต่ละสาขาปักหมุดแยก']);
+ph('o_member_plans','ตั้งราคาแพ็กเกจสมาชิก',['ใส่ราคา (บาท) ของ รายวัน / 1 / 3 / 6 เดือน / 1 ปี','เพิ่มแบบใหม่ หรือแก้ / ปิดแบบเดิมได้','โปรโมชัน / ส่วนลด']);
+ph('o_packages','แพ็ก PT และราคา',['สร้างแพ็ก: จำนวนครั้ง + อายุ เช่น 12 ครั้ง / 1 เดือน (อะไรถึงก่อน)','ราคาตั้งแยกรายเทรนเนอร์ (ในหน้าเทรนเนอร์แต่ละคน)','ตารางรวมราคาของทุกคนไว้ดูเทียบ','ผ่อนผันหลังหมดอายุกี่วัน / ไม่จำกัด / เคร่ง','เปิด / ปิดการขาย']);
+ph('o_noshow','นโยบายขาดนัด',['ยกเลิกล่วงหน้ากี่ชั่วโมงถึงไม่ตัดรอบ','ขาดนัด: ตัด / ไม่ตัดรอบ']);
+ph('o_rewards_setup','ของรางวัลของยิม',['ตั้งของรางวัลแลกแต้ม เช่น เวย์ 1 แก้ว, PT ฟรี 1 รอบ','ดูว่าใครแลกอะไรไป'],1);
+ph('o_announce','ประกาศถึงสมาชิก',['ยิมปิดวันหยุด, โปรโมชัน','ส่งเข้าแอป + LINE'],1);
+ph('o_gym_page','หน้าโปรไฟล์ยิมในแอป',['รูปยิม ราคาสมาชิก เทรนเนอร์ในทีม รีวิว','คนทั่วไปค้นเจอใน "หาเทรนเนอร์/ยิมใกล้ฉัน"'],1);
+ph('o_privacy','สิทธิ์การมองเห็นข้อมูล',['เจ้าของยิมเห็นรูป progress หรือไม่','เทรนเนอร์เห็นลูกเทรนคนอื่นหรือไม่']);
+ph('o_pdpa','PDPA และความยินยอม',['ข้อความขอความยินยอม','คำขอลบข้อมูล']);
+
+/* ===== trainer ===== */
+ph('session','บันทึกการเทรน',['เช็กอินเริ่มเซสชัน','บันทึกท่า เซ็ต เรป น้ำหนัก ทีละท่า','เห็นผลครั้งก่อนเทียบ + ตัวจับเวลาพัก','จบเซสชัน → ตัดรอบอัตโนมัติ']);
+ph('reschedule','เลื่อนนัด',['เลือกวันเวลาใหม่จากช่วงที่ว่าง','แจ้งลูกเทรนอัตโนมัติ']);
+ph('appt_detail','รายละเอียดนัด',['ลูกเทรน เวลา โปรแกรมของวันนั้น','เริ่มเทรน / เลื่อน / ยกเลิก / บันทึกขาด']);
+ph('requests','คำขอเลื่อนนัด',['คำขอจากลูกเทรน','อนุมัติ / เสนอเวลาใหม่ / ปฏิเสธ']);
+ph('appt_new','สร้างนัดใหม่',['เลือกลูกเทรน วัน เวลา โปรแกรม','นัดซ้ำทุกสัปดาห์ได้']);
+ph('week','ตารางทั้งสัปดาห์',['ปฏิทินรายสัปดาห์','แตะช่องว่างเพื่อสร้างนัด']);
+ph('availability','เวลาว่างของฉัน',['วันและช่วงเวลาที่รับเทรน','วันหยุด / ลา']);
+ph('gcal_sync','ซิงก์ Google Calendar',['นัดในแอปขึ้นในปฏิทินมือถือ'],1);
+ph('search_client','ค้นหาลูกเทรน',['ค้นด้วยชื่อหรือเบอร์','กรอง: รอบใกล้หมด / ไม่ได้มานาน']);
+ph('t_inactive','ลูกเทรนที่หายไปนาน',['ไม่ได้นัดเกิน 14 วัน','ปุ่มทักชวนกลับมาเทรน'],1);
+ph('t_online','ลูกเทรนออนไลน์',['โค้ชทางไกล: ส่งโปรแกรม + ดูอาหารโดยไม่ต้องเจอตัว','ขายแพ็กรายเดือนได้'],1);
+ph('c_plan_ahead','วางโปรแกรมล่วงหน้า',['กำหนดท่า เซ็ต เรป น้ำหนักเป้า แต่ละวันล่วงหน้า','ใช้เทมเพลต หรือคัดลอกจากสัปดาห์ก่อน','ลูกเทรนเห็นโปรแกรมในแอป']);
+ph('c_history','ประวัติการเทรน',['ทุกเซสชันย้อนหลัง ท่า เซ็ต น้ำหนัก','กดดูวันไหนก็ได้']);
+ph('c_lifts','สถิติน้ำหนักที่ยก',['กราฟต่อท่า','สถิติสูงสุด (PR)']);
+ph('c_tdee','คำนวณ TDEE',['เพศ อายุ น้ำหนัก ส่วนสูง กิจกรรม','BMR / TDEE','เป้า: ลด / คง / เพิ่ม','น้ำหนักเป้าหมาย + วันที่ถึงเป้า → คำนวณแคลต่อวันให้','ประวัติการเปลี่ยนเป้าพร้อมวันที่']);
+ph('c_nutrition','แผนมาโคร',['เป้าแคล โปรตีน คาร์บ ไขมัน ต่อวัน','สไตล์: high carb / low carb / สมดุล','โน้ตคำแนะนำ → ส่งให้ลูกเทรน']);
+ph('c_food','บันทึกอาหารของลูกเทรน',['มื้อรายวันพร้อมรูป','แคลรวมเทียบเป้า','คอมเมนต์ในแต่ละมื้อ']);
+ph('c_progress','Progress ลูกเทรน',['รูป before/after หน้า ข้าง หลัง','น้ำหนัก สัดส่วน ตามวันที่']);
+ph('c_report_card','ส่งสรุปผลให้ลูกเทรน',['การ์ดสรุปรายเดือน: น้ำหนัก รอบเอว PR ที่ทำได้','ลูกเทรนแชร์ต่อได้ → เป็นโฆษณาให้เทรนเนอร์'],1);
+ph('c_package','แพ็กเกจ / ครั้งคงเหลือ',['"เหลือ 4 ครั้ง" ตัวใหญ่ · วันหมดอายุตัวเล็ก','เลยวันหมดอายุแต่ยังเหลือครั้ง → ป้าย "เลยกำหนด 5 วัน" ยังนัดได้','ปุ่ม "เพิ่มแพ็ก" (บันทึกว่าลูกค้าซื้อแพ็กไหน ไม่มีเก็บเงินในแอป)','แก้วันหมดอายุ: +7 วัน / +14 วัน / +1 เดือน','เพิ่ม / ลดจำนวนครั้ง (แถม / หักคืน)','ทุกการแก้ต้องใส่เหตุผล + บันทึกว่าใครแก้']);
+ph('c_appts','นัดของลูกเทรนคนนี้',['นัดที่จะถึง','ประวัติ มา / ขาด / เลื่อน']);
+ph('c_chat','แชตกับลูกเทรน',['ส่งข้อความ รูป คลิปท่า','ลูกเทรนส่งคลิปให้ช่วยดูฟอร์ม'],1);
+ph('exercises','คลังท่าออกกำลังกาย',['แยกตามส่วน: อก หลัง ขา ไหล่ แขน หน้าท้อง','แต่ละท่ามีคลิป/ภาพ วิธีทำ กล้ามเนื้อที่ใช้','ค้นหา + เพิ่มท่าของตัวเอง']);
+ph('ex_part','ท่าตามส่วน',['รายการท่าของส่วนที่เลือก','กดดูวิธีทำ / เพิ่มเข้าโปรแกรม']);
+ph('templates','เทมเพลตของฉัน',['เช่น Push / Pull / Legs','ใช้ซ้ำกับลูกเทรนหลายคน']);
+ph('template_new','สร้างเทมเพลตใหม่',['ชื่อ ท่า เซ็ต เรป เริ่มต้น']);
+ph('t_public_profile','โปรไฟล์ขายตัวเอง',['รูป ประวัติ ใบรับรอง ความเชี่ยวชาญ','แพ็กและราคา พื้นที่/ยิมที่รับเทรน','ผลงานลูกเทรน before/after (ได้รับอนุญาต)','ช่องทางติดต่อ: LINE / เบอร์โทร / Facebook / IG (เลือกแสดงได้)']);
+ph('t_reviews','รีวิวจากลูกค้า',['ดาว + ความเห็นหลังจบแพ็ก','ตอบกลับรีวิว']);
+ph('t_share_link','ลิงก์และ QR โปรไฟล์',['แชร์ลง Facebook / IG / LINE','คนกดแล้วเห็นโปรไฟล์ + ช่องทางติดต่อ'],1);
+ph('t_income','รายได้ของฉัน',['ครั้งที่เทรน + ค่าคอม/รายได้เดือนนี้ (บาท)']);
+ph('f_report','รายงานรายได้',['รายได้ต่อเดือน (บาท)','ลูกค้าใหม่ / ต่อคอร์ส']);
+
+/* ===== user (trainee / self) ===== */
+ph('my_reschedule','ขอเลื่อนนัด',['เลือกเวลาใหม่จากช่วงที่เทรนเนอร์ว่าง','รอเทรนเนอร์อนุมัติ']);
+ph('next_workout','โปรแกรมครั้งหน้า',['ท่า เซ็ต เรป น้ำหนักเป้า ที่เทรนเนอร์วางไว้','คลิปสาธิตท่า']);
+ph('w_free','เล่นเองวันนี้',['เลือกโปรแกรม หรือเริ่มเปล่าแล้วเพิ่มท่าไปเรื่อย ๆ','บันทึก เซ็ต เรป น้ำหนัก + จับเวลาพัก','มีเทรนเนอร์ก็เล่นเองได้ เทรนเนอร์เห็นประวัติด้วย','จบแล้วได้การ์ดสรุปไว้แชร์']);
+ph('w_reco4','โปรแกรมแนะนำ 4 ท่า',['ชุดสั้น ~30 นาที','กดเริ่มเล่นได้ทันที → ไปหน้าเล่นเอง']);
+ph('w_reco6','โปรแกรมแนะนำ 6 ท่า',['ชุดเต็ม ~50 นาที','ปรับระดับ มือใหม่ / กลาง / สูง']);
+ph('w_create','สร้างโปรแกรมของฉัน',['ตั้งชื่อ เลือกท่าจากคลัง ตั้ง เซ็ต เรป','บันทึกไว้ใช้ซ้ำ']);
+ph('my_programs','โปรแกรมของฉัน',['โปรแกรมที่สร้างเอง / ที่เทรนเนอร์ให้']);
+ph('my_history','ประวัติการเล่น',['ทุกครั้งที่เล่น ทั้งกับเทรนเนอร์และเล่นเอง','ท่า เซ็ต น้ำหนัก','ประวัติกับเทรนเนอร์เดิมยังอยู่ แม้เลิกเทรนแล้ว']);
+ph('my_lifts','สถิติน้ำหนักที่ยก',['กราฟต่อท่า','สถิติสูงสุด (PR) ฉลองเมื่อทำลายสถิติ']);
+ph('food_photo','ถ่ายรูปอาหาร (AI)',['ถ่าย / เลือกรูป','AI แยกเมนู ประเมินปริมาณ แคล มาโคร','แก้ไขก่อนบันทึก']);
+ph('food_search','ค้นหาอาหาร (AI)',['พิมพ์ภาษาพูด เช่น "ข้าวสวย 50 กรัม", "กะเพราไก่ไข่ดาว"','AI แปลงเป็นเมนู + ปริมาณ + มาโคร','กดดาวเก็บเป็นเมนูโปรด']);
+ph('food_fav','เมนูโปรด',['เมนูที่บันทึกไว้ กดเพิ่มได้แตะเดียว','ไม่ต้องค้นหาซ้ำ']);
+ph('food_recent','กินล่าสุด',['เมนูที่เพิ่งกิน 7 วันล่าสุด กดซ้ำได้']);
+ph('food_custom','สร้างเมนูเอง',['กรอกชื่อ + ปริมาณฐาน เช่น ข้าว 100 ก.','กรอก คาร์บ โปรตีน ไขมัน → กดปุ่ม "คำนวณแคล" (คาร์บ×4 + โปรตีน×4 + ไขมัน×9)','หรือกรอกแคลแล้วระบบช่วยแบ่งมาโคร']);
+ph('meal_add','เพิ่มมื้อ',['เลือกชื่อมื้อ: มื้อเช้า / มื้อเที่ยง / มื้อเย็น / มื้อว่าง','หรือพิมพ์ชื่อเอง เช่น "ก่อนเล่น", "หลังเล่น", "มื้อดึก"','ชื่อที่พิมพ์เองจำไว้ใช้ครั้งต่อไป','แต่ละมื้อแสดงแคล + มาโครรวมของมื้อนั้น · เพิ่มอาหารหลายรายการในมื้อเดียวได้']);
+ph('meal_detail','แก้ไขมื้อ',['เปลี่ยนปริมาณ เช่น 100 → 150 ก. แคลและมาโครปรับตามอัตราส่วนอัตโนมัติ','แก้มาโคร ↔ แคล ซิงก์กันได้','ลบ / ย้ายไปมื้ออื่น','คอมเมนต์จากเทรนเนอร์']);
+ph('food_history','ประวัติอาหารรายวัน',['ย้อนดูแต่ละวัน แคลรวมเทียบเป้า']);
+ph('my_nutrition','แผนจากเทรนเนอร์',['เป้าแคล / มาโครที่เทรนเนอร์ตั้ง','คำแนะนำจากเทรนเนอร์']);
+ph('self_tdee','ตั้งเป้าเอง',['คำนวณ TDEE จากข้อมูลร่างกาย','เป้า: ลด / รักษา / เพิ่มน้ำหนัก','น้ำหนักเป้าหมาย + วันที่อยากถึงเป้า เช่น 65 กก. ภายใน 31 ธ.ค.','ระบบคำนวณแคลต่อวันให้ตามวันที่ตั้ง · เตือนถ้าเร็วเกินปลอดภัย (เกิน ~1% ของน้ำหนักตัวต่อสัปดาห์) และเสนอวันที่ที่เหมาะกว่า','วันที่เริ่มแผน บันทึกอัตโนมัติ · แสดงนับถอยหลัง "เหลือ 82 วัน"','สไตล์การกิน: high carb / low carb / สมดุล / กำหนดมาโครเอง','ประวัติการเปลี่ยนเป้า (วันที่ + ค่าเดิม → ค่าใหม่)']);
+ph('water','บันทึกน้ำดื่ม',['แตะเพิ่มทีละแก้ว เป้าต่อวัน'],1);
+ph('pg_new','ถ่ายรูปรอบใหม่',['หน้า / ข้าง / หลัง พร้อมเส้นไกด์ยืนตำแหน่งเดิม','ชั่งน้ำหนัก วัดสัดส่วนพร้อมกัน']);
+ph('pg_compare','เทียบ before / after',['เลือก 2 วันมาวางข้างกัน / สไลด์เทียบ']);
+ph('pg_measure','น้ำหนักและสัดส่วน',['น้ำหนัก รอบเอว สะโพก ต้นแขน ต้นขา']);
+ph('pg_chart','กราฟการเปลี่ยนแปลง',['น้ำหนักและสัดส่วนตามเวลา']);
+ph('share_card','การ์ดแชร์',['การ์ดสวย ๆ: before/after, สรุปการเล่นวันนี้, PR ใหม่, สตรีค','ใส่โลโก้ยิม/ชื่อเทรนเนอร์ (เป็นโฆษณาฟรี)','ปิดหน้า / เบลอได้ก่อนแชร์'],1);
+ph('badges','เหรียญความสำเร็จ',['เช่น เล่นครบ 10 ครั้ง, ลดได้ 3 กก., บันทึกอาหารครบ 7 วัน, PR แรก','เหรียญหายาก แชร์ได้'],1);
+ph('challenges','ภารกิจและชาเลนจ์',['ภารกิจรายสัปดาห์: เล่น 3 ครั้ง, โปรตีนถึงเป้า 5 วัน','ชาเลนจ์ของยิม 30 วัน มีของรางวัล'],1);
+ph('leaderboard','อันดับในยิม',['จัดอันดับตามจำนวนครั้งที่มา / สตรีค (ไม่ใช่น้ำหนักตัว)','เลือกไม่แสดงชื่อได้'],1);
+ph('points','แต้มสะสมและแลกของ',['ได้แต้มจากมาเล่น บันทึกอาหาร ทำภารกิจ','แลกของที่ยิม/เทรนเนอร์ตั้งไว้'],1);
+ph('my_info','ข้อมูลส่วนตัว',['ชื่อ วันเกิด ส่วนสูง เป้าหมาย']);
+ph('my_trainer','เทรนเนอร์ของฉัน',['มีเทรนเนอร์: โปรไฟล์ แพ็ก ครั้งคงเหลือ นัดถัดไป แชต','ไม่มีเทรนเนอร์: ขึ้นแจ้ง "ตอนนี้ยังไม่มีเทรนเนอร์" + ปุ่มหาเทรนเนอร์ / แสดง QR ให้เทรนเนอร์สแกน','เคยมีเทรนเนอร์: ประวัติการเทรน โปรแกรม และคอมเมนต์อาหารเดิมยังอยู่ครบ','เลิกกับเทรนเนอร์ / ย้ายเทรนเนอร์ได้ ประวัติตามตัวลูกเทรนไป']);
+ph('my_package','แพ็ก PT ของฉัน',['รอบใช้ไป / เหลือ วันหมดอายุ']);
+ph('my_membership','สมาชิกยิมของฉัน',['แบบสมาชิก + เหลือกี่วัน','QR เช็กอินเข้ายิม','ขอพักสมาชิก / ต่ออายุ']);
+ph('my_consent','ความยินยอม PDPA',['ดู / ถอนความยินยอม','ขอลบข้อมูล']);
+ph('mk_near','เทรนเนอร์ / ยิมใกล้ฉัน',['แผนที่แสดงหมุดยิม (จากที่เจ้าของยิมปักไว้) + เทรนเนอร์','รายการเรียงตามระยะทาง','ราคาเริ่มต้น ดาวรีวิว · กดหมุดดูโปรไฟล์ยิม / นำทาง']);
+ph('mk_filter','ค้นตามเป้าหมาย',['ลดไขมัน เพิ่มกล้าม ผู้สูงอายุ หลังคลอด กายภาพ','เพศเทรนเนอร์ งบ ช่วงเวลา']);
+ph('mk_trainer','โปรไฟล์เทรนเนอร์',['ประวัติ ใบรับรอง ผลงาน รีวิว','แพ็กและราคา','ช่องทางติดต่อ: LINE / โทร / Facebook / IG']);
+ph('mk_online','โค้ชออนไลน์',['เทรนเนอร์ที่รับดูแลทางไกล ทั่วประเทศ'],1);
+
+/* ---------- Built hub screens ---------- */
+const R = (lb,to,o) => Object.assign({type:'row',lb,to},o||{});
+/* item 1: every "add a person" screen uses the same three invite methods */
+const INV = (title, who, after) => ({title, sections:[
+  {items:[{type:'note',text:`${who} ต้องสมัครแอปก่อน (มี UID แล้ว)`}]},
+  {title:'เลือกวิธีเชิญ',items:[
+    R('สร้างลิงก์เชิญ','inv_link',{icon:'share',sb:'ส่งทาง LINE · คนรับล็อกอินแล้วกดยอมรับ'}),
+    R('ค้นหาด้วย UID / เบอร์ / อีเมล','inv_search',{icon:'search'}),
+    R('สแกน QR','inv_scan',{icon:'qr',sb:'จากหน้า "ฉัน" ของอีกฝ่าย'})]}
+].concat(after||[])});
+const ME_ID = R('UID และ QR ของฉัน','my_qr',{icon:'qr',sb:'UID 100245 (ตัวอย่าง)'});
+const ME_MODE = R('สลับโหมด / เปิดโหมดใหม่','switch_mode',{icon:'swap',sb:'ส่วนตัว · เทรนเนอร์ · ยิม'});
+const ME_PLAN = R('แผนและราคา','plans',{icon:'card',sb:'ทดลองใช้ฟรี 7 วัน'});
+const S = {
+/* ===== invite screens ===== */
+invite_client: INV('เพิ่มลูกเทรน','ลูกเทรน',[{items:[{type:'note',text:'ตอบรับแล้ว → ไปเพิ่มแพ็กในหน้าแพ็กเกจของลูกเทรนคนนั้น'}]}]),
+o_add_trainer: INV('เพิ่มเทรนเนอร์','เทรนเนอร์',[{items:[R('ราคาและค่าคอมของเทรนเนอร์','o_trainer_rate',{icon:'card',sb:'ตั้งหลังเทรนเนอร์ตอบรับ'})]}]),
+o_assign_client: INV('เพิ่มลูกเทรนให้เทรนเนอร์ต้น','ลูกเทรน',[{items:[R('หรือเลือกจากสมาชิกในยิม','o_members_list',{icon:'people'})]}]),
+o_member_new: INV('เพิ่มสมาชิกใหม่','สมาชิกที่มีแอป',[{title:'ลูกค้าไม่มีแอป',items:[R('ลงทะเบียนที่เคาน์เตอร์','o_member_noapp',{icon:'people',sb:'ชื่อ + เบอร์โทร · ได้รหัสสมาชิกแทน UID'})]},{items:[R('ต่อไป: เลือกแบบสมาชิกและรับชำระ','o_member_plan_pick',{icon:'card'})]},{items:[{type:'note',text:'ขาจรรายวันไม่ต้องเพิ่มเป็นสมาชิก ใช้ปุ่ม "บันทึกขาจร"'}]}]),
+o_staff:{title:'ผู้ดูแลและสิทธิ์', sections:[
+  {items:[{type:'big2',items:[{label:'เพิ่มผู้ดูแล',icon:'shield',to:'o_staff_add',p:1},{label:'สิทธิ์แต่ละระดับ',icon:'blank',to:'o_staff_roles'}]}]},
+  {title:'ผู้ดูแล (ตัวอย่าง)',items:[R('คุณเอ (คุณ)','o_staff_roles',{ic:'เอ',sb:'Owner'}),R('คุณบี','o_staff_roles',{ic:'บี',sb:'Admin'}),R('คุณซี','o_staff_roles',{ic:'ซี',sb:'Operator'})]}
+]},
+o_staff_add: INV('เพิ่มผู้ดูแล','ผู้ดูแล',[{items:[{type:'note',text:'ตอบรับแล้ว → เลือกระดับ Admin หรือ Operator'}]}]),
+/* ===== owner ===== */
+o_home:{title:'ภาพรวมยิม', sections:[
+  {title:'วันนี้ (ตัวอย่าง)',items:[{type:'tiles',items:[
+    {v:'64',l:'เช็กอินสมาชิก',to:'o_checkins'},{v:'6',l:'ขาจร',to:'o_walkin'},{v:'18',l:'นัด PT',to:'o_today_appts'},{v:'฿24.5k',l:'ยอดขาย',to:'o_finance'}]}]},
+  {title:'ต้องดูแล',items:[{type:'tiles',items:[
+    {v:'9',l:'สมาชิกใกล้หมด',to:'o_expiring',warn:1},{v:'5',l:'แพ็ก PT ใกล้หมด',to:'o_pt_expiring',warn:1}]}]},
+  {items:[{type:'big2',items:[{label:'เช็กอินสมาชิก',icon:'qr',to:'o_checkin_scan',p:1}]}]},
+  {title:'รายงาน',items:[R('รายได้และยอดขาย','o_finance',{icon:'money',nw:1}),R('รายงานประจำเดือน','o_report',{icon:'chart'}),R('การแจ้งเตือน','notifications',{icon:'bell'})]}
+]},
+o_sched:{title:'ตาราง', sections:[
+  {items:[{type:'big2',items:[{label:'ตารางวันนี้',icon:'today',to:'o_schedule_day',p:1},{label:'ทั้งสัปดาห์',icon:'cal',to:'o_schedule_week'}]}]},
+  {items:[R('เวลาว่างของเทรนเนอร์','o_free_slots',{icon:'gauge',sb:'ดูว่าใครว่างช่วงไหน จองให้ลูกเทรน'}),R('คลาสกลุ่ม','o_classes',{icon:'people',nw:1})]},
+  {title:'ตอนนี้ในยิม (ตัวอย่าง)',items:[R('ต้น → คุณมิ้นท์','appt_detail',{ic:'10:00',badge:['กำลังเทรน','ok']}),R('ฝน → คุณกอล์ฟ','appt_detail',{ic:'11:00',sb:'ถัดไป'})]}
+]},
+o_team:{title:'ทีมเทรนเนอร์', sections:[
+  {items:[{type:'big2',items:[{label:'เพิ่มเทรนเนอร์',icon:'team',to:'o_add_trainer',p:1},{label:'ย้ายลูกเทรน',icon:'swap',to:'o_move'}]}]},
+  {title:'เทรนเนอร์ 4 คน (ตัวอย่าง)',items:[
+    R('เทรนเนอร์ต้น','o_trainer',{ic:'ต้น',sb:'ลูกเทรน 14 · วันนี้ 5 นัด',badge:['ใกล้หมด 2','warn']}),
+    R('เทรนเนอร์เจ','o_trainer',{ic:'เจ',sb:'ลูกเทรน 12 · วันนี้ 6 นัด'}),
+    R('เทรนเนอร์ฝน','o_trainer',{ic:'ฝน',sb:'ลูกเทรน 11 · วันนี้ 4 นัด'}),
+    R('เทรนเนอร์บี','o_trainer',{ic:'บี',sb:'ลูกเทรน 9 · ว่างบ่ายนี้'})]},
+  {items:[R('ค่าคอมมิชชันเทรนเนอร์','o_commission',{icon:'money',nw:1})]}
+]},
+o_trainer:{title:'เทรนเนอร์ต้น', sections:[
+  {items:[{type:'tiles',items:[{v:'14',l:'ลูกเทรน',to:'o_trainer_clients'},{v:'132',l:'รอบคงเหลือรวม',to:'o_trainer_clients'},{v:'2',l:'แพ็กใกล้หมด',to:'o_pt_expiring',warn:1}]}]},
+  {items:[R('ลูกเทรนในความดูแล','o_trainer_clients',{icon:'people',sb:'ชื่อ + ครั้งคงเหลือของแต่ละคน'}),R('ตารางและเวลาว่าง','o_trainer_sched',{icon:'cal'}),R('เพิ่มลูกเทรนให้เทรนเนอร์คนนี้','o_assign_client',{icon:'people'}),R('ย้ายลูกเทรนไปคนอื่น','o_move',{icon:'swap'}),R('ราคาและค่าคอม','o_trainer_rate',{icon:'card',sb:'10 ครั้ง ฿8,000 · 20 ครั้ง ฿15,000'}),R('ผลงานและรีวิว','o_trainer_stats',{icon:'chart'})]}
+]},
+o_members:{title:'สมาชิก', sections:[
+  {items:[{type:'tiles',items:[{v:'212',l:'สมาชิกใช้งานอยู่',to:'o_members_list'},{v:'9',l:'หมดใน 7 วัน',to:'o_expiring',warn:1},{v:'14',l:'หมดเดือนนี้',to:'o_expired'}]}]},
+  {items:[{type:'big2',items:[{label:'เพิ่มสมาชิกใหม่',icon:'people',to:'o_member_new',p:1},{label:'ต่ออายุ',icon:'swap',to:'o_renew'}]}]},
+  {title:'แยกตามแบบสมาชิก (ตัวอย่าง)',items:[R('รายวัน (ขาจร)','o_walkin',{ic:'1D',sb:'วันนี้ 6 คน · ไม่นับเป็นสมาชิก'}),R('รายเดือน','o_members_list',{ic:'1M',sb:'58 คน'}),R('3 เดือน','o_members_list',{ic:'3M',sb:'71 คน'}),R('6 เดือน','o_members_list',{ic:'6M',sb:'49 คน'}),R('1 ปี','o_members_list',{ic:'1Y',sb:'34 คน'})]},
+  {items:[R('ตั้งราคาแพ็กเกจสมาชิก','o_member_plans',{icon:'card',sb:'รายวัน · 1 · 3 · 6 เดือน · 1 ปี'})]},
+  {title:'อื่น ๆ',items:[R('ค้นหาสมาชิก','o_members_list',{icon:'search'}),R('บันทึกขาจร','o_walkin_add',{icon:'people'}),R('พักสมาชิก / วันปิดยิม','o_freeze',{icon:'cal'}),R('ลูกเทรน PT ทั้งหมด','o_all_clients',{icon:'dumbbell'}),R('ประวัติเช็กอิน','o_checkins',{icon:'qr',nw:1})]}
+]},
+o_freeze:{title:'พักสมาชิก / วันปิดยิม', sections:[
+  {items:[{type:'note',text:'วันในหน้านี้ไม่นับอายุสมาชิกและแพ็ก PT · วันหมดอายุเลื่อนให้อัตโนมัติ'}]},
+  {title:'วันปิดยิม · มีผลกับทุกคน',items:[R('ปิดประจำทุกสัปดาห์','o_closed_weekly',{icon:'cal',sb:'ตัวอย่าง: ปิดทุกวันอาทิตย์'}),R('วันหยุดพิเศษ','o_holidays',{icon:'star',sb:'ตัวอย่าง: หยุดปีใหม่ 31 ธ.ค. – 2 ม.ค.'})]},
+  {title:'พักรายคน',items:[R('พักสมาชิก','o_freeze_person',{icon:'people',sb:'เช่น ป่วย ไปต่างประเทศ'})]},
+  {title:'ตั้งค่า',items:[R('กติกาการพัก','o_freeze_rules',{icon:'gear',sb:'สูงสุด 30 วัน/ปี · เลื่อนแพ็ก PT ด้วย'})]}
+]},
+o_more:{title:'เพิ่มเติม', sections:[
+  {title:'การเงิน',items:[R('รายได้และยอดขาย','o_finance',{icon:'money',nw:1}),R('ขายหน้าร้าน','o_sell',{icon:'shop'}),R('ค่าคอมเทรนเนอร์','o_commission',{icon:'money',nw:1})]},
+  {title:'ผู้ดูแลระบบ',items:[R('ผู้ดูแลและสิทธิ์','o_staff',{icon:'shield',sb:'Owner · Admin · Operator'}),R('บันทึกการใช้งาน','o_activity',{icon:'blank',nw:1})]},
+  {title:'ยิม',items:[R('ข้อมูลยิมและสาขา','o_gym_info',{icon:'home',sb:'ที่อยู่ เวลาเปิดปิด ปักหมุดแผนที่'}),R('ตั้งราคาแพ็กเกจสมาชิก','o_member_plans',{icon:'card'}),R('แพ็ก PT และราคา','o_packages',{icon:'shop',sb:'ราคาแยกรายเทรนเนอร์'}),R('พักสมาชิก / วันปิดยิม','o_freeze',{icon:'cal'}),R('นโยบายขาดนัด','o_noshow',{icon:'cal'})]},
+  {title:'การตลาดและแรงจูงใจ',items:[R('หน้าโปรไฟล์ยิมในแอป','o_gym_page',{icon:'pin',nw:1}),R('ของรางวัลแลกแต้ม','o_rewards_setup',{icon:'trophy',nw:1}),R('ประกาศถึงสมาชิก','o_announce',{icon:'bell',nw:1})]},
+  {title:'ข้อมูลและบัญชี',items:[R('สิทธิ์การมองเห็นข้อมูล','o_privacy',{icon:'people'}),R('PDPA และความยินยอม','o_pdpa',{icon:'shield'}),ME_ID,ME_MODE,ME_PLAN,R('ออกจากระบบ','logout',{icon:'back'})]}
+]},
+/* operator (front desk) */
+op_desk:{title:'หน้าร้าน', sections:[
+  {items:[{type:'big2',items:[{label:'เช็กอินสมาชิก',icon:'qr',to:'o_checkin_scan',p:1},{label:'บันทึกขาจร',icon:'people',to:'o_walkin_add'}]}]},
+  {items:[R('ขายหน้าร้าน','o_sell',{icon:'money'}),R('เพิ่มสมาชิกใหม่','o_member_new',{icon:'people'}),R('ต่ออายุสมาชิก','o_renew',{icon:'swap'}),R('สมาชิกใกล้หมดอายุ','o_expiring',{icon:'bell',badge:['9 คน','warn']})]},
+  {items:[{type:'note',text:'ระดับ Operator ไม่เห็นรายได้รวม ค่าคอม และตั้งค่ายิม'}]}
+]},
+op_me:{title:'ฉัน', sections:[{items:[ME_ID,ME_MODE,R('การแจ้งเตือน','notifications',{icon:'bell'}),R('ออกจากระบบ','logout',{icon:'back'})]}]},
+
+/* ===== trainer ===== */
+t_today:{title:'วันนี้', sections:[
+  {items:[{type:'hero',eb:'นัดถัดไป · 10:00–11:00 (ตัวอย่าง)',tt:'คุณมิ้นท์',sb:'ขา + ก้น · รอบที่ 12/20',acts:[{label:'เริ่มเทรน',to:'session',p:1},{label:'เลื่อนนัด',to:'reschedule'}]}]},
+  {title:'ตารางวันนี้',items:[
+    R('คุณเอก','appt_detail',{ic:'07:00',sb:'อก + ไหล่ · เสร็จแล้ว',badge:['ตัดรอบแล้ว','ok']}),
+    R('คุณมิ้นท์','appt_detail',{ic:'10:00',sb:'ขา + ก้น'}),
+    R('คุณโอ๊ต','appt_detail',{ic:'13:00',sb:'หลัง + แขน',badge:['เหลือ 2 รอบ','warn']}),
+    R('คุณบอส','requests',{ic:'19:00',sb:'ขอเลื่อนเป็นพรุ่งนี้',badge:['รออนุมัติ','wait']})]},
+  {title:'อื่น ๆ',items:[R('คำขอเลื่อนนัด','requests',{icon:'swap',sb:'1 รายการรอตอบ'}),R('ลูกเทรนที่หายไปนาน','t_inactive',{icon:'bell',nw:1}),R('การแจ้งเตือน','notifications',{icon:'bell'})]}
+]},
+t_cal:{title:'ปฏิทิน', sections:[
+  {items:[{type:'big2',items:[{label:'สร้างนัดใหม่',icon:'cal',to:'appt_new',p:1},{label:'ตารางทั้งสัปดาห์',icon:'today',to:'week'}]}]},
+  {items:[R('เวลาว่างของฉัน','availability',{icon:'gauge'}),R('คำขอเลื่อนนัด','requests',{icon:'swap'}),R('ซิงก์ Google Calendar','gcal_sync',{icon:'cal',nw:1})]}
+]},
+t_clients:{title:'ลูกเทรนของฉัน', sections:[
+  {items:[{type:'big2',items:[{label:'เพิ่มลูกเทรน',icon:'people',to:'invite_client',p:1},{label:'ค้นหา',icon:'search',to:'search_client'}]}]},
+  {title:'รายชื่อ (ตัวอย่าง)',items:[
+    R('คุณมิ้นท์ ศิริพร','t_client',{ic:'มิ้นท์',sb:'ลดไขมัน · เหลือ 8/20 รอบ'}),
+    R('คุณโอ๊ต วรพล','t_client',{ic:'โอ๊ต',sb:'เพิ่มกล้าม · เหลือ 2/10 รอบ',badge:['ใกล้หมด','warn']}),
+    R('คุณแพร ณิชา','t_client',{ic:'แพร',sb:'ออนไลน์ · แพ็กรายเดือน'})]},
+  {items:[R('สิทธิ์ฟรีของลูกเทรน','client_perk',{icon:'star',sb:'ใช้ไป 9 / 15 คน (ตัวอย่าง)'}),R('ลูกเทรนออนไลน์ (โค้ชทางไกล)','t_online',{icon:'chat',nw:1})]}
+]},
+t_client:{title:'คุณมิ้นท์ ศิริพร', sections:[
+  {title:'การเทรน',items:[R('วางโปรแกรมล่วงหน้า','c_plan_ahead',{icon:'pencil'}),R('ประวัติการเทรน','c_history',{icon:'blank',sb:'ท่า เซ็ต น้ำหนัก ย้อนหลังทุกครั้ง'}),R('สถิติน้ำหนักที่ยก','c_lifts',{icon:'chart'}),R('นัดของลูกเทรนคนนี้','c_appts',{icon:'cal'}),R('แพ็กเกจ / ครั้งคงเหลือ','c_package',{icon:'shop',sb:'เหลือ 8 จาก 20 ครั้ง · เพิ่มแพ็ก / แก้ไข'})]},
+  {title:'โภชนาการ',items:[R('คำนวณ TDEE','c_tdee',{icon:'gauge'}),R('แผนมาโคร','c_nutrition',{icon:'food'}),R('บันทึกอาหารของลูกเทรน','c_food',{icon:'camera'})]},
+  {title:'ผลลัพธ์',items:[R('Progress before/after','c_progress',{icon:'chart'}),R('ส่งสรุปผลให้ลูกเทรน','c_report_card',{icon:'share',nw:1})]},
+  {title:'สื่อสาร',items:[R('แชตกับลูกเทรน','c_chat',{icon:'chat',nw:1})]}
+]},
+t_lib:{title:'คลังท่าและโปรแกรม', sections:[
+  {items:[{type:'big2',items:[{label:'คลังท่าทั้งหมด',icon:'dumbbell',to:'exercises',p:1},{label:'สร้างเทมเพลต',icon:'pencil',to:'template_new'}]}]},
+  {title:'ท่าตามส่วน',items:[{type:'parts',to:'ex_part'}]},
+  {items:[R('เทมเพลตของฉัน','templates',{icon:'blank',sb:'Push / Pull / Legs, Full body'})]}
+]},
+t_me:{title:'ฉัน', sections:[
+  {title:'หน้าขายตัวเอง',items:[R('โปรไฟล์สาธารณะ','t_public_profile',{icon:'me',sb:'คนค้นเจอใน "หาเทรนเนอร์ใกล้ฉัน"'}),R('รีวิวจากลูกค้า','t_reviews',{icon:'star'}),R('ลิงก์และ QR โปรไฟล์','t_share_link',{icon:'share',nw:1})]},
+  {title:'รายได้',items:[R('รายได้และค่าคอมของฉัน','t_income',{icon:'money'})]},
+  {title:'บัญชี',items:[ME_ID,ME_MODE,ME_PLAN]},
+  {title:'ตั้งค่า',items:[R('ตั้งค่าการแจ้งเตือน','notify_settings',{icon:'bell'}),R('เชื่อมต่อ LINE','line_connect',{icon:'chat'}),R('ออกจากระบบ','logout',{icon:'back'})]}
+]},
+f_biz:{title:'ธุรกิจของฉัน', sections:[
+  {title:'หน้าขายตัวเอง',items:[R('โปรไฟล์สาธารณะ','t_public_profile',{icon:'me',sb:'ประวัติ ราคา ช่องทางติดต่อ'}),R('รีวิวจากลูกค้า','t_reviews',{icon:'star'}),R('ลิงก์และ QR โปรไฟล์','t_share_link',{icon:'share',nw:1})]},
+  {title:'การเงิน',items:[R('รายงานรายได้','f_report',{icon:'chart'}),R('แพ็กและราคา','o_packages',{icon:'card',sb:'จำนวนครั้ง + อายุแพ็ก'}),R('นโยบายขาดนัด','o_noshow',{icon:'cal'})]},
+  {title:'บัญชี',items:[ME_ID,ME_MODE,ME_PLAN,R('เชื่อมต่อ LINE','line_connect',{icon:'chat'}),R('ออกจากระบบ','logout',{icon:'back'})]}
+]},
+
+/* ===== user: trainee ===== */
+u_home_c:{title:'สวัสดี คุณมิ้นท์', sections:[
+  {items:[R('เทรนเนอร์ของฉัน','my_trainer',{icon:'dumbbell',sb:'เทรนเนอร์ต้น · เหลือ 8 ครั้ง'})]},
+  {items:[{type:'hero',eb:'นัดเทรนถัดไป (ตัวอย่าง)',tt:'วันนี้ 10:00',sb:'กับเทรนเนอร์ต้น · แพ็กเหลือ 8 รอบ',acts:[{label:'ดูท่าที่จะเล่น',to:'next_workout',p:1},{label:'ขอเลื่อนนัด',to:'my_reschedule'}]}]},
+  {items:[{type:'streak',to:'rewards'}]},
+  {items:[{type:'big2',items:[{label:'บันทึกอาหาร',icon:'camera',to:'u_food',p:1},{label:'เล่นเองวันนี้',icon:'play',to:'w_free'}]}]},
+  {items:[{type:'macro',to:'u_food',note:'เป้าจากเทรนเนอร์ต้น',cal:[520,1650],p:[38,124],c:[52,185],f:[18,46]}]},
+  {title:'วันนี้',items:[R('ข้อความจากเทรนเนอร์','notifications',{icon:'chat',sb:'เน้นโปรตีนทุกมื้อ ดื่มน้ำ 2 ลิตร'}),R('บัตรสมาชิก / เช็กอินยิม','my_membership',{icon:'qr',sb:'เหลือ 41 วัน'})]}
+]},
+/* ===== user: self ===== */
+u_home_s:{title:'สวัสดี คุณนัท', sections:[
+  {items:[R('เทรนเนอร์ของฉัน','my_trainer',{icon:'dumbbell',sb:'ยังไม่มีเทรนเนอร์ · ประวัติกับโค้ชแนนยังดูได้',badge:['เล่นเอง','wait']})]},
+  {items:[{type:'hero',eb:'วันนี้เล่นอะไรดี',tt:'ถึงคิว: ขา',sb:'ตามโปรแกรมของฉัน · เล่นล่าสุด 2 วันก่อน',acts:[{label:'เริ่มเล่น',to:'w_free',p:1},{label:'เลือกส่วนอื่น',to:'u_train'}]}]},
+  {items:[{type:'streak',to:'rewards'}]},
+  {items:[{type:'big2',items:[{label:'บันทึกอาหาร',icon:'camera',to:'u_food',p:1},{label:'ตั้งเป้าเอง',icon:'gauge',to:'self_tdee'}]}]},
+  {items:[{type:'macro',to:'u_food',note:'เป้า: เพิ่มกล้าม · high carb',cal:[980,2100],p:[62,140],c:[120,290],f:[31,60]}]},
+  {title:'อยากได้คนช่วย?',items:[R('หาเทรนเนอร์ใกล้ฉัน','u_find',{icon:'pin',sb:'ดูราคา รีวิว ช่องทางติดต่อ'})]}
+]},
+u_train:{title:'ออกกำลังกาย', sections:[
+  {items:[{type:'big2',items:[{label:'เล่นเองวันนี้',icon:'play',to:'w_free',p:1},{label:'โปรแกรมของฉัน',icon:'blank',to:'my_programs'}]}]},
+  {title:'วันนี้อยากเล่นส่วนไหน',items:[{type:'parts',to:'w_part'}]},
+  {items:[R('โปรแกรมครั้งหน้า (จากเทรนเนอร์)','next_workout',{icon:'dumbbell'}),R('สร้างโปรแกรมของฉัน','w_create',{icon:'pencil'}),R('คลังท่าทั้งหมด','exercises',{icon:'search'}),R('ประวัติการเล่น','my_history',{icon:'blank'}),R('สถิติน้ำหนักที่ยก','my_lifts',{icon:'chart'})]}
+]},
+w_part:{title:'เล่นขา (ตัวอย่าง)', sections:[
+  {title:'โปรแกรมแนะนำ',items:[{type:'big2',items:[{label:'4 ท่า · ~30 นาที',icon:'play',to:'w_reco4',p:1},{label:'6 ท่า · ~50 นาที',icon:'play',to:'w_reco6'}]}]},
+  {items:[R('ดูท่าเล่นขาทั้งหมด','ex_part',{icon:'search'}),R('สร้างโปรแกรมขาของฉัน','w_create',{icon:'pencil'})]}
+]},
+u_food:{title:'อาหาร', sections:[
+  {items:[{type:'macro',to:'my_nutrition',note:'แตะเพื่อดูเป้า',cal:[1381,1650],p:[58,124],c:[170,185],f:[49,46]}]},
+  {title:'เพิ่มมื้อ',items:[{type:'big3',items:[{label:'ถ่ายรูป (AI)',icon:'camera',to:'food_photo',p:1},{label:'ค้นหา (AI)',icon:'search',to:'food_search'},{label:'เมนูโปรด',icon:'star',to:'food_fav'}]}]},
+  {items:[R('กินล่าสุด','food_recent',{icon:'swap',sb:'กดซ้ำได้ ไม่ต้องค้นใหม่'}),R('สร้างเมนูเอง','food_custom',{icon:'pencil',sb:'กรอกมาโคร → กดคำนวณแคล'})]},
+  {title:'มื้อวันนี้ (ตัวอย่าง)',items:[
+    R('ไข่ต้ม 2 ฟอง, ขนมปังโฮลวีต','meal_detail',{ic:'เช้า',sb:'520 kcal · P 28 C 52 F 18'}),
+    R('ข้าวสวย 150 ก., อกไก่ย่าง','meal_detail',{ic:'เที่ยง',sb:'แตะเพื่อแก้ปริมาณ → มาโครปรับตาม'}),
+    R('ยังไม่ได้บันทึก','food_search',{ic:'เย็น',sb:'แตะเพื่อเพิ่ม'}),
+    R('+ เพิ่มมื้อ','meal_add',{icon:'pencil',sb:'เช้า · เที่ยง · เย็น · ว่าง หรือพิมพ์ชื่อเอง'})]},
+  {title:'เป้าหมาย',items:[R('แผนจากเทรนเนอร์','my_nutrition',{icon:'gauge',sb:'ถ้ามีเทรนเนอร์ จะแสดงเป้าที่เทรนเนอร์ตั้ง'}),R('ตั้งเป้าเอง (TDEE)','self_tdee',{icon:'gauge',sb:'น้ำหนักเป้า + วันที่ถึงเป้า · high / low carb'}),R('บันทึกน้ำดื่ม','water',{icon:'food',nw:1}),R('ประวัติอาหารรายวัน','food_history',{icon:'cal'})]}
+]},
+u_prog:{title:'Progress', sections:[
+  {items:[{type:'big2',items:[{label:'ถ่ายรูปรอบใหม่',icon:'camera',to:'pg_new',p:1},{label:'เทียบ before/after',icon:'swap',to:'pg_compare'}]}]},
+  {items:[R('น้ำหนักและสัดส่วน','pg_measure',{icon:'pencil'}),R('กราฟการเปลี่ยนแปลง','pg_chart',{icon:'chart'}),R('การ์ดแชร์ผลลัพธ์','share_card',{icon:'share',nw:1})]},
+  {title:'แรงจูงใจ',items:[R('รางวัลและความสำเร็จ','rewards',{icon:'trophy',nw:1})]}
+]},
+rewards:{title:'รางวัลและความสำเร็จ', sections:[
+  {items:[{type:'streak',to:'badges'}]},
+  {items:[{type:'note',text:'ระบบนี้คือข้อเสนอสำหรับข้อ 8 ทั้งหมด'}]},
+  {items:[R('เหรียญความสำเร็จ','badges',{icon:'trophy',sb:'ได้แล้ว 7 / 40 เหรียญ',nw:1}),R('ภารกิจและชาเลนจ์','challenges',{icon:'star',sb:'สัปดาห์นี้ 2 / 3',nw:1}),R('แต้มสะสมและแลกของ','points',{icon:'money',sb:'1,250 แต้ม',nw:1}),R('อันดับในยิม','leaderboard',{icon:'chart',nw:1}),R('การ์ดแชร์','share_card',{icon:'share',nw:1})]}
+]},
+u_me_c:{title:'ฉัน', sections:[
+  {items:[R('ข้อมูลส่วนตัว','my_info',{icon:'me'}),R('เทรนเนอร์ของฉัน','my_trainer',{icon:'dumbbell',sb:'เทรนเนอร์ต้น'}),R('แพ็ก PT ของฉัน','my_package',{icon:'shop',sb:'เหลือ 8 รอบ'}),R('สมาชิกยิมของฉัน','my_membership',{icon:'qr',sb:'3 เดือน · เหลือ 41 วัน'}),R('รางวัลและแต้ม','rewards',{icon:'trophy',nw:1})]},
+  {title:'บัญชี',items:[ME_ID,ME_MODE,ME_PLAN]},
+  {items:[R('ความยินยอม PDPA','my_consent',{icon:'shield'}),R('ตั้งค่าการแจ้งเตือน','notify_settings',{icon:'bell'}),R('เชื่อมต่อ LINE','line_connect',{icon:'chat'}),R('ออกจากระบบ','logout',{icon:'back'})]}
+]},
+u_find:{title:'หาเทรนเนอร์', sections:[
+  {items:[{type:'big2',items:[{label:'ใกล้ฉัน',icon:'pin',to:'mk_near',p:1},{label:'ค้นตามเป้าหมาย',icon:'search',to:'mk_filter'}]}]},
+  {title:'แนะนำใกล้คุณ (ตัวอย่าง)',items:[
+    R('โค้ชต้น · FitLab ลาดพร้าว','mk_trainer',{ic:'ต้น',sb:'ลดไขมัน · 1.2 กม. · เริ่ม ฿700/รอบ',badge:['4.9','ok']}),
+    R('โค้ชแนน · ฟรีแลนซ์','mk_trainer',{ic:'แนน',sb:'หลังคลอด · มาที่คอนโด · ฿900/รอบ',badge:['4.8','ok']})]},
+  {items:[R('โค้ชออนไลน์','mk_online',{icon:'chat',nw:1})]}
+]},
+u_me_s:{title:'ฉัน', sections:[
+  {items:[R('ข้อมูลส่วนตัว','my_info',{icon:'me'}),R('เทรนเนอร์ของฉัน','my_trainer',{icon:'dumbbell',sb:'ยังไม่มี'}),R('เป้าหมายและแผนอาหาร','self_tdee',{icon:'gauge'}),R('รางวัลและแต้ม','rewards',{icon:'trophy',nw:1})]},
+  {title:'บัญชี',items:[ME_ID,ME_MODE,ME_PLAN]},
+  {items:[R('ความยินยอม PDPA','my_consent',{icon:'shield'}),R('ตั้งค่าการแจ้งเตือน','notify_settings',{icon:'bell'}),R('ออกจากระบบ','logout',{icon:'back'})]}
+]}
+};
+
+const ROLES = {
+  owner:{name:'เจ้าของยิม · Owner', tabs:[['o_home','ภาพรวม','gauge'],['o_sched','ตาราง','cal'],['o_team','เทรนเนอร์','team'],['o_members','สมาชิก','people'],['o_more','เพิ่มเติม','gear']]},
+  operator:{name:'พนักงาน · Operator', tabs:[['op_desk','หน้าร้าน','qr'],['o_sched','ตาราง','cal'],['o_members','สมาชิก','people'],['op_me','ฉัน','me']]},
+  trainer:{name:'เทรนเนอร์ในทีม', tabs:[['t_today','วันนี้','today'],['t_cal','ปฏิทิน','cal'],['t_clients','ลูกเทรน','people'],['t_lib','คลังท่า','dumbbell'],['t_me','ฉัน','me']]},
+  free:{name:'เทรนเนอร์ฟรีแลนซ์', tabs:[['t_today','วันนี้','today'],['t_cal','ปฏิทิน','cal'],['t_clients','ลูกเทรน','people'],['t_lib','คลังท่า','dumbbell'],['f_biz','ธุรกิจ','shop']]},
+  client:{name:'ผู้ใช้ · มีเทรนเนอร์', tabs:[['u_home_c','หน้าหลัก','home'],['u_train','ออกกำลัง','dumbbell'],['u_food','อาหาร','food'],['u_prog','Progress','chart'],['u_me_c','ฉัน','me']]},
+  self:{name:'ผู้ใช้ · เล่นเอง', tabs:[['u_home_s','หน้าหลัก','home'],['u_train','ออกกำลัง','dumbbell'],['u_food','อาหาร','food'],['u_find','หาเทรนเนอร์','pin'],['u_me_s','ฉัน','me']]}
+};
+
+const PARTS = [['อก','dumbbell'],['หลัง','dumbbell'],['ขา','dumbbell'],['ไหล่','dumbbell'],['แขน','dumbbell'],['หน้าท้อง','dumbbell']];
+
+let role = null, stack = [];
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function go(id){ stack.push(id); render(); window.scrollTo(0,0); }
+function back(){ if(stack.length>1){ stack.pop(); render(); window.scrollTo(0,0);} }
+function tab(id){ stack=[id]; render(); window.scrollTo(0,0); }
+function start(r){ role=r; stack=[ROLES[r].tabs[0][0]]; render(); window.scrollTo(0,0); }
+function home(){ role=null; stack=[]; render(); window.scrollTo(0,0); }
+
+function itemHTML(it){
+  if(it.type==='hero') return `<div class="hero"><div class="eb">${esc(it.eb)}</div><div class="tt">${esc(it.tt)}</div><div class="sb">${esc(it.sb)}</div><div class="acts">${it.acts.map(a=>`<button class="${a.p?'p':''}" data-to="${a.to}">${esc(a.label)}</button>`).join('')}</div></div>`;
+  if(it.type==='tiles') return `<div class="tiles" style="grid-template-columns:repeat(${it.items.length===3?3:2},minmax(0,1fr))">${it.items.map(t=>`<button class="tile ${t.warn?'warn':''}" data-to="${t.to}"><span class="l">${esc(t.l)}</span><span class="v">${esc(t.v)}</span></button>`).join('')}</div>`;
+  if(it.type==='big2'||it.type==='big3') return `<div class="grid2" style="grid-template-columns:repeat(${it.items.length},minmax(0,1fr))">${it.items.map(b=>`<button class="big ${b.p?'p':''}" data-to="${b.to}">${svg(b.icon)}<span>${esc(b.label)}</span></button>`).join('')}</div>`;
+  if(it.type==='parts') return `<div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))">${PARTS.map(p=>`<button class="big" style="min-height:64px;align-items:center;justify-content:center" data-to="${it.to}"><span>${esc(p[0])}</span></button>`).join('')}</div>`;
+  if(it.type==='streak'){
+    const d=['จ','อ','พ','พฤ','ศ','ส','อา'], on=[1,1,1,1,1,1,0];
+    return `<button class="streak" data-to="${it.to}"><span class="hd"><span class="fl">${svg('fire')}</span><span style="display:flex;flex-direction:column"><span class="t">ออกกำลังต่อเนื่อง 6 วัน</span><span class="s">อีก 1 วัน ได้เหรียญ "สัปดาห์เต็ม" · ตัวอย่าง</span></span><span class="flag" style="margin-left:auto">ข้อเสนอ</span></span><span class="days">${d.map((x,i)=>`<span class="d"><i class="${on[i]?'on':''}"></i>${x}</span>`).join('')}</span></button>`;
+  }
+  if(it.type==='macro'){
+    const fmt=n=>n.toLocaleString('en-US');
+    const left=(v,t,u)=>v>t?`<span class="left over">เกิน ${fmt(v-t)} ${u}</span>`:`<span class="left">เหลือ ${fmt(t-v)} ${u}</span>`;
+    const bar=(v,t,col)=>`<span class="bar" role="progressbar" aria-valuenow="${v}" aria-valuemax="${t}"><i style="width:${Math.min(100,Math.round(v/t*100))}%;background:${v>t?'var(--over)':col}"></i></span>`;
+    const m=(lb,a,col)=>`<span class="mrow"><span class="top"><b>${lb}</b><span>${fmt(a[0])}/${fmt(a[1])}</span></span>${bar(a[0],a[1],col)}${left(a[0],a[1],'ก.')}</span>`;
+    return `<button class="macro" data-to="${it.to}"><span class="hd"><span class="t">วันนี้กินไปแล้ว</span><span class="s">${esc(it.note)}</span></span>
+      <span class="mrow cal"><span class="top"><b>แคลอรี</b><span><span class="kc">${fmt(it.cal[0])}</span> / ${fmt(it.cal[1])} kcal</span></span>${bar(it.cal[0],it.cal[1],'var(--accent)')}${left(it.cal[0],it.cal[1],'kcal')}</span>
+      <span class="mgrid">${m('โปรตีน',it.p,'var(--m-p)')}${m('คาร์บ',it.c,'var(--m-c)')}${m('ไขมัน',it.f,'var(--m-f)')}</span></button>`;
+  }
+  if(it.type==='note') return `<p class="note" style="margin:0">${esc(it.text)}</p>`;
+  return '';
+}
+function rowHTML(r){
+  const ic = r.icon ? `<span class="ic">${svg(r.icon,20)}</span>` : `<span class="ic">${esc(r.ic||'')}</span>`;
+  const badge = r.badge ? `<span class="badge b-${r.badge[1]}">${esc(r.badge[0])}</span>` : (r.nw ? `<span class="badge b-new">ข้อเสนอ</span>` : '');
+  return `<button class="row" data-to="${r.to}">${ic}<span class="tx"><span class="lb">${esc(r.lb)}</span>${r.sb?`<span class="sb">${esc(r.sb)}</span>`:''}</span>${badge}<span class="chev">${svg('chev',18)}</span></button>`;
+}
+function sectionsHTML(secs){
+  return secs.map(s=>{
+    const rows = s.items.filter(i=>i.type==='row');
+    const others = s.items.filter(i=>i.type!=='row');
+    return `<section class="sec">${s.title?`<h2>${esc(s.title)}</h2>`:''}${others.map(itemHTML).join('')}${rows.length?`<div class="list">${rows.map(rowHTML).join('')}</div>`:''}</section>`;
+  }).join('');
+}
+function emptyHTML(pg, extra){
+  return `<div class="empty"><div class="box">${svg('blank',28)}</div><h2>${esc(pg.title)}</h2><p>หน้านี้ยังว่างอยู่ จะทำในขั้นถัดไป</p>${pg.nw?'<span class="flag">ข้อเสนอเพิ่มเติม</span>':''}</div>
+    <div class="spec"><h3>หน้านี้จะมี</h3><ul>${pg.spec.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>${extra||''}`;
+}
+
+function renderStart(){
+  const roleBtn = (r,icon,label,sub,p) => `<button class="big ${p?'p':''}" data-role="${r}">${svg(icon)}<span>${label}<br><span style="font-weight:400;font-size:12px;opacity:.8">${sub}</span></span></button>`;
+  app.innerHTML = `<main style="padding-bottom:32px">
+    <div class="brand"><div class="logo">${svg('logo',30)}</div><h1>Trainer Manager</h1><p>ยิม เทรนเนอร์ และคนออกกำลังกาย ในแอปเดียว</p></div>
+    <section class="sec"><h2>บัญชี</h2><div class="list">
+      ${rowHTML({icon:'me',lb:'เข้าสู่ระบบ',to:'login'})}
+      ${rowHTML({icon:'people',lb:'สมัครสมาชิก',sb:'สมัครที่เดียว ได้ UID · เปิดโหมดเทรนเนอร์หรือยิมทีหลังในแอป',to:'register'})}
+    </div></section>
+    <section class="sec"><h2>ทดลองเข้าใช้แบบ (ต้นแบบ)</h2>
+      <div class="grid2">
+        ${roleBtn('owner','gauge','เจ้าของยิม','ระดับ Owner',1)}
+        ${roleBtn('operator','qr','พนักงานหน้าร้าน','ระดับ Operator')}
+        ${roleBtn('trainer','dumbbell','เทรนเนอร์ในทีม','สังกัดยิม')}
+        ${roleBtn('free','star','เทรนเนอร์ฟรีแลนซ์','มีธุรกิจของตัวเอง')}
+        ${roleBtn('client','people','ผู้ใช้ (มีเทรนเนอร์)','แอปเดียวกัน · สถานะลูกเทรน')}
+        ${roleBtn('self','fire','ผู้ใช้ (เล่นเอง)','แอปเดียวกัน · ยังไม่มีเทรนเนอร์')}
+      </div>
+    </section>
+    <p class="note">ทุกปุ่มกดได้ หน้าปลายทางยังว่าง · ป้าย <span class="flag">ข้อเสนอ</span> = ฟีเจอร์ที่ Claude เสนอเพิ่ม · ${Object.keys(S).length} หน้าหลัก · ${Object.keys(P).length} หน้ารอทำ</p>
+  </main>`;
+}
+
+function renderScreen(){
+  const id = stack[stack.length-1];
+  const r = ROLES[role];
+  const scr = S[id], pg = P[id] || {title:id,spec:['(ยังไม่ได้กำหนด)']};
+  const title = scr ? scr.title : pg.title;
+  const canBack = stack.length>1;
+  const body = scr ? sectionsHTML(scr.sections) :
+    emptyHTML(pg, `${id==='logout'?`<button class="cta" data-home="1">ออกจากระบบ (กลับหน้าแรก)</button>`:''}<button class="ghostbtn" data-back="1">กลับ</button>`);
+  app.innerHTML = `
+    <header class="top">
+      ${canBack?`<button class="iconbtn" data-back="1" aria-label="กลับ">${svg('back')}</button>`:`<span style="width:4px"></span>`}
+      <h1>${esc(title)}</h1>
+      <button class="chip" data-home="1" aria-label="สลับบทบาท">${esc(r.name)} ▾</button>
+    </header>
+    <main>${body}</main>
+    <nav class="tabs" style="grid-template-columns:repeat(${r.tabs.length},minmax(0,1fr))">
+      ${r.tabs.map(t=>{const on = stack[0]===t[0]; return `<button class="${on?'on':''}" data-tab="${t[0]}" ${on?'aria-current="page"':''}>${svg(t[2])}<span>${esc(t[1])}</span></button>`}).join('')}
+    </nav>`;
+}
+
+function renderAuthPage(){
+  const id = stack[stack.length-1], pg = P[id];
+  app.innerHTML = `<header class="top"><button class="iconbtn" data-home="1" aria-label="กลับ">${svg('back')}</button><h1>${esc(pg.title)}</h1></header>
+    <main style="padding-bottom:32px">${emptyHTML(pg,'<button class="ghostbtn" data-home="1">กลับหน้าแรก</button>')}</main>`;
+}
+
+function render(){
+  if(!role && stack.length) renderAuthPage();
+  else if(!role) renderStart();
+  else renderScreen();
+}
+
+app.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.role) return start(b.dataset.role);
+  if(b.dataset.home) return home();
+  if(b.dataset.back) return back();
+  if(b.dataset.tab) return tab(b.dataset.tab);
+  if(b.dataset.to){
+    const to = b.dataset.to;
+    if(role && ROLES[role].tabs.some(x=>x[0]===to)) return tab(to);
+    return go(to);
+  }
+});
+
+/* expose for link checks */
+window.__TM = {S,P,ROLES};
+render();
+})();
+
+</script>
+
+
+
+
+</body>
+</html>
