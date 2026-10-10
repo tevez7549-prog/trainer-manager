@@ -155,6 +155,11 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:18px}
 .customtime .inp{font-size:18px;font-variant-numeric:tabular-nums}
 .ghostbtn.danger{color:var(--bad);border-color:currentColor}
 .cta.danger{background:#b42318;color:#ffffff}
+.mcard{background:var(--accent);color:var(--accent-fg);border-radius:22px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.mtop{display:flex;justify-content:space-between;width:100%;font-size:13px;gap:8px}
+.qrbox{background:#ffffff;border-radius:16px;padding:12px;line-height:0}
+.mname{font-family:var(--display);font-size:22px;font-weight:700}
+.mmeta{font-size:13px;opacity:.9}
 .flag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:7px;padding:2px 8px;background:var(--new-bg);color:var(--new-fg)}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .tile{border:0;background:var(--surface);border-radius:14px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -666,7 +671,7 @@ const T={
     {id:'a1',time:'07:00',c:'ek',prog:'push',status:'done'},
     {id:'a2',time:'10:00',c:'mint',prog:'lowerA',status:'todo'},
     {id:'a3',time:'13:00',c:'oat',prog:'pull',status:'todo'},
-    {id:'a4',time:'19:00',c:'boss',prog:'full',status:'req',req:{day:2,time:'18:00'}}
+    {id:'a4',time:'19:00',c:'boss',prog:'full',status:'req',req:{day:2,time:'18:00',why:'ติดประชุมเย็นนี้'}}
   ],
   prices:[{n:10,months:2,price:8000},{n:20,months:3,price:15000}],
   noShowRule:'ยกเลิกน้อยกว่า 12 ชม. ก่อนนัด = ตัด 1 ครั้ง'
@@ -783,7 +788,7 @@ C.requests={title:'คำขอเลื่อนนัด',render(){
   const rq=T.appts.filter(a=>a.status==='req');
   if(!rq.length) return `<div class="empty"><h2>ไม่มีคำขอค้าง</h2><p>คำขอเลื่อนจากลูกเทรนจะขึ้นที่นี่ และมีแจ้งเตือน</p></div>`;
   return rq.map(a=>{const c=cl(a),nd=dAdd(D0,a.req.day);return `<section class="sec"><div class="card2"><div class="h3">${esc(c.name)}</div>
-    <dl class="kv2"><dt>นัดเดิม</dt><dd>ส. ${dTh(D0)} ${a.time}</dd><dt>ขอเปลี่ยนเป็น</dt><dd><b>${TH_DOW[nd.getDay()]} ${dTh(nd)} ${a.req.time}</b></dd><dt>เหตุผล</dt><dd>ติดประชุมเย็นนี้</dd></dl>
+    <dl class="kv2"><dt>นัดเดิม</dt><dd>ส. ${dTh(D0)} ${a.time}</dd><dt>ขอเปลี่ยนเป็น</dt><dd><b>${TH_DOW[nd.getDay()]} ${dTh(nd)} ${a.req.time}</b></dd><dt>เหตุผล</dt><dd>${esc(a.req.why||'ไม่ได้ระบุ')}</dd></dl>
     <div class="grid2"><button class="cta" data-act="rqok" data-id="${a.id}">อนุมัติ</button><button class="ghostbtn" data-act="rqother" data-id="${a.id}">เสนอเวลาอื่น</button></div>
     <button class="ghostbtn" data-act="rqno" data-id="${a.id}">ปฏิเสธ (คงนัดเดิม)</button></div></section>`}).join('');
 }};
@@ -803,6 +808,104 @@ C.t_client={get title(){return T.clients[T.cc].name},render(){
   <section class="sec"><h2>โภชนาการ</h2><div class="list">${r('คำนวณ TDEE','c_tdee','gauge')}${r('แผนมาโคร','c_nutrition','food')}${r('บันทึกอาหารของลูกเทรน','c_food','camera')}</div></section>
   <section class="sec"><h2>ผลลัพธ์</h2><div class="list">${r('Progress before/after','c_progress','chart')}</div></section>
   <section class="sec"><button class="ghostbtn danger" data-act="rmclient">ลบออกจากรายชื่อของฉัน</button><p class="muted2" style="margin:0">เหมือนลบเพื่อน: บัญชีและประวัติของลูกเทรนยังอยู่กับเขา</p></section>`;
+}};
+
+/* ===== Trainee side (same in-memory state as the trainer side) ===== */
+T.me='mint';
+T.hist={mint:[
+  {d:'8 ต.ค.',prog:'Upper A',by:'เทรนเนอร์ต้น',dur:'58 นาที',ex:[['Lat Pulldown','3 × 10 @ 35 กก.'],['Dumbbell Press','3 × 10 @ 10 กก.'],['Seated Row','3 × 12 @ 30 กก.'],['Plank','3 × 40 วินาที']],note:'ดึงหลังดีขึ้นมาก ครั้งหน้าเพิ่ม Lat เป็น 37.5'},
+  {d:'6 ต.ค.',prog:'Lower B',by:'เทรนเนอร์ต้น',dur:'61 นาที',ex:[['Back Squat','4 × 8 @ 57.5 กก.'],['Hip Thrust','3 × 10 @ 70 กก.'],['Leg Curl','3 × 15 @ 25 กก.']],note:'',pr:'Back Squat 57.5 กก. (สถิติใหม่)'},
+  {d:'4 ต.ค.',prog:'เล่นเอง · Cardio',by:'เล่นเอง',dur:'35 นาที',ex:[['Treadmill','25 นาที · 3.1 กม.'],['Stretching','10 นาที']],note:''}
+]};
+const myAppt=()=>T.appts.find(a=>a.c===T.me);
+const LV=svg; /* alias */
+
+function qrSVG(seed){
+  /* decorative QR-like pattern for the prototype — not a scannable code */
+  let s=0;for(const ch of seed)s=(s*31+ch.charCodeAt(0))>>>0;
+  const n=21,cells=[];const rnd=()=>{s=(s*1103515245+12345)>>>0;return (s>>>16)&1};
+  const finder=(x,y)=>{const r=[];for(let i=0;i<7;i++)for(let j=0;j<7;j++){const e=i===0||i===6||j===0||j===6||(i>1&&i<5&&j>1&&j<5);if(e)r.push([x+i,y+j]);}return r;};
+  const inF=(x,y)=>(x<8&&y<8)||(x>12&&y<8)||(x<8&&y>12);
+  for(let x=0;x<n;x++)for(let y=0;y<n;y++){if(!inF(x,y)&&rnd())cells.push([x,y]);}
+  const all=cells.concat(finder(0,0),finder(14,0),finder(0,14));
+  return `<svg viewBox="-1 -1 23 23" width="190" height="190" role="img" aria-label="QR บัตรสมาชิก (ตัวอย่าง)"><rect x="-1" y="-1" width="23" height="23" fill="#ffffff"/>${all.map(([x,y])=>`<rect x="${x}" y="${y}" width="1" height="1" fill="#15211c"/>`).join('')}</svg>`;
+}
+
+C.u_home_c={get title(){return 'สวัสดี '+T.clients[T.me].name},render(){
+  const c=T.clients[T.me], a=myAppt(), b=pkgBadge(c);
+  let hero;
+  if(a&&(a.status==='todo'||a.status==='live')) hero=`<div class="hero"><div class="eb">${a.status==='live'?'กำลังเทรนอยู่กับเทรนเนอร์ต้น':'นัดเทรนถัดไป'}</div><div class="tt">วันนี้ ${a.time}</div><div class="sb">กับเทรนเนอร์ต้น · ${esc(PROG[a.prog].name)} · เหลือ ${left(c)} ครั้ง</div><div class="acts"><button class="p" data-to="next_workout">ดูท่าที่จะเล่น</button><button data-to="my_reschedule">ขอเลื่อนนัด</button></div></div>`;
+  else if(a&&a.status==='req') hero=`<div class="hero"><div class="eb">ส่งคำขอเลื่อนแล้ว</div><div class="tt">รอเทรนเนอร์ตอบ</div><div class="sb">ขอเปลี่ยนเป็น ${TH_DOW[dAdd(D0,a.req.day).getDay()]} ${dTh(dAdd(D0,a.req.day))} ${a.req.time} · นัดเดิม ${a.time} ยังอยู่จนกว่าจะอนุมัติ</div><div class="acts"><button class="p" data-act="cancelreq">ยกเลิกคำขอ</button></div></div>`;
+  else if(a&&a.status==='moved') hero=`<div class="hero"><div class="eb">เทรนเนอร์อนุมัติแล้ว</div><div class="tt">${esc(a.moved)}</div><div class="sb">กับเทรนเนอร์ต้น · ${esc(PROG[a.prog].name)}</div><div class="acts"><button class="p" data-to="next_workout">ดูท่าที่จะเล่น</button></div></div>`;
+  else { const h=T.hist[T.me][0]; hero=`<div class="hero"><div class="eb">วันนี้เทรนเสร็จแล้ว</div><div class="tt">${esc(h.prog)}</div><div class="sb">${h.ex.length} ท่า · เหลือ ${left(c)} ครั้ง · นัดถัดไป จ. 12 ต.ค. 10:00</div><div class="acts"><button class="p" data-act="hist" data-i="0">ดูสรุปวันนี้</button><button data-to="share_card">แชร์</button></div></div>`; }
+  return `<section class="sec"><div class="list">${rowHTML({icon:'dumbbell',lb:'เทรนเนอร์ของฉัน',sb:`เทรนเนอร์ต้น · เหลือ ${left(c)} ครั้ง`,to:'my_trainer',badge:b||undefined})}</div></section>
+  <section class="sec">${hero}</section>
+  <section class="sec">${itemHTML({type:'streak',to:'rewards'})}</section>
+  <section class="sec"><div class="grid2"><button class="big p" data-to="u_food">${svg('camera')}<span>บันทึกอาหาร</span></button><button class="big" data-to="w_free">${svg('play')}<span>เล่นเองวันนี้</span></button></div></section>
+  <section class="sec">${itemHTML({type:'macro',to:'u_food',note:'เป้าจากเทรนเนอร์ต้น',cal:[520,1650],p:[38,124],c:[52,185],f:[18,46]})}</section>
+  <section class="sec"><h2>อื่น ๆ</h2><div class="list">${rowHTML({icon:'blank',lb:'ประวัติการเทรน',sb:`${T.hist[T.me].length} ครั้งล่าสุด`,to:'my_history'})}${rowHTML({icon:'qr',lb:'บัตรสมาชิก / เช็กอินยิม',sb:'เหลือ 41 วัน',to:'my_membership'})}</div></section>`;
+}};
+
+C.next_workout={title:'โปรแกรมครั้งหน้า',render(){
+  const a=myAppt()||{prog:'lowerA',time:'10:00'}, p=PROG[a.prog];
+  return `<section class="sec"><div class="card2"><div class="h3">${esc(p.name)}</div><div class="muted2">${a.status==='moved'?esc(a.moved):'วันนี้ '+a.time} · เทรนเนอร์ต้นวางไว้ให้</div></div></section>
+  <section class="sec"><h2>${p.ex.length} ท่า</h2><div class="list">${p.ex.map((e,i)=>`<div class="row"><span class="ic">${i+1}</span><span class="tx"><span class="lb">${esc(e[0])}</span><span class="sb">${e[3]} เซ็ต × ${e[2]} ครั้ง${e[1]?` · เป้า ${e[1]} กก.`:''} · ครั้งก่อน ${e[4]}</span></span><span class="chev">${svg('play',18)}</span></div>`).join('')}</div>
+  <p class="muted2" style="margin:0">แตะท่าเพื่อดูคลิปสาธิต (เชื่อมกับคลังท่าในขั้นถัดไป)</p></section>
+  <section class="sec"><div class="card2"><div class="muted2">โน้ตจากเทรนเนอร์</div><div>ครั้งก่อนสควอทดีมาก วันนี้ลองเพิ่มน้ำหนัก Hip Thrust เป็น 75 กก. ทานคาร์บก่อนมา 1–2 ชม.</div></div></section>`;
+}};
+
+C.my_reschedule={title:'ขอเลื่อนนัด',render(){
+  const a=myAppt();
+  if(!a||a.status==='done') return `<div class="empty"><h2>ไม่มีนัดที่เลื่อนได้</h2><p>นัดวันนี้เทรนเสร็จแล้ว</p></div>`;
+  if(a.status==='req') return `<div class="empty"><h2>ส่งคำขอไปแล้ว</h2><p>รอเทรนเนอร์ตอบ ระบบจะแจ้งเตือนเมื่อมีคำตอบ</p></div><button class="ghostbtn" data-act="cancelreq">ยกเลิกคำขอ</button>`;
+  const sel=T.crs||{day:2,time:null,why:''};T.crs=sel;
+  const days=Array.from({length:7},(_,i)=>dAdd(D0,i));
+  const free={1:[],2:['09:00','10:00','11:00','15:00','16:00','17:00'],3:['10:00','11:00','13:00','14:00','15:00'],4:['07:00','08:00','09:00','16:00'],5:['10:00','11:00','17:00','18:00'],6:['08:00','09:00','10:00']};
+  const d=days[sel.day];
+  return `<section class="sec"><div class="card2"><div class="muted2">นัดเดิม</div><div class="h3">วันนี้ ${a.time} · เทรนเนอร์ต้น</div><div class="muted2">ขอเลื่อนล่วงหน้าเกิน 12 ชม. ไม่ตัดครั้ง · ขอเลื่อนได้แต่ต้องรอเทรนเนอร์อนุมัติ</div></div></section>
+  <section class="sec"><h2>เลือกวัน</h2><div class="dayrow">${days.map((x,i)=>`<button class="day ${i===sel.day?'on':''}" data-act="crsday" data-i="${i}" ${i===0||x.getDay()===0?'disabled':''}><span>${TH_DOW[x.getDay()]}</span><b>${x.getDate()}</b>${x.getDay()===0?'<small>ยิมปิด</small>':''}</button>`).join('')}</div></section>
+  <section class="sec"><h2>เวลาที่เทรนเนอร์ต้นว่าง · ${TH_DOW[d.getDay()]} ${dTh(d)}</h2>${(free[sel.day]||[]).length?`<div class="slots">${free[sel.day].map(t=>`<button class="slot ${sel.time===t?'on':''}" data-act="crstime" data-t="${t}">${t}</button>`).join('')}</div>`:`<p class="muted2">วันนี้เทรนเนอร์ไม่ว่าง ลองวันอื่น</p>`}</section>
+  <section class="sec"><label class="muted2" for="crsWhy">เหตุผล (ไม่บังคับ)</label><input id="crsWhy" class="inp" data-in="crswhy" value="${esc(sel.why)}" placeholder="เช่น ติดประชุม"><button class="cta" data-act="crsok" ${sel.time?'':'disabled'}>ส่งคำขอเลื่อน${sel.time?` เป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${sel.time}`:''}</button></section>`;
+}};
+
+C.my_history={title:'ประวัติการเทรน',render(){
+  const h=T.hist[T.me];
+  return `<section class="sec"><div class="tiles" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="tile"><span class="l">เดือนนี้</span><span class="v">${h.length+3}</span></div><div class="tile"><span class="l">ต่อเนื่อง</span><span class="v">6 วัน</span></div><div class="tile"><span class="l">สถิติใหม่</span><span class="v">2</span></div></div></section>
+  <section class="sec"><h2>ล่าสุด</h2><div class="list">${h.map((x,i)=>`<button class="row" data-act="hist" data-i="${i}"><span class="ic">${esc(x.d.split(' ')[0])}</span><span class="tx"><span class="lb">${esc(x.prog)}</span><span class="sb">${esc(x.by)} · ${x.ex.length} ท่า · ${esc(x.dur)}</span></span>${x.pr?'<span class="badge b-ok">สถิติใหม่</span>':''}<span class="chev">${svg('chev',18)}</span></button>`).join('')}</div>
+  <p class="muted2" style="margin:0">ประวัติเป็นของคุณ อยู่ครบแม้เปลี่ยนเทรนเนอร์</p></section>`;
+}};
+C.hist_detail={get title(){return T.hist[T.me][T.hi].prog},render(){
+  const x=T.hist[T.me][T.hi];
+  return `<section class="sec"><div class="card2"><div class="h3">${esc(x.prog)}</div><div class="muted2">${esc(x.d)} · ${esc(x.by)} · ${esc(x.dur)}</div>${x.pr?`<span class="badge b-ok" style="align-self:flex-start">${esc(x.pr)}</span>`:''}</div></section>
+  <section class="sec"><div class="list">${x.ex.map(e=>`<div class="row"><span class="tx"><span class="lb">${esc(e[0])}</span><span class="sb">${esc(e[1])}</span></span></div>`).join('')}</div></section>
+  ${x.note?`<section class="sec"><div class="card2"><div class="muted2">โน้ตจากเทรนเนอร์</div><div>${esc(x.note)}</div></div></section>`:''}
+  <section class="sec"><button class="ghostbtn" data-to="share_card">แชร์การ์ดสรุป</button></section>`;
+}};
+
+C.my_package={title:'แพ็ก PT ของฉัน',render(){
+  const c=T.clients[T.me],p=c.pkg,l=left(c),dd=daysTo(p.end),b=pkgBadge(c);
+  return `<section class="sec"><div class="card2"><div class="muted2">${esc(p.label)} · กับเทรนเนอร์ต้น</div>
+    <div class="bignum"><b class="num">${l}</b><span>ครั้งคงเหลือ<br>จาก ${p.total} ครั้ง</span></div>
+    <div class="pbar"><i style="width:${Math.round(p.used/p.total*100)}%"></i></div>
+    <div class="muted2">ใช้ไป ${p.used} ครั้ง · ใช้ได้ถึง ${dTh(dParse(p.end))} ${dd>=0?`(อีก ${dd} วัน)`:''} ${b?`<span class="badge b-${b[1]}">${b[0]}</span>`:''}</div></div></section>
+  <section class="sec"><h2>การใช้ล่าสุด</h2><div class="list">${c.log.map(x=>`<div class="row"><span class="tx"><span class="lb">${esc(x.t.replace(/ · โดย .+$/,''))}</span><span class="sb">${esc(x.d)}</span></span></div>`).join('')}</div>
+  <p class="muted2" style="margin:0">อยากต่อแพ็ก ติดต่อเทรนเนอร์หรือเคาน์เตอร์ยิม</p></section>`;
+}};
+
+C.my_membership={title:'บัตรสมาชิก',render(){
+  return `<section class="sec"><div class="mcard"><div class="mtop"><b>FitLab สาขาลาดพร้าว</b><span>สมาชิก 3 เดือน</span></div>
+    <div class="qrbox">${qrSVG('100518')}</div>
+    <div class="mname">${esc(T.clients[T.me].name)}</div><div class="mmeta">UID 100518 · ใช้ได้ถึง 20 พ.ย. 69 · เหลือ 41 วัน</div></div>
+    <p class="muted2" style="margin:0;text-align:center">ยื่นให้เคาน์เตอร์สแกนตอนเข้ายิม · เพิ่มความสว่างหน้าจอให้สแกนง่าย · QR นี้เป็นภาพตัวอย่าง</p></section>
+  <section class="sec"><div class="list">${rowHTML({icon:'cal',lb:'ขอพักสมาชิก',sb:'เช่น ป่วย ไปต่างจังหวัด · ยิมอนุมัติ',to:'o_freeze_person'})}${rowHTML({icon:'swap',lb:'ประวัติเช็กอิน',to:'o_checkins'})}</div></section>`;
+}};
+
+C.my_trainer={title:'เทรนเนอร์ของฉัน',render(){
+  const c=T.clients[T.me];
+  return `<section class="sec"><div class="card2"><div class="row2"><span class="av2">ต้น</span><div style="flex:1"><div class="h3">เทรนเนอร์ต้น</div><div class="muted2">FitLab ลาดพร้าว · ลดไขมัน เพิ่มกล้าม</div></div></div>
+    <dl class="kv2"><dt>แพ็ก</dt><dd>${esc(c.pkg.label)} · เหลือ ${left(c)} ครั้ง</dd><dt>เทรนด้วยกัน</dt><dd>ตั้งแต่ ส.ค. 2569 · ${c.pkg.used+8} ครั้ง</dd></dl>
+    <div class="grid2"><button class="ghostbtn" data-act="contact">LINE</button><button class="ghostbtn" data-act="contact">โทร</button></div></div></section>
+  <section class="sec"><div class="list">${rowHTML({icon:'blank',lb:'ประวัติการเทรน',to:'my_history'})}${rowHTML({icon:'shop',lb:'แพ็ก PT ของฉัน',to:'my_package'})}${rowHTML({icon:'food',lb:'แผนอาหารจากเทรนเนอร์',to:'my_nutrition'})}</div></section>`;
 }};
 
 /* ---- bottom sheets ---- */
@@ -851,7 +954,7 @@ function onAct(b){
     case 'addex': T.sheet={k:'addex'}; return render();
     case 'addexok': T.sess.ex.push({n:b.dataset.n,prev:'ยังไม่เคยเล่น',sets:[{w:20,r:12,done:false},{w:20,r:12,done:false},{w:20,r:12,done:false}]}); T.sheet=null; toast(`เพิ่ม ${b.dataset.n} แล้ว`); return render();
     case 'finish': T.sheet={k:'finish'}; return render();
-    case 'finishok':{const ap=apptOf(T.sess.appt),c=cl(ap);c.pkg.used++;ap.status='done';c.log.unshift({d:dTh(D0),t:`ใช้ 1 ครั้ง · ${PROG[ap.prog].name}`,k:'use'});clearInterval(T.timer);T.timer=null;T.sess=null;T.sheet=null;stack=['t_today'];toast(`จบเซสชัน · ${c.name} เหลือ ${left(c)} ครั้ง`);render();return window.scrollTo(0,0);}
+    case 'finishok':{const ap=apptOf(T.sess.appt),c=cl(ap);c.pkg.used++;ap.status='done';c.log.unshift({d:dTh(D0),t:`ใช้ 1 ครั้ง · ${PROG[ap.prog].name}`,k:'use'});if(T.hist[ap.c])T.hist[ap.c].unshift({d:dTh(D0),prog:PROG[ap.prog].name,by:'เทรนเนอร์ต้น',dur:'60 นาที',ex:T.sess.ex.filter(e=>e.sets.some(x=>x.done)).map(e=>{const d=e.sets.filter(x=>x.done);return [e.n,`${d.length} × ${d[0].r} @ ${d[d.length-1].w} กก.`]}),note:T.sess.note});clearInterval(T.timer);T.timer=null;T.sess=null;T.sheet=null;stack=['t_today'];toast(`จบเซสชัน · ${c.name} เหลือ ${left(c)} ครั้ง`);render();return window.scrollTo(0,0);}
     case 'nsok':{const ap=apptOf(S2.id),c=cl(ap);ap.status='noshow';if(b.dataset.cut==='1'){c.pkg.used++;c.log.unshift({d:dTh(D0),t:'ขาดนัด · ตัด 1 ครั้ง ตามนโยบาย',k:'use'});}T.sheet=null;stack=['t_today'];toast(b.dataset.cut==='1'?'บันทึกขาดนัด · ตัด 1 ครั้ง':'บันทึกขาดนัด · ไม่ตัดครั้ง');return render();}
     case 'cancelok':{apptOf(b.dataset.id).status='cancel';T.sheet=null;stack=['t_today'];toast('ยกเลิกนัดแล้ว · แจ้งลูกเทรนแล้ว');return render();}
     case 'rsday': T.rs={day:+b.dataset.i,time:null,custom:T.rs.custom}; return render();
@@ -871,6 +974,12 @@ function onAct(b){
     case 'client': T.cc=b.dataset.c; return go('t_client');
     case 'rmclient': T.sheet={k:'rmclient'}; return render();
     case 'rmok':{const c=T.clients[T.cc];c.removed=true;T.appts.forEach(a=>{if(a.c===T.cc&&(a.status==='todo'||a.status==='req'))a.status='cancel';});T.appts=T.appts.filter(a=>a.c!==T.cc);T.sheet=null;stack=['t_clients'];toast(`ลบ ${c.name} ออกจากรายชื่อแล้ว`);return render();}
+    case 'cancelreq':{const a2=myAppt();if(a2&&a2.status==='req'){a2.status='todo';delete a2.req;}toast('ยกเลิกคำขอแล้ว · นัดเดิมยังอยู่');stack=['u_home_c'];return render();}
+    case 'hist': T.hi=+b.dataset.i; return go('hist_detail');
+    case 'crsday': T.crs={day:+b.dataset.i,time:null,why:T.crs.why}; return render();
+    case 'crstime': T.crs.time=b.dataset.t; return render();
+    case 'crsok':{const a2=myAppt();a2.status='req';a2.req={day:T.crs.day,time:T.crs.time,why:T.crs.why};T.crs=null;stack=['u_home_c'];toast('ส่งคำขอแล้ว · รอเทรนเนอร์ต้นตอบ');return render();}
+    case 'contact': toast('ต้นแบบ: จะเปิด LINE / โทรออกในแอปจริง'); return;
     case 'closesheet': T.sheet=null; return render();
   }
 }
@@ -878,6 +987,7 @@ function onInput(el){
   const k=el.dataset.in;
   if(k==='w'||k==='r'){T.sess.ex[el.dataset.e].sets[el.dataset.s][k]=el.value;return;}
   if(k==='note'){T.sess.note=el.value;return;}
+  if(k==='crswhy'&&T.crs){T.crs.why=el.value;return;}
   if(k==='rstime'){T.rs.time=el.value||null;const d=dAdd(D0,T.rs.day),warn=rsConflict(T.rs),ok=document.getElementById('rsOk'),w=document.getElementById('rsWarn');
     if(w){w.textContent=warn||(T.rs.time?'ว่าง · ใช้เวลานี้ได้':'นัด 1 ชั่วโมง · ระบบเช็กว่าชนกับนัดอื่นไหม');w.style.color=warn?'var(--warn-fg)':'';}
     if(ok){ok.disabled=!T.rs.time||!!warn;ok.textContent='ยืนยันเลื่อน'+(T.rs.time?` เป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${T.rs.time}`:'');}return;}
