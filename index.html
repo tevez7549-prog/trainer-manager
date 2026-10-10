@@ -160,6 +160,8 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:18px}
 .qrbox{background:#ffffff;border-radius:16px;padding:12px;line-height:0}
 .mname{font-family:var(--display);font-size:22px;font-weight:700}
 .mmeta{font-size:13px;opacity:.9}
+.exlist{margin:0;padding-left:1.3rem;display:flex;flex-direction:column;gap:6px}
+.exlist li span:first-child{font-weight:600;margin-right:8px}
 .flag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:7px;padding:2px 8px;background:var(--new-bg);color:var(--new-fg)}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .tile{border:0;background:var(--surface);border-radius:14px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -585,7 +587,7 @@ function itemHTML(it){
   if(it.type==='hero') return `<div class="hero"><div class="eb">${esc(it.eb)}</div><div class="tt">${esc(it.tt)}</div><div class="sb">${esc(it.sb)}</div><div class="acts">${it.acts.map(a=>`<button class="${a.p?'p':''}" data-to="${a.to}">${esc(a.label)}</button>`).join('')}</div></div>`;
   if(it.type==='tiles') return `<div class="tiles" style="grid-template-columns:repeat(${it.items.length===3?3:2},minmax(0,1fr))">${it.items.map(t=>`<button class="tile ${t.warn?'warn':''}" data-to="${t.to}"><span class="l">${esc(t.l)}</span><span class="v">${esc(t.v)}</span></button>`).join('')}</div>`;
   if(it.type==='big2'||it.type==='big3') return `<div class="grid2" style="grid-template-columns:repeat(${it.items.length},minmax(0,1fr))">${it.items.map(b=>`<button class="big ${b.p?'p':''}" data-to="${b.to}">${svg(b.icon)}<span>${esc(b.label)}</span></button>`).join('')}</div>`;
-  if(it.type==='parts') return `<div class="grid2" style="grid-template-columns:repeat(4,minmax(0,1fr))">${PARTS.map(p=>`<button class="big" style="min-height:64px;align-items:center;justify-content:center" data-to="${it.to}"><span>${esc(p[0])}</span></button>`).join('')}</div>`;
+  if(it.type==='parts') return `<div class="grid2" style="grid-template-columns:repeat(4,minmax(0,1fr))">${PARTS.map(p=>`<button class="big" style="min-height:64px;align-items:center;justify-content:center" data-act="part" data-p="${p[0]}" data-to="${it.to}"><span>${esc(p[0])}</span></button>`).join('')}</div>`;
   if(it.type==='streak'){
     const d=['จ','อ','พ','พฤ','ศ','ส','อา'], on=[1,1,1,1,1,1,0];
     return `<button class="streak" data-to="${it.to}"><span class="hd"><span class="fl">${svg('fire')}</span><span style="display:flex;flex-direction:column"><span class="t">ออกกำลังต่อเนื่อง 6 วัน</span><span class="s">อีก 1 วัน ได้เหรียญ "สัปดาห์เต็ม" · ตัวอย่าง</span></span><span class="flag" style="margin-left:auto">ข้อเสนอ</span></span><span class="days">${d.map((x,i)=>`<span class="d"><i class="${on[i]?'on':''}"></i>${x}</span>`).join('')}</span></button>`;
@@ -908,6 +910,34 @@ C.my_trainer={title:'เทรนเนอร์ของฉัน',render(){
   <section class="sec"><div class="list">${rowHTML({icon:'blank',lb:'ประวัติการเทรน',to:'my_history'})}${rowHTML({icon:'shop',lb:'แพ็ก PT ของฉัน',to:'my_package'})}${rowHTML({icon:'food',lb:'แผนอาหารจากเทรนเนอร์',to:'my_nutrition'})}</div></section>`;
 }};
 
+/* ===== Body-part programs: content follows the button pressed ===== */
+T.part='ขา';
+const EXLIB={
+ 'อก':['Bench Press','Incline Dumbbell Press','Push-up','Cable Fly','Chest Dip','Pec Deck'],
+ 'หลัง':['Lat Pulldown','Seated Row','Dumbbell Row','Romanian Deadlift','Assisted Pull-up','Face Pull'],
+ 'ขา':['Back Squat','Romanian Deadlift','Leg Press','Walking Lunge','Leg Curl','Calf Raise'],
+ 'ไหล่':['Shoulder Press','Lateral Raise','Rear Delt Fly','Arnold Press','Front Raise','Shrug'],
+ 'แขน':['Biceps Curl','Triceps Pushdown','Hammer Curl','Overhead Triceps Extension','Preacher Curl','Bench Dip'],
+ 'หน้าท้อง':['Plank','Crunch','Leg Raise','Russian Twist','Dead Bug','Bicycle Crunch'],
+ 'คาร์ดิโอ':['เดินชันบนลู่','วิ่งลู่','ปั่นจักรยาน','Rowing','Elliptical','กระโดดเชือก'],
+ 'ยืดเหยียด':['ยืดต้นขาด้านหลัง','ยืดสะโพก (Pigeon)','ยืดอก','ยืดไหล่','Cat-Cow','Child’s Pose']
+};
+const kindOf=p=>p==='คาร์ดิโอ'?'cardio':p==='ยืดเหยียด'?'stretch':'weight';
+const doseOf=(p,i)=>{const k=kindOf(p);if(k==='cardio')return ['10 นาที · ระดับ 5','8 นาที · ความเร็ว 8','10 นาที · ระดับ 6','5 นาที · 500 ม.','8 นาที','3 × 1 นาที'][i];if(k==='stretch')return '30 วินาที × 2 ข้าง';return i<2?'3 × 8–10':'3 × 12';};
+const timeOf=(p,n)=>{const k=kindOf(p);if(k==='cardio')return n===4?'~35 นาที':'~50 นาที';if(k==='stretch')return n===4?'~8 นาที':'~12 นาที';return n===4?'~30 นาที':'~50 นาที';};
+function progCard(p,n){const ex=EXLIB[p].slice(0,n);return `<div class="card2"><div class="row2" style="justify-content:space-between"><div><div class="h3">${n} ท่า · ${timeOf(p,n)}</div><div class="muted2">${kindOf(p)==='weight'?'มือใหม่–กลาง · ปรับน้ำหนักเองได้':kindOf(p)==='cardio'?'เผาผลาญ · ปรับระดับเองได้':'ทำหลังเล่น หรือวันพัก'}</div></div><button class="mini" data-to="w_free">เริ่มเล่น</button></div>
+  <ol class="exlist">${ex.map((e,i)=>`<li><span>${esc(e)}</span><span class="muted2">${doseOf(p,i)}</span></li>`).join('')}</ol></div>`;}
+C.w_part={get title(){return (kindOf(T.part)==='weight'?'เล่น':'')+T.part},render(){
+  const p=T.part;
+  return `<section class="sec"><h2>โปรแกรมแนะนำ</h2>${progCard(p,4)}${progCard(p,6)}</section>
+  <section class="sec"><div class="list">${rowHTML({icon:'search',lb:`ดูท่า${p}ทั้งหมด`,sb:`${EXLIB[p].length} ท่าในคลัง (ตัวอย่าง)`,to:'ex_part'})}${rowHTML({icon:'pencil',lb:`สร้างโปรแกรม${p}ของฉัน`,to:'w_create'})}</div></section>`;
+}};
+C.ex_part={get title(){return 'ท่า'+T.part},render(){
+  const p=T.part;
+  return `<section class="sec"><div class="list">${EXLIB[p].map((e,i)=>`<div class="row"><span class="ic">${svg('play',18)}</span><span class="tx"><span class="lb">${esc(e)}</span><span class="sb">${kindOf(p)==='weight'?'มีคลิปสาธิต · กล้ามเนื้อที่ใช้':kindOf(p)==='cardio'?'บันทึกเป็นเวลา ระยะทาง ความชัน':'บันทึกเป็นวินาทีต่อท่า'}</span></span></div>`).join('')}</div>
+  <p class="muted2" style="margin:0">ในแอปจริงแตะท่าเพื่อดูคลิปและวิธีทำ</p></section>`;
+}};
+
 /* ---- bottom sheets ---- */
 function sheetHTML(){
   const s=T.sheet; if(!s) return '';
@@ -980,6 +1010,7 @@ function onAct(b){
     case 'crstime': T.crs.time=b.dataset.t; return render();
     case 'crsok':{const a2=myAppt();a2.status='req';a2.req={day:T.crs.day,time:T.crs.time,why:T.crs.why};T.crs=null;stack=['u_home_c'];toast('ส่งคำขอแล้ว · รอเทรนเนอร์ต้นตอบ');return render();}
     case 'contact': toast('ต้นแบบ: จะเปิด LINE / โทรออกในแอปจริง'); return;
+    case 'part': T.part=b.dataset.p; return go(b.dataset.to);
     case 'closesheet': T.sheet=null; return render();
   }
 }
