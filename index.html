@@ -22,7 +22,7 @@
   --bg:#f2f4f1; --surface:#ffffff; --fg:#15211c; --muted:#55645d; --line:#dfe5e1;
   --accent:#0b6b4d; --accent-fg:#ffffff; --accent-soft:#e3f1ea; --accent-ink:#0b4d38;
   --warn-bg:#fde7d6; --warn-fg:#8a3d0c; --wait-bg:#fff4c7; --wait-fg:#5c4600;
-  --ghost:#e2e8e4; --stage:#dde3df; --new-bg:#e3ecfb; --new-fg:#1f4aa8; --m-p:#2f6fd6; --m-c:#c97a0e; --m-f:#a8457f; --over:#c2410c;
+  --ghost:#e2e8e4; --stage:#dde3df; --new-bg:#e3ecfb; --new-fg:#1f4aa8; --bad:#b42318; --m-p:#2f6fd6; --m-c:#c97a0e; --m-f:#a8457f; --over:#c2410c;
   --display:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif;
   --body:"IBM Plex Sans Thai",system-ui,sans-serif;
 }
@@ -30,12 +30,12 @@
   --bg:#0f1513; --surface:#18211d; --fg:#e4ece8; --muted:#9aaca4; --line:#2a3531;
   --accent:#3fbf86; --accent-fg:#06281b; --accent-soft:#1a2e25; --accent-ink:#8fe0bb;
   --warn-bg:#3a2414; --warn-fg:#f5b585; --wait-bg:#352d0f; --wait-fg:#f0d77a;
-  --ghost:#222c28; --stage:#0a0f0d; --new-bg:#1b2a45; --new-fg:#a9c4f5; --m-p:#7aa7f5; --m-c:#f0b25a; --m-f:#e08ac4; --over:#fb923c; color-scheme:dark}}
+  --ghost:#222c28; --stage:#0a0f0d; --new-bg:#1b2a45; --new-fg:#a9c4f5; --bad:#f19a9a; --m-p:#7aa7f5; --m-c:#f0b25a; --m-f:#e08ac4; --over:#fb923c; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1513; --surface:#18211d; --fg:#e4ece8; --muted:#9aaca4; --line:#2a3531;
   --accent:#3fbf86; --accent-fg:#06281b; --accent-soft:#1a2e25; --accent-ink:#8fe0bb;
   --warn-bg:#3a2414; --warn-fg:#f5b585; --wait-bg:#352d0f; --wait-fg:#f0d77a;
-  --ghost:#222c28; --stage:#0a0f0d; --new-bg:#1b2a45; --new-fg:#a9c4f5; --m-p:#7aa7f5; --m-c:#f0b25a; --m-f:#e08ac4; --over:#fb923c; color-scheme:dark}
+  --ghost:#222c28; --stage:#0a0f0d; --new-bg:#1b2a45; --new-fg:#a9c4f5; --bad:#f19a9a; --m-p:#7aa7f5; --m-c:#f0b25a; --m-f:#e08ac4; --over:#fb923c; color-scheme:dark}
 html,body{height:100%}
 body{background:var(--stage);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
 #app{max-width:440px;margin:0 auto;min-height:100%;background:var(--bg);display:flex;flex-direction:column;position:relative}
@@ -153,6 +153,8 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:18px}
 .num{font-variant-numeric:tabular-nums}
 .customtime{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .customtime .inp{font-size:18px;font-variant-numeric:tabular-nums}
+.ghostbtn.danger{color:var(--bad);border-color:currentColor}
+.cta.danger{background:#b42318;color:#ffffff}
 .flag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:7px;padding:2px 8px;background:var(--new-bg);color:var(--new-fg)}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .tile{border:0;background:var(--surface);border-radius:14px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -786,6 +788,23 @@ C.requests={title:'คำขอเลื่อนนัด',render(){
     <button class="ghostbtn" data-act="rqno" data-id="${a.id}">ปฏิเสธ (คงนัดเดิม)</button></div></section>`}).join('');
 }};
 
+C.t_clients={title:'ลูกเทรนของฉัน',render(){
+  const list=Object.entries(T.clients).filter(([k,c])=>!c.removed);
+  const gone=Object.values(T.clients).filter(c=>c.removed).length;
+  return `<section class="sec"><div class="grid2"><button class="big p" data-to="invite_client">${svg('people')}<span>เพิ่มลูกเทรน</span></button><button class="big" data-to="search_client">${svg('search')}<span>ค้นหา</span></button></div></section>
+  <section class="sec"><h2>รายชื่อ ${list.length} คน</h2><div class="list">${list.map(([k,c])=>{const b=pkgBadge(c);return `<button class="row" data-act="client" data-c="${k}"><span class="ic">${esc(c.name.replace('คุณ','').slice(0,2))}</span><span class="tx"><span class="lb">${esc(c.name)}</span><span class="sb">${esc(c.goal)} · เหลือ ${left(c)}/${c.pkg.total} ครั้ง</span></span>${b?`<span class="badge b-${b[1]}">${b[0]}</span>`:''}<span class="chev">${svg('chev',18)}</span></button>`}).join('')||`<div class="row"><span class="tx"><span class="sb">ยังไม่มีลูกเทรน</span></span></div>`}</div>
+  ${gone?`<p class="muted2" style="margin:0">ลบออกจากรายชื่อแล้ว ${gone} คน · บัญชีของพวกเขายังอยู่ปกติ</p>`:''}</section>`;
+}};
+C.t_client={get title(){return T.clients[T.cc].name},render(){
+  const c=T.clients[T.cc];
+  const r=(lb,to,icon,sb)=>rowHTML({lb,to,icon,sb});
+  return `<section class="sec"><h2>การเทรน</h2><div class="list">${r('วางโปรแกรมล่วงหน้า','c_plan_ahead','pencil')}${r('ประวัติการเทรน','c_history','blank','ท่า เซ็ต น้ำหนัก ย้อนหลังทุกครั้ง')}${r('สถิติน้ำหนักที่ยก','c_lifts','chart')}${r('นัดของลูกเทรนคนนี้','c_appts','cal')}
+    <button class="row" data-act="pkg" data-c="${T.cc}"><span class="ic">${svg('shop',20)}</span><span class="tx"><span class="lb">แพ็กเกจ / ครั้งคงเหลือ</span><span class="sb">เหลือ ${left(c)} จาก ${c.pkg.total} ครั้ง</span></span><span class="chev">${svg('chev',18)}</span></button></div></section>
+  <section class="sec"><h2>โภชนาการ</h2><div class="list">${r('คำนวณ TDEE','c_tdee','gauge')}${r('แผนมาโคร','c_nutrition','food')}${r('บันทึกอาหารของลูกเทรน','c_food','camera')}</div></section>
+  <section class="sec"><h2>ผลลัพธ์</h2><div class="list">${r('Progress before/after','c_progress','chart')}</div></section>
+  <section class="sec"><button class="ghostbtn danger" data-act="rmclient">ลบออกจากรายชื่อของฉัน</button><p class="muted2" style="margin:0">เหมือนลบเพื่อน: บัญชีและประวัติของลูกเทรนยังอยู่กับเขา</p></section>`;
+}};
+
 /* ---- bottom sheets ---- */
 function sheetHTML(){
   const s=T.sheet; if(!s) return '';
@@ -806,6 +825,10 @@ function sheetHTML(){
     <p class="muted2">ปรับจำนวนครั้ง (ตอนนี้เหลือ ${left(c)})</p><div class="chips2">${[['−1 ครั้ง',-1],['+1 ครั้ง (แถม)',1],['+2 ครั้ง',2]].map(x=>`<button class="chip2 ${s.n===x[1]?'on':''}" data-act="ecnt" data-n="${x[1]}">${x[0]}</button>`).join('')}</div>
     <label class="muted2" for="eReason">เหตุผล (จำเป็น)</label><input id="eReason" class="inp" data-in="reason" value="${esc(s.reason||'')}" placeholder="เช่น ลูกเทรนป่วย ขอต่อเวลา">
     <button class="cta" data-act="editok" ${(s.days||s.n)&&(s.reason||'').trim()?'':'disabled'}>บันทึกการแก้ไข</button><button class="ghostbtn" data-act="closesheet">ยกเลิก</button>`;}
+  if(s.k==='rmclient'){const c=T.clients[T.cc],l=left(c),fut=T.appts.filter(a=>a.c===T.cc&&(a.status==='todo'||a.status==='req')).length;body=`<h2>ลบ ${esc(c.name)} ออกจากรายชื่อ?</h2>
+    <ul class="muted2" style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:4px"><li>หายจากรายชื่อและตารางของคุณ</li><li>โน้ต โปรแกรม และข้อมูลที่คุณเก็บไว้ ถูกลบจากฝั่งคุณ</li><li>บัญชีของลูกเทรนยังอยู่ปกติ ประวัติการเทรนยังอยู่ในแอปของเขา</li><li>อยากกลับมาดูแลอีก เชิญใหม่ได้ด้วย UID / QR</li>${fut?`<li>นัดที่ยังไม่ถึง ${fut} นัด จะถูกยกเลิก และแจ้งลูกเทรน</li>`:''}</ul>
+    ${l>0?`<div class="warnbox">แพ็กยังเหลือ ${l} ครั้ง · ถ้าอยู่ในยิม แพ็กจะกลับไปให้เจ้าของยิมจัดการต่อ (ย้ายเทรนเนอร์ / คืนเงิน)</div>`:''}
+    <button class="cta danger" data-act="rmok">ลบออกจากรายชื่อ</button><button class="ghostbtn" data-act="closesheet">ยกเลิก</button>`;}
   if(s.k==='addex'){const lib=['Leg Press','Leg Extension','Calf Raise','Bulgarian Split Squat','Glute Kickback','Hip Abduction'];body=`<h2>เพิ่มท่า (คลังท่า · ขา)</h2><div class="list">${lib.map(n=>`<button class="row" data-act="addexok" data-n="${n}"><span class="tx"><span class="lb">${n}</span></span><span class="chev">+</span></button>`).join('')}</div><button class="ghostbtn" data-act="closesheet">ปิด</button>`;}
   return `<div class="scrim2" data-act="closesheet"></div><div class="sheet" role="dialog" aria-modal="true">${body}</div>`;
 }
@@ -845,6 +868,9 @@ function onAct(b){
     case 'eday': S2.days=S2.days===+b.dataset.n?0:+b.dataset.n; return render();
     case 'ecnt': S2.n=S2.n===+b.dataset.n?0:+b.dataset.n; return render();
     case 'editok':{const c=T.clients[T.cc],parts=[];if(S2.days){c.pkg.end=dIso(dAdd(dParse(c.pkg.end)<D0?D0:dParse(c.pkg.end),S2.days));parts.push(`ต่ออายุ +${S2.days} วัน`);}if(S2.n){c.pkg.total+=S2.n;parts.push(`${S2.n>0?'+':''}${S2.n} ครั้ง`);}c.log.unshift({d:dTh(D0),t:`แก้ไข: ${parts.join(', ')} · เหตุผล: ${S2.reason.trim()} · โดย ต้น`,k:'edit'});T.sheet=null;toast('บันทึกการแก้ไขแล้ว');return render();}
+    case 'client': T.cc=b.dataset.c; return go('t_client');
+    case 'rmclient': T.sheet={k:'rmclient'}; return render();
+    case 'rmok':{const c=T.clients[T.cc];c.removed=true;T.appts.forEach(a=>{if(a.c===T.cc&&(a.status==='todo'||a.status==='req'))a.status='cancel';});T.appts=T.appts.filter(a=>a.c!==T.cc);T.sheet=null;stack=['t_clients'];toast(`ลบ ${c.name} ออกจากรายชื่อแล้ว`);return render();}
     case 'closesheet': T.sheet=null; return render();
   }
 }
