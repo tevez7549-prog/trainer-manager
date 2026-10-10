@@ -95,6 +95,62 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:18px}
 .mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .mrow .left{font-size:11.5px;color:var(--muted)}
 .mrow .left.over{color:var(--over);font-weight:600}
+.card2{background:var(--surface);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.row2{display:flex;align-items:center;gap:12px}
+.av2{width:48px;height:48px;border-radius:14px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.h3{font-family:var(--display);font-weight:700;font-size:17px}
+.muted2{font-size:13px;color:var(--muted)}
+.kv2{display:grid;grid-template-columns:100px minmax(0,1fr);gap:6px 10px;margin:0;font-size:14px}
+.kv2 dt{color:var(--muted)} .kv2 dd{margin:0}
+.warnbox{background:var(--warn-bg);color:var(--warn-fg);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:500}
+.sessbar{background:var(--surface);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+.prog{display:flex;flex-direction:column;align-items:center;min-width:64px;background:var(--accent-soft);color:var(--accent-ink);border-radius:12px;padding:6px 10px}
+.prog b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums} .prog span{font-size:11px}
+.ex{background:var(--surface);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;border:2px solid transparent}
+.ex.cur{border-color:var(--accent)}
+.exh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.setrow{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 48px;gap:8px;align-items:center}
+.setrow.head{font-size:12px;color:var(--muted)}
+.setrow .sn{font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+.setrow input{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:16px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums;min-width:0}
+.setrow input:focus{outline:none;border-color:var(--accent)}
+.setrow.done input{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+.chk{width:48px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:18px;font-weight:700}
+.chk.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.exacts{display:flex;gap:8px;flex-wrap:wrap}
+.mini{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;min-height:36px}
+.ta,.inp{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--fg)}
+.ta{min-height:72px;resize:vertical}
+.sessfoot{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;padding-top:8px;background:linear-gradient(to bottom,transparent,var(--bg) 30%)}
+.timer{display:flex;align-items:center;gap:10px;background:var(--fg);color:var(--bg);border-radius:14px;padding:10px 14px;font-size:14px}
+.timer b{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums;margin-right:auto}
+.timer .mini{background:transparent;color:var(--bg);border-color:currentColor}
+.cta:disabled{opacity:.45}
+.bignum{display:flex;align-items:center;gap:14px}
+.bignum b{font-family:var(--display);font-size:64px;line-height:1;font-weight:700;color:var(--accent)}
+.bignum span{font-size:14px;color:var(--muted);line-height:1.35}
+.pbar{height:10px;border-radius:5px;background:var(--ghost);overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--accent);border-radius:inherit}
+.dayrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.day{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px;min-height:56px}
+.day b{font-family:var(--display);font-size:18px}
+.day small{font-size:9.5px;color:var(--muted)}
+.day.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.day:disabled{opacity:.45}
+.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.slot{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 0;font-variant-numeric:tabular-nums;font-weight:600;display:flex;flex-direction:column;align-items:center;min-height:48px}
+.slot small{font-size:10px;font-weight:400;color:var(--muted)}
+.slot.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.slot:disabled{opacity:.4;text-decoration:line-through}
+.scrim2{position:fixed;inset:0;background:rgba(8,14,11,.45);z-index:20}
+.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:440px;box-sizing:border-box;background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));z-index:21;display:flex;flex-direction:column;gap:12px;max-height:85vh;overflow-y:auto}
+.sheet h2{margin:0;font-family:var(--display);font-size:20px}
+.row.sel{background:var(--accent-soft)}
+.chips2{display:flex;gap:8px;flex-wrap:wrap}
+.chip2{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:600;font-size:13.5px}
+.chip2.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.tm-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:11px 16px;border-radius:12px;font-weight:600;font-size:14px;z-index:30;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.num{font-variant-numeric:tabular-nums}
 .flag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:7px;padding:2px 8px;background:var(--new-bg);color:var(--new-fg)}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .tile{border:0;background:var(--surface);border-radius:14px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -577,13 +633,224 @@ function renderStart(){
   </main>`;
 }
 
+/* ===== Trainer daily flow (working screens, in-memory) ===== */
+const TH_DOW=['อา','จ','อ','พ','พฤ','ศ','ส'];
+const TH_MON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const D0=new Date(2026,9,10); /* prototype "today": Sat 10 Oct 2026 */
+const dParse=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const dIso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const dTh=d=>`${d.getDate()} ${TH_MON[d.getMonth()]}`;
+const dAdd=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const daysTo=s=>Math.round((dParse(s)-D0)/86400000);
+const fmtN=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:1});
+
+const PROG={
+  lowerA:{name:'ขา + ก้น (Lower A)',ex:[['Back Squat',60,8,4,'60 × 8'],['Romanian Deadlift',50,10,3,'50 × 10'],['Hip Thrust',75,10,3,'70 × 10'],['Walking Lunge',10,12,3,'10 × 12 ข้าง'],['Leg Curl',25,15,3,'25 × 15']]},
+  pull:{name:'หลัง + แขน (Pull)',ex:[['Lat Pulldown',45,10,3,'45 × 10'],['Seated Row',40,12,3,'40 × 12'],['Dumbbell Row',16,10,3,'14 × 10'],['Biceps Curl',10,12,3,'10 × 12']]},
+  push:{name:'อก + ไหล่ (Push)',ex:[['Bench Press',50,8,4,'47.5 × 8'],['Shoulder Press',14,10,3,'14 × 10'],['Cable Fly',12,12,3,'12 × 12']]},
+  full:{name:'Full body',ex:[['Goblet Squat',16,12,3,'16 × 12'],['Push-up',0,12,3,'ตัวเปล่า × 10'],['Plank (วินาที)',0,45,3,'40 วินาที']]}
+};
+const T={
+  cc:'mint', cur:'a2', sess:null, sheet:null, timer:null, timerLeft:0,
+  clients:{
+    ek:{name:'คุณเอก ธนา',goal:'เพิ่มกล้าม',pkg:{label:'20 ครั้ง / 3 เดือน',total:20,used:19,end:'2026-11-02'},log:[]},
+    mint:{name:'คุณมิ้นท์ ศิริพร',goal:'ลดไขมัน',pkg:{label:'20 ครั้ง / 3 เดือน',total:20,used:11,end:'2026-11-30'},
+      log:[{d:'8 ต.ค.',t:'ใช้ 1 ครั้ง · Upper A',k:'use'},{d:'6 ต.ค.',t:'ใช้ 1 ครั้ง · Lower B',k:'use'},{d:'3 ต.ค.',t:'แก้ไข: +1 ครั้ง (แถม) · เหตุผล: ยิมปิดซ่อมแอร์ · โดย ต้น',k:'edit'}]},
+    oat:{name:'คุณโอ๊ต วรพล',goal:'เพิ่มกล้าม',pkg:{label:'10 ครั้ง / 1 เดือน',total:10,used:8,end:'2026-10-05'},log:[{d:'7 ต.ค.',t:'ใช้ 1 ครั้ง · Pull',k:'use'}]},
+    boss:{name:'คุณบอส กิตติ',goal:'สุขภาพทั่วไป',pkg:{label:'20 ครั้ง / 3 เดือน',total:20,used:9,end:'2026-12-15'},log:[]}
+  },
+  appts:[
+    {id:'a1',time:'07:00',c:'ek',prog:'push',status:'done'},
+    {id:'a2',time:'10:00',c:'mint',prog:'lowerA',status:'todo'},
+    {id:'a3',time:'13:00',c:'oat',prog:'pull',status:'todo'},
+    {id:'a4',time:'19:00',c:'boss',prog:'full',status:'req',req:{day:2,time:'18:00'}}
+  ],
+  prices:[{n:10,months:2,price:8000},{n:20,months:3,price:15000}],
+  noShowRule:'ยกเลิกน้อยกว่า 12 ชม. ก่อนนัด = ตัด 1 ครั้ง'
+};
+const left=c=>c.pkg.total-c.pkg.used;
+const apptOf=id=>T.appts.find(a=>a.id===id);
+const cl=a=>T.clients[a.c];
+function pkgBadge(c){
+  const l=left(c), dd=daysTo(c.pkg.end);
+  if(l<=0) return ['ครั้งหมดแล้ว','warn'];
+  if(dd<0) return [`เลยกำหนด ${-dd} วัน`,'warn'];
+  if(l<=2) return [`เหลือ ${l} ครั้ง`,'warn'];
+  return null;
+}
+const ST={done:['เสร็จแล้ว','ok'],todo:null,req:['ขอเลื่อน','wait'],moved:['เลื่อนแล้ว','wait'],noshow:['ขาดนัด','warn'],cancel:['ยกเลิก','wait'],live:['กำลังเทรน','ok']};
+
+function toast(msg){let t=document.getElementById('tm-toast');if(!t){t=document.createElement('div');t.id='tm-toast';t.className='tm-toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>{t.hidden=true},2600);}
+
+function apptRow(a){
+  const c=cl(a), st=ST[a.status]||pkgBadge(c);
+  const sub=a.status==='req'?`ขอเลื่อนเป็น ${dTh(dAdd(D0,a.req.day))} ${a.req.time}`:a.status==='moved'?`ย้ายไป ${a.moved}`:`${PROG[a.prog].name} · เหลือ ${left(c)} ครั้ง`;
+  return `<button class="row" data-act="appt" data-id="${a.id}"><span class="ic">${a.time}</span><span class="tx"><span class="lb">${esc(c.name)}</span><span class="sb">${esc(sub)}</span></span>${st?`<span class="badge b-${st[1]}">${st[0]}</span>`:''}<span class="chev">${svg('chev',18)}</span></button>`;
+}
+
+/* ---- custom screens ---- */
+const C={};
+C.t_today={title:'วันนี้',render(){
+  const next=T.appts.find(a=>a.status==='todo'||a.status==='live');
+  const reqs=T.appts.filter(a=>a.status==='req').length;
+  const done=T.appts.filter(a=>a.status==='done').length;
+  const hero=next?(()=>{const c=cl(next),b=pkgBadge(c);return `<div class="hero"><div class="eb">${next.status==='live'?'กำลังเทรนอยู่':'นัดถัดไป'} · ${next.time} · ส. ${dTh(D0)}</div><div class="tt">${esc(c.name)}</div><div class="sb">${esc(PROG[next.prog].name)} · ครั้งที่ ${c.pkg.used+1}/${c.pkg.total}${b?` · ${b[0]}`:''}</div><div class="acts"><button class="p" data-act="start" data-id="${next.id}">${next.status==='live'?'กลับไปบันทึกต่อ':'เริ่มเทรน'}</button><button data-act="resched" data-id="${next.id}">เลื่อนนัด</button></div></div>`})():`<div class="empty"><h2>วันนี้เทรนครบแล้ว</h2><p>เสร็จ ${done} นัด · พรุ่งนี้มีนัดแรก 07:00 (ตัวอย่าง)</p></div>`;
+  return `<section class="sec">${hero}</section>
+  <section class="sec"><h2>ตารางวันนี้ · ${T.appts.length} นัด · เสร็จ ${done}</h2><div class="list">${T.appts.map(apptRow).join('')}</div></section>
+  <section class="sec"><h2>อื่น ๆ</h2><div class="list">${rowHTML({icon:'swap',lb:'คำขอเลื่อนนัด',sb:reqs?`${reqs} รายการรอตอบ`:'ไม่มีคำขอค้าง',to:'requests'})}${rowHTML({icon:'bell',lb:'ลูกเทรนที่หายไปนาน',to:'t_inactive',nw:1})}${rowHTML({icon:'bell',lb:'การแจ้งเตือน',to:'notifications'})}</div></section>`;
+}};
+
+C.appt_detail={title:'รายละเอียดนัด',render(){
+  const a=apptOf(T.cur), c=cl(a), p=PROG[a.prog], b=pkgBadge(c), st=ST[a.status];
+  const canStart=a.status==='todo'||a.status==='live';
+  return `<section class="sec"><div class="card2"><div class="row2"><span class="av2">${esc(c.name.replace('คุณ','').slice(0,2))}</span><div style="flex:1;min-width:0"><div class="h3">${esc(c.name)}</div><div class="muted2">เป้าหมาย: ${esc(c.goal)}</div></div>${st?`<span class="badge b-${st[1]}">${st[0]}</span>`:''}</div>
+    <dl class="kv2"><dt>เวลา</dt><dd>ส. ${dTh(D0)} · ${a.time}–${String(+a.time.slice(0,2)+1).padStart(2,'0')}:00</dd><dt>โปรแกรม</dt><dd>${esc(p.name)}</dd><dt>แพ็ก PT</dt><dd>เหลือ <b>${left(c)}</b> จาก ${c.pkg.total} ครั้ง${b?` · <span class="badge b-${b[1]}">${b[0]}</span>`:''}</dd></dl></div></section>
+  <section class="sec"><h2>ท่าที่วางไว้ (${p.ex.length} ท่า)</h2><div class="list">${p.ex.map((e,i)=>`<div class="row"><span class="ic">${i+1}</span><span class="tx"><span class="lb">${esc(e[0])}</span><span class="sb">${e[3]} เซ็ต · ครั้งก่อน ${e[4]}</span></span></div>`).join('')}</div></section>
+  <section class="sec">${canStart?`<button class="cta" data-act="start" data-id="${a.id}">${a.status==='live'?'กลับไปบันทึกต่อ':'เริ่มเทรน'}</button>`:''}
+    <div class="grid2">${canStart?`<button class="ghostbtn" data-act="resched" data-id="${a.id}">เลื่อนนัด</button><button class="ghostbtn" data-act="noshow" data-id="${a.id}">ลูกเทรนไม่มา</button>`:''}<button class="ghostbtn" data-act="pkg" data-c="${a.c}">ดูแพ็ก PT</button>${canStart?`<button class="ghostbtn" data-act="cancel" data-id="${a.id}">ยกเลิกนัด</button>`:''}</div></section>`;
+}};
+
+function newSession(a){
+  return {appt:a.id, start:'10:02', note:'', ex:PROG[a.prog].ex.map(e=>({n:e[0],prev:e[4],sets:Array.from({length:e[3]},()=>({w:e[1],r:e[2],done:false}))}))};
+}
+C.session={title:'บันทึกการเทรน',render(){
+  if(!T.sess) return `<div class="empty"><h2>ยังไม่ได้เริ่มเซสชัน</h2><p>เริ่มจากนัดในหน้าวันนี้</p></div><button class="ghostbtn" data-tab="t_today">ไปหน้าวันนี้</button>`;
+  const s=T.sess, a=apptOf(s.appt), c=cl(a), b=pkgBadge(c);
+  const tot=s.ex.reduce((n,e)=>n+e.sets.length,0), dn=s.ex.reduce((n,e)=>n+e.sets.filter(x=>x.done).length,0);
+  const vol=s.ex.reduce((n,e)=>n+e.sets.filter(x=>x.done).reduce((m,x)=>m+(+x.w||0)*(+x.r||0),0),0);
+  const curEx=s.ex.findIndex(e=>e.sets.some(x=>!x.done));
+  return `<section class="sec"><div class="sessbar"><div><div class="h3">${esc(c.name)}</div><div class="muted2">${esc(PROG[a.prog].name)} · เริ่ม ${s.start} · ครั้งที่ ${c.pkg.used+1}/${c.pkg.total}</div></div>
+    <div class="prog" role="progressbar" aria-valuenow="${dn}" aria-valuemax="${tot}" aria-label="เซ็ตที่ทำแล้ว"><b>${dn}/${tot}</b><span>เซ็ต</span></div></div>
+    ${b?`<div class="warnbox">${b[0]} · ตัดครั้งได้ตามปกติ (ยิมตั้งผ่อนผันไว้)</div>`:''}</section>
+  ${s.ex.map((e,ei)=>`<section class="ex ${ei===curEx?'cur':''}"><div class="exh"><span class="h3">${ei+1}. ${esc(e.n)}</span><span class="muted2">ครั้งก่อน ${esc(e.prev)}</span></div>
+    <div class="setrow head"><span>เซ็ต</span><span>น้ำหนัก (กก.)</span><span>ครั้ง</span><span></span></div>
+    ${e.sets.map((x,si)=>`<div class="setrow ${x.done?'done':''}"><span class="sn">${si+1}</span>
+      <input inputmode="decimal" aria-label="${esc(e.n)} เซ็ต ${si+1} น้ำหนัก" data-in="w" data-e="${ei}" data-s="${si}" value="${x.w}">
+      <input inputmode="numeric" aria-label="${esc(e.n)} เซ็ต ${si+1} จำนวนครั้ง" data-in="r" data-e="${ei}" data-s="${si}" value="${x.r}">
+      <button class="chk ${x.done?'on':''}" data-act="tick" data-e="${ei}" data-s="${si}" aria-pressed="${x.done}" aria-label="ทำเซ็ต ${si+1} เสร็จ">${x.done?'✓':''}</button></div>`).join('')}
+    <div class="exacts"><button class="mini" data-act="addset" data-e="${ei}">+ เพิ่มเซ็ต</button>${e.sets.length>1?`<button class="mini" data-act="delset" data-e="${ei}">− ลบเซ็ตสุดท้าย</button>`:''}</div></section>`).join('')}
+  <section class="sec"><button class="ghostbtn" data-act="addex">+ เพิ่มท่าจากคลัง</button>
+    <label class="muted2" for="sessNote">โน้ตถึงลูกเทรน (เห็นในแอปของลูกเทรน)</label><textarea id="sessNote" class="ta" data-in="note" placeholder="เช่น สควอทฟอร์มดีขึ้น ครั้งหน้าเพิ่มเป็น 65 กก.">${esc(s.note)}</textarea>
+    <p class="muted2" style="margin:0">ยกรวม <b class="num">${fmtN(vol)}</b> กก. · ทำแล้ว ${dn} จาก ${tot} เซ็ต</p></section>
+  <div class="sessfoot">${T.timer?`<div class="timer" aria-live="polite">พัก <b id="tmLeft">${fmtT(T.timerLeft)}</b><button class="mini" data-act="skiprest">ข้าม</button><button class="mini" data-act="plus30">+30 วิ</button></div>`:''}
+    <button class="cta" data-act="finish">จบเซสชัน · ตัด 1 ครั้ง</button></div>`;
+}};
+const fmtT=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+function startRest(sec){
+  clearInterval(T.timer); T.timerLeft=sec;
+  T.timer=setInterval(()=>{T.timerLeft--;const el=document.getElementById('tmLeft');if(el)el.textContent=fmtT(Math.max(0,T.timerLeft));if(T.timerLeft<=0){clearInterval(T.timer);T.timer=null;toast('หมดเวลาพัก · เซ็ตต่อไป');if(stack[stack.length-1]==='session')render();}},1000);
+}
+
+C.c_package={title:'แพ็ก PT',render(){
+  const c=T.clients[T.cc], p=c.pkg, l=left(c), dd=daysTo(p.end), b=pkgBadge(c), pct=Math.round(p.used/p.total*100);
+  return `<section class="sec"><div class="card2"><div class="muted2">${esc(c.name)} · ${esc(p.label)}</div>
+    <div class="bignum"><b class="num">${l}</b><span>ครั้งคงเหลือ<br>จาก ${p.total} ครั้ง</span></div>
+    <div class="pbar" role="progressbar" aria-valuenow="${p.used}" aria-valuemax="${p.total}" aria-label="ใช้ไปแล้ว"><i style="width:${pct}%"></i></div>
+    <div class="muted2">ใช้ไป ${p.used} ครั้ง · หมดอายุ ${dTh(dParse(p.end))} ${dd>=0?`(อีก ${dd} วัน)`:''} ${b?`<span class="badge b-${b[1]}">${b[0]}</span>`:''}</div>
+    ${dd<0&&l>0?`<div class="warnbox">เลยวันหมดอายุแต่ยังเหลือครั้ง ยังนัดและตัดครั้งได้ตามปกติ · ต่ออายุได้ด้านล่าง</div>`:''}</div></section>
+  <section class="sec"><div class="grid2"><button class="big p" data-act="addpkg">${svg('shop')}<span>เพิ่มแพ็ก</span></button><button class="big" data-act="editpkg">${svg('pencil')}<span>แก้ไขแพ็ก</span></button></div>
+    <p class="muted2" style="margin:0">ทุกการแก้ไขต้องใส่เหตุผล และบันทึกว่าใครแก้ เจ้าของยิมตรวจย้อนหลังได้</p></section>
+  <section class="sec"><h2>ประวัติ</h2><div class="list">${c.log.length?c.log.map(x=>`<div class="row"><span class="ic">${x.k==='edit'?svg('pencil',18):x.k==='add'?svg('shop',18):'−1'}</span><span class="tx"><span class="lb">${esc(x.t)}</span><span class="sb">${esc(x.d)}</span></span></div>`).join(''):`<div class="row"><span class="tx"><span class="sb">ยังไม่มีประวัติ</span></span></div>`}</div></section>`;
+}};
+
+C.reschedule={title:'เลื่อนนัด',render(){
+  const a=apptOf(T.cur), c=cl(a), sel=T.rs||{day:0,time:null};
+  const days=Array.from({length:7},(_,i)=>dAdd(D0,i));
+  const closed=d=>d.getDay()===0;
+  const busy={0:['07:00','10:00','13:00','19:00'],1:[],2:['08:00','18:00'],3:['07:00','17:00','18:00']};
+  const slots=['06:00','07:00','08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+  const d=days[sel.day];
+  return `<section class="sec"><div class="card2"><div class="h3">${esc(c.name)}</div><div class="muted2">นัดเดิม: ส. ${dTh(D0)} ${a.time} · ${esc(PROG[a.prog].name)}</div></div></section>
+  <section class="sec"><h2>เลือกวัน</h2><div class="dayrow">${days.map((x,i)=>`<button class="day ${i===sel.day?'on':''}" data-act="rsday" data-i="${i}" ${closed(x)?'disabled':''}><span>${TH_DOW[x.getDay()]}</span><b>${x.getDate()}</b>${closed(x)?'<small>ยิมปิด</small>':''}</button>`).join('')}</div></section>
+  <section class="sec"><h2>เวลาที่คุณว่าง · ${TH_DOW[d.getDay()]} ${dTh(d)}</h2><div class="slots">${slots.map(t=>{const taken=(busy[sel.day]||[]).includes(t);return `<button class="slot ${sel.time===t?'on':''}" data-act="rstime" data-t="${t}" ${taken?'disabled':''}>${t}${taken?'<small>มีนัด</small>':''}</button>`}).join('')}</div></section>
+  <section class="sec"><button class="cta" data-act="rsok" ${sel.time?'':'disabled'}>ยืนยันเลื่อน${sel.time?` เป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${sel.time}`:''}</button><p class="muted2" style="margin:0">ระบบแจ้งลูกเทรนในแอปให้อัตโนมัติ · เลื่อนนัดไม่ตัดครั้ง</p></section>`;
+}};
+
+C.requests={title:'คำขอเลื่อนนัด',render(){
+  const rq=T.appts.filter(a=>a.status==='req');
+  if(!rq.length) return `<div class="empty"><h2>ไม่มีคำขอค้าง</h2><p>คำขอเลื่อนจากลูกเทรนจะขึ้นที่นี่ และมีแจ้งเตือน</p></div>`;
+  return rq.map(a=>{const c=cl(a),nd=dAdd(D0,a.req.day);return `<section class="sec"><div class="card2"><div class="h3">${esc(c.name)}</div>
+    <dl class="kv2"><dt>นัดเดิม</dt><dd>ส. ${dTh(D0)} ${a.time}</dd><dt>ขอเปลี่ยนเป็น</dt><dd><b>${TH_DOW[nd.getDay()]} ${dTh(nd)} ${a.req.time}</b></dd><dt>เหตุผล</dt><dd>ติดประชุมเย็นนี้</dd></dl>
+    <div class="grid2"><button class="cta" data-act="rqok" data-id="${a.id}">อนุมัติ</button><button class="ghostbtn" data-act="rqother" data-id="${a.id}">เสนอเวลาอื่น</button></div>
+    <button class="ghostbtn" data-act="rqno" data-id="${a.id}">ปฏิเสธ (คงนัดเดิม)</button></div></section>`}).join('');
+}};
+
+/* ---- bottom sheets ---- */
+function sheetHTML(){
+  const s=T.sheet; if(!s) return '';
+  let body='';
+  if(s.k==='finish'){const ss=T.sess,a=apptOf(ss.appt),c=cl(a);const dn=ss.ex.reduce((n,e)=>n+e.sets.filter(x=>x.done).length,0),tot=ss.ex.reduce((n,e)=>n+e.sets.length,0);
+    body=`<h2>จบเซสชันนี้?</h2><dl class="kv2"><dt>ลูกเทรน</dt><dd>${esc(c.name)}</dd><dt>ทำแล้ว</dt><dd>${dn} จาก ${tot} เซ็ต</dd><dt>แพ็ก PT</dt><dd>เหลือ ${left(c)} → <b>${left(c)-1}</b> ครั้ง</dd></dl>
+    ${dn<tot?`<div class="warnbox">ยังมี ${tot-dn} เซ็ตที่ไม่ได้ติ๊ก ระบบจะบันทึกเฉพาะเซ็ตที่ติ๊กแล้ว</div>`:''}
+    <button class="cta" data-act="finishok">ยืนยัน จบและตัด 1 ครั้ง</button><button class="ghostbtn" data-act="closesheet">กลับไปบันทึกต่อ</button>`;}
+  if(s.k==='noshow'){const a=apptOf(s.id),c=cl(a);body=`<h2>${esc(c.name)} ไม่มาตามนัด</h2><p class="muted2">นโยบายยิม: ${T.noShowRule}</p>
+    <button class="cta" data-act="nsok" data-cut="1">บันทึกขาดนัด · ตัด 1 ครั้ง</button><button class="ghostbtn" data-act="nsok" data-cut="0">บันทึกขาดนัด · ไม่ตัดครั้ง (แจ้งล่วงหน้า)</button><button class="ghostbtn" data-act="closesheet">ยกเลิก</button>`;}
+  if(s.k==='cancel'){body=`<h2>ยกเลิกนัดนี้?</h2><p class="muted2">ไม่ตัดครั้ง · แจ้งลูกเทรนอัตโนมัติ</p><button class="cta" data-act="cancelok" data-id="${s.id}">ยกเลิกนัด</button><button class="ghostbtn" data-act="closesheet">ไม่ยกเลิก</button>`;}
+  if(s.k==='addpkg'){const c=T.clients[T.cc];body=`<h2>เพิ่มแพ็กให้ ${esc(c.name)}</h2><p class="muted2">ราคาของเทรนเนอร์ต้น · บันทึกว่าลูกค้าซื้อแพ็กไหน (รับเงินนอกแอป)</p>
+    <div class="list">${T.prices.map((p,i)=>`<button class="row ${s.pick===i?'sel':''}" data-act="pkpick" data-i="${i}"><span class="ic">${p.n}</span><span class="tx"><span class="lb">${p.n} ครั้ง · ${p.months} เดือน</span><span class="sb">฿${p.price.toLocaleString('en-US')}</span></span>${s.pick===i?'<span class="badge b-ok">เลือก</span>':''}</button>`).join('')}</div>
+    <p class="muted2">ครั้งที่เหลือของแพ็กเดิมรวมเข้าไปด้วย · วันหมดอายุนับใหม่จากวันนี้</p>
+    <button class="cta" data-act="addpkgok" ${s.pick==null?'disabled':''}>เพิ่มแพ็ก</button><button class="ghostbtn" data-act="closesheet">ยกเลิก</button>`;}
+  if(s.k==='editpkg'){const c=T.clients[T.cc];body=`<h2>แก้ไขแพ็ก</h2>
+    <p class="muted2">ต่อวันหมดอายุ (ตอนนี้ ${dTh(dParse(c.pkg.end))})</p><div class="chips2">${[['+7 วัน',7],['+14 วัน',14],['+1 เดือน',30]].map(x=>`<button class="chip2 ${s.days===x[1]?'on':''}" data-act="eday" data-n="${x[1]}">${x[0]}</button>`).join('')}</div>
+    <p class="muted2">ปรับจำนวนครั้ง (ตอนนี้เหลือ ${left(c)})</p><div class="chips2">${[['−1 ครั้ง',-1],['+1 ครั้ง (แถม)',1],['+2 ครั้ง',2]].map(x=>`<button class="chip2 ${s.n===x[1]?'on':''}" data-act="ecnt" data-n="${x[1]}">${x[0]}</button>`).join('')}</div>
+    <label class="muted2" for="eReason">เหตุผล (จำเป็น)</label><input id="eReason" class="inp" data-in="reason" value="${esc(s.reason||'')}" placeholder="เช่น ลูกเทรนป่วย ขอต่อเวลา">
+    <button class="cta" data-act="editok" ${(s.days||s.n)&&(s.reason||'').trim()?'':'disabled'}>บันทึกการแก้ไข</button><button class="ghostbtn" data-act="closesheet">ยกเลิก</button>`;}
+  if(s.k==='addex'){const lib=['Leg Press','Leg Extension','Calf Raise','Bulgarian Split Squat','Glute Kickback','Hip Abduction'];body=`<h2>เพิ่มท่า (คลังท่า · ขา)</h2><div class="list">${lib.map(n=>`<button class="row" data-act="addexok" data-n="${n}"><span class="tx"><span class="lb">${n}</span></span><span class="chev">+</span></button>`).join('')}</div><button class="ghostbtn" data-act="closesheet">ปิด</button>`;}
+  return `<div class="scrim2" data-act="closesheet"></div><div class="sheet" role="dialog" aria-modal="true">${body}</div>`;
+}
+
+function onAct(b){
+  const A=b.dataset.act, a=b.dataset.id?apptOf(b.dataset.id):null;
+  const S2=T.sheet;
+  switch(A){
+    case 'appt': T.cur=a.id; if(a.status==='req'){return go('requests');} if(a.status==='live'){return go('session');} return go('appt_detail');
+    case 'start': T.cur=a.id; if(!T.sess||T.sess.appt!==a.id){T.sess=newSession(a);} a.status='live'; return go('session');
+    case 'resched': T.cur=a.id; T.rs={day:0,time:null}; return go('reschedule');
+    case 'noshow': T.sheet={k:'noshow',id:a.id}; return render();
+    case 'cancel': T.sheet={k:'cancel',id:a.id}; return render();
+    case 'pkg': T.cc=b.dataset.c; return go('c_package');
+    case 'tick':{const x=T.sess.ex[b.dataset.e].sets[b.dataset.s]; x.done=!x.done; if(x.done) startRest(90); else {clearInterval(T.timer);T.timer=null;} return render();}
+    case 'addset':{const e=T.sess.ex[b.dataset.e],l=e.sets[e.sets.length-1]; e.sets.push({w:l.w,r:l.r,done:false}); return render();}
+    case 'delset': T.sess.ex[b.dataset.e].sets.pop(); return render();
+    case 'skiprest': clearInterval(T.timer); T.timer=null; return render();
+    case 'plus30': T.timerLeft+=30; return;
+    case 'addex': T.sheet={k:'addex'}; return render();
+    case 'addexok': T.sess.ex.push({n:b.dataset.n,prev:'ยังไม่เคยเล่น',sets:[{w:20,r:12,done:false},{w:20,r:12,done:false},{w:20,r:12,done:false}]}); T.sheet=null; toast(`เพิ่ม ${b.dataset.n} แล้ว`); return render();
+    case 'finish': T.sheet={k:'finish'}; return render();
+    case 'finishok':{const ap=apptOf(T.sess.appt),c=cl(ap);c.pkg.used++;ap.status='done';c.log.unshift({d:dTh(D0),t:`ใช้ 1 ครั้ง · ${PROG[ap.prog].name}`,k:'use'});clearInterval(T.timer);T.timer=null;T.sess=null;T.sheet=null;stack=['t_today'];toast(`จบเซสชัน · ${c.name} เหลือ ${left(c)} ครั้ง`);render();return window.scrollTo(0,0);}
+    case 'nsok':{const ap=apptOf(S2.id),c=cl(ap);ap.status='noshow';if(b.dataset.cut==='1'){c.pkg.used++;c.log.unshift({d:dTh(D0),t:'ขาดนัด · ตัด 1 ครั้ง ตามนโยบาย',k:'use'});}T.sheet=null;stack=['t_today'];toast(b.dataset.cut==='1'?'บันทึกขาดนัด · ตัด 1 ครั้ง':'บันทึกขาดนัด · ไม่ตัดครั้ง');return render();}
+    case 'cancelok':{apptOf(b.dataset.id).status='cancel';T.sheet=null;stack=['t_today'];toast('ยกเลิกนัดแล้ว · แจ้งลูกเทรนแล้ว');return render();}
+    case 'rsday': T.rs={day:+b.dataset.i,time:null}; return render();
+    case 'rstime': T.rs.time=b.dataset.t; return render();
+    case 'rsok':{const ap=apptOf(T.cur),d=dAdd(D0,T.rs.day);if(T.rs.day===0){ap.time=T.rs.time;T.appts.sort((x,y)=>x.time.localeCompare(y.time));}else{ap.status='moved';ap.moved=`${TH_DOW[d.getDay()]} ${dTh(d)} ${T.rs.time}`;}stack=['t_today'];toast(`เลื่อนเป็น ${TH_DOW[d.getDay()]} ${dTh(d)} ${T.rs.time} · แจ้งลูกเทรนแล้ว`);return render();}
+    case 'rqok':{const d=dAdd(D0,a.req.day);a.status='moved';a.moved=`${TH_DOW[d.getDay()]} ${dTh(d)} ${a.req.time}`;toast('อนุมัติแล้ว · แจ้งลูกเทรนแล้ว');stack=['t_today'];return render();}
+    case 'rqno': a.status='todo'; toast('ปฏิเสธแล้ว · คงนัดเดิม'); stack=['t_today']; return render();
+    case 'rqother': a.status='todo'; T.cur=a.id; T.rs={day:1,time:null}; stack=['t_today','reschedule']; return render();
+    case 'addpkg': T.sheet={k:'addpkg',pick:null}; return render();
+    case 'pkpick': T.sheet.pick=+b.dataset.i; return render();
+    case 'addpkgok':{const c=T.clients[T.cc],p=T.prices[S2.pick],rem=left(c);c.pkg={label:`${p.n} ครั้ง / ${p.months} เดือน`,total:p.n+rem,used:0,end:dIso(new Date(D0.getFullYear(),D0.getMonth()+p.months,D0.getDate()))};c.log.unshift({d:dTh(D0),t:`เพิ่มแพ็ก ${p.n} ครั้ง (฿${p.price.toLocaleString('en-US')}) + ยกยอดเดิม ${rem} ครั้ง · โดย ต้น`,k:'add'});T.sheet=null;toast(`เพิ่มแพ็กแล้ว · เหลือ ${left(c)} ครั้ง`);return render();}
+    case 'editpkg': T.sheet={k:'editpkg',days:0,n:0,reason:''}; return render();
+    case 'eday': S2.days=S2.days===+b.dataset.n?0:+b.dataset.n; return render();
+    case 'ecnt': S2.n=S2.n===+b.dataset.n?0:+b.dataset.n; return render();
+    case 'editok':{const c=T.clients[T.cc],parts=[];if(S2.days){c.pkg.end=dIso(dAdd(dParse(c.pkg.end)<D0?D0:dParse(c.pkg.end),S2.days));parts.push(`ต่ออายุ +${S2.days} วัน`);}if(S2.n){c.pkg.total+=S2.n;parts.push(`${S2.n>0?'+':''}${S2.n} ครั้ง`);}c.log.unshift({d:dTh(D0),t:`แก้ไข: ${parts.join(', ')} · เหตุผล: ${S2.reason.trim()} · โดย ต้น`,k:'edit'});T.sheet=null;toast('บันทึกการแก้ไขแล้ว');return render();}
+    case 'closesheet': T.sheet=null; return render();
+  }
+}
+function onInput(el){
+  const k=el.dataset.in;
+  if(k==='w'||k==='r'){T.sess.ex[el.dataset.e].sets[el.dataset.s][k]=el.value;return;}
+  if(k==='note'){T.sess.note=el.value;return;}
+  if(k==='reason'&&T.sheet){T.sheet.reason=el.value;const ok=document.querySelector('[data-act="editok"]');if(ok)ok.disabled=!((T.sheet.days||T.sheet.n)&&el.value.trim());}
+}
+
 function renderScreen(){
   const id = stack[stack.length-1];
   const r = ROLES[role];
+  const cs = C[id];
   const scr = S[id], pg = P[id] || {title:id,spec:['(ยังไม่ได้กำหนด)']};
-  const title = scr ? scr.title : pg.title;
+  const title = cs ? cs.title : scr ? scr.title : pg.title;
   const canBack = stack.length>1;
-  const body = scr ? sectionsHTML(scr.sections) :
+  const body = cs ? cs.render() : scr ? sectionsHTML(scr.sections) :
     emptyHTML(pg, `${id==='logout'?`<button class="cta" data-home="1">ออกจากระบบ (กลับหน้าแรก)</button>`:''}<button class="ghostbtn" data-back="1">กลับ</button>`);
   app.innerHTML = `
     <header class="top">
@@ -594,7 +861,7 @@ function renderScreen(){
     <main>${body}</main>
     <nav class="tabs" style="grid-template-columns:repeat(${r.tabs.length},minmax(0,1fr))">
       ${r.tabs.map(t=>{const on = stack[0]===t[0]; return `<button class="${on?'on':''}" data-tab="${t[0]}" ${on?'aria-current="page"':''}>${svg(t[2])}<span>${esc(t[1])}</span></button>`}).join('')}
-    </nav>`;
+    </nav>${sheetHTML()}`;
 }
 
 function renderAuthPage(){
@@ -609,8 +876,10 @@ function render(){
   else renderScreen();
 }
 
+app.addEventListener('input', e=>{ if(e.target.dataset && e.target.dataset.in) onInput(e.target); });
 app.addEventListener('click', e=>{
-  const b = e.target.closest('button'); if(!b) return;
+  const b = e.target.closest('button,[data-act]'); if(!b) return;
+  if(b.dataset.act) return onAct(b);
   if(b.dataset.role) return start(b.dataset.role);
   if(b.dataset.home) return home();
   if(b.dataset.back) return back();
@@ -628,6 +897,7 @@ render();
 })();
 
 </script>
+
 
 
 
