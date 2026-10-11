@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6b4d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TM Admin">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Trainer Manager Admin</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: developer console — dark top strip, stat tiles, toolbar, user table; add/edit opens a right drawer (full screen on phones) */
+:root{
+  --bg:#eef1ef; --surface:#ffffff; --surface2:#f6f8f7; --fg:#15211c; --muted:#56655e; --line:#dde4e0;
+  --accent:#0b6b4d; --accent-fg:#ffffff; --accent-soft:#e2f1ea; --accent-ink:#0b4d38;
+  --ok-bg:#e2f1ea; --ok-fg:#0b5a3f; --warn-bg:#fdebd9; --warn-fg:#8a3d0c; --bad-bg:#fbe1e1; --bad-fg:#9b1c1c; --info-bg:#e3ecfb; --info-fg:#1f4aa8;
+  --strip:#14201b; --strip-fg:#c9d6d0;
+  --display:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1412; --surface:#17201c; --surface2:#1c2622; --fg:#e4ece8; --muted:#9aaca4; --line:#2a3531;
+  --accent:#3fbf86; --accent-fg:#06281b; --accent-soft:#1a2e25; --accent-ink:#8fe0bb;
+  --ok-bg:#173326; --ok-fg:#8fe0bb; --warn-bg:#3a2414; --warn-fg:#f5b585; --bad-bg:#3b1717; --bad-fg:#f5a3a3; --info-bg:#1b2a45; --info-fg:#a9c4f5;
+  --strip:#0a0f0d; --strip-fg:#9fb2a9; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1412; --surface:#17201c; --surface2:#1c2622; --fg:#e4ece8; --muted:#9aaca4; --line:#2a3531;
+  --accent:#3fbf86; --accent-fg:#06281b; --accent-soft:#1a2e25; --accent-ink:#8fe0bb;
+  --ok-bg:#173326; --ok-fg:#8fe0bb; --warn-bg:#3a2414; --warn-fg:#f5b585; --bad-bg:#3b1717; --bad-fg:#f5a3a3; --info-bg:#1b2a45; --info-fg:#a9c4f5;
+  --strip:#0a0f0d; --strip-fg:#9fb2a9; color-scheme:dark}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.strip{background:var(--strip);color:var(--strip-fg);display:flex;align-items:center;gap:12px;padding:12px 28px;flex-wrap:wrap}
+.strip .lg{width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--accent-fg);display:flex;align-items:center;justify-content:center;flex:none}
+.strip b{font-family:var(--display);font-size:16px;color:#fff}
+.strip .tag{font-size:11.5px;font-weight:700;letter-spacing:.06em;border:1px solid currentColor;border-radius:6px;padding:1px 7px}
+.strip .sp{flex:1}
+.strip small{font-size:12.5px}
+.wrap{max-width:1200px;margin:0 auto;padding:22px 28px 60px;display:flex;flex-direction:column;gap:18px}
+.note{background:var(--info-bg);color:var(--info-fg);border-radius:12px;padding:10px 14px;font-size:13.5px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:flex;flex-direction:column;text-align:left}
+button.tile:hover{border-color:var(--accent)}
+.tile .v{font-family:var(--display);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.tile .l{font-size:12.5px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.card h2{margin:0 0 12px;font-family:var(--display);font-size:16px;font-weight:600}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 16px;font-weight:600;display:inline-flex;align-items:center;gap:8px}
+.btn.p{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.bad{background:var(--bad-fg);color:#fff;border-color:var(--bad-fg)}
+.btn.badline{color:var(--bad-fg);border-color:var(--bad-fg)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn svg{width:18px;height:18px}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);flex:1;min-width:0;max-width:380px}
+.search input{border:0;outline:0;background:transparent;padding:9px 0;width:100%;min-width:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px}
+.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:860px;background:var(--surface)}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px;white-space:nowrap}
+th{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--surface2)}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--surface2)} tbody tr:last-child td{border-bottom:0}
+tr.susp td{color:var(--muted)}
+.pill{font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;display:inline-block}
+.p-ok{background:var(--ok-bg);color:var(--ok-fg)} .p-warn{background:var(--warn-bg);color:var(--warn-fg)}
+.p-bad{background:var(--bad-bg);color:var(--bad-fg)} .p-info{background:var(--info-bg);color:var(--info-fg)} .p-mute{background:var(--surface2);color:var(--muted)}
+.muted{color:var(--muted)} .num{font-variant-numeric:tabular-nums}
+.foot{font-size:12.5px;color:var(--muted)}
+.scrim{position:fixed;inset:0;background:rgba(10,15,13,.35);z-index:19}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:-12px 0 30px rgba(0,0,0,.12);z-index:20;display:flex;flex-direction:column;box-sizing:border-box}
+.dh{display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid var(--line)}
+.dh h2{margin:0;font-family:var(--display);font-size:19px;flex:1}
+.db{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.df{padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
+.f{display:flex;flex-direction:column;gap:5px}
+.f>span{font-size:13px;font-weight:600}
+.f small{font-size:12px;color:var(--muted)}
+.in{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface);width:100%;box-sizing:border-box;min-width:0}
+.in:focus{outline:none;border-color:var(--accent)}
+.in.err{border-color:var(--bad-fg)}
+.errt{font-size:12.5px;color:var(--bad-fg)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font-size:13.5px;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tog{display:flex;gap:8px;flex-wrap:wrap}
+.tog button{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 12px;font-size:13.5px}
+.tog button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.tog button:disabled{opacity:.6;cursor:default}
+.danger{border:1px solid var(--bad-fg);background:var(--bad-bg);color:var(--bad-fg);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 12px;font-size:13.5px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0}
+.log{display:flex;flex-direction:column}
+.log div{display:flex;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
+.log div:first-child{border-top:0}
+.log .t{color:var(--muted);font-variant-numeric:tabular-nums;width:92px;flex:none}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:30;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
+@media (max-width:760px){
+  .strip,.wrap{padding-left:16px;padding-right:16px}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .search{max-width:none;flex-basis:100%}
+  .two{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+
+<header class="strip">
+  <span class="lg"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 5v14M18 5v14M3 8v8M21 8v8M6 12h12"/></svg></span>
+  <b>Trainer Manager</b><span class="tag">SUPER ADMIN</span>
+  <span class="sp"></span>
+  <small>นักพัฒนา · ใช้ช่วงทดลอง</small>
+</header>
+<div class="wrap" id="view"></div>
+<div id="layer"></div>
+
+<script>
+(function(){
+const KEY='tm-admin-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const iso=dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const thDate=s=>{if(!s)return '–';const d=pd(s);return `${d.getDate()} ${TH_M[d.getMonth()]} ${(d.getFullYear()+543)%100}`};
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+const addDays=n=>{const d=new Date(TODAY);d.setDate(d.getDate()+n);return iso(d)};
+const daysTo=s=>Math.round((pd(s)-TODAY)/86400000);
+const digits=s=>String(s||'').replace(/\D/g,'');
+const nowT=()=>{const d=new Date();return `${d.getDate()} ${TH_M[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+
+const MODES=[['trainer','เทรนเนอร์'],['gym','เจ้าของยิม']];
+const ROLES=['','Owner','Admin','Operator','เทรนเนอร์','สมาชิก'];
+const PLAN={free:['ฟรี','p-mute'],trial:['ทดลอง','p-info'],paid:['จ่ายแล้ว','p-ok']};
+
+function sample(){return [
+ {uid:'100001',name:'คุณเอ',phone:'081-000-0001',email:'a@fitlab.test',modes:['gym'],gym:'FitLab ลาดพร้าว',role:'Owner',plan:'trial',trialEnd:addDays(5),status:'active',created:addDays(-2),note:'ยิมนำร่องแห่งแรก'},
+ {uid:'100090',name:'คุณซี',phone:'081-000-0090',email:'',modes:[],gym:'FitLab ลาดพร้าว',role:'Operator',plan:'free',trialEnd:'',status:'active',created:addDays(-2),note:''},
+ {uid:'100091',name:'คุณบี',phone:'081-000-0091',email:'b@fitlab.test',modes:[],gym:'FitLab ลาดพร้าว',role:'Admin',plan:'free',trialEnd:'',status:'active',created:addDays(-2),note:''},
+ {uid:'100120',name:'เทรนเนอร์ต้น',phone:'089-111-2020',email:'ton@fitlab.test',modes:['trainer'],gym:'FitLab ลาดพร้าว',role:'เทรนเนอร์',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
+ {uid:'100121',name:'เทรนเนอร์เจ',phone:'089-111-2021',email:'',modes:['trainer'],gym:'FitLab ลาดพร้าว',role:'เทรนเนอร์',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
+ {uid:'100200',name:'โค้ชแนน',phone:'086-222-3030',email:'nan@coach.test',modes:['trainer'],gym:'',role:'',plan:'trial',trialEnd:addDays(1),status:'active',created:addDays(-6),note:'ฟรีแลนซ์ ทดลองใกล้หมด'},
+ {uid:'100245',name:'สมชาย ใจดี',phone:'081-234-5678',email:'',modes:[],gym:'FitLab ลาดพร้าว',role:'สมาชิก',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
+ {uid:'100518',name:'มิ้นท์ ศิริพร',phone:'082-410-8890',email:'mint@mail.test',modes:[],gym:'FitLab ลาดพร้าว',role:'สมาชิก',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:'ลูกเทรนของต้น'},
+ {uid:'100845',name:'โอ๊ต วรพล',phone:'091-302-7781',email:'',modes:[],gym:'FitLab ลาดพร้าว',role:'สมาชิก',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
+ {uid:'100902',name:'นัท ชยพล',phone:'084-990-1515',email:'nat@mail.test',modes:[],gym:'',role:'',plan:'paid',trialEnd:'',status:'active',created:addDays(-9),note:'ผู้ใช้ทั่วไป จ่ายเอง'},
+ {uid:'101077',name:'ปอนด์ ภัทร',phone:'081-200-7788',email:'pond@example.com',modes:[],gym:'',role:'',plan:'free',trialEnd:'',status:'suspended',created:addDays(-4),note:'บัญชีทดสอบ สมัครซ้ำ'}
+]}
+let users, log;
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&Array.isArray(s.users)){users=s.users;log=s.log||[];return;}}catch(e){}users=sample();log=[];}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({users,log:log.slice(0,40)}));}catch(e){}}
+function addLog(t){log.unshift({t:nowT(),x:t});}
+load();
+
+let q='', filter='all', drawer=null;
+/* drawer: {mode:'new'|'edit', uid, f:{...}, errs:{}, confirmDel:false} */
+
+const planOf=u=>{if(u.plan==='trial'&&u.trialEnd){const d=daysTo(u.trialEnd);return d<0?['ทดลองหมดแล้ว','p-bad']:[`ทดลอง · เหลือ ${d} วัน`,d<=2?'p-warn':'p-info'];}return PLAN[u.plan]||PLAN.free;};
+const modeText=u=>['ผู้ใช้',...MODES.filter(m=>u.modes.includes(m[0])).map(m=>m[1])].join(' · ');
+const match=u=>{const k=q.trim().toLowerCase();if(!k)return true;return u.name.toLowerCase().includes(k)||u.uid.includes(k)||(u.email||'').toLowerCase().includes(k)||(digits(k)&&digits(u.phone).includes(digits(k)))||(u.gym||'').toLowerCase().includes(k);};
+const FILTERS=[['all','ทั้งหมด',()=>true],['trial','ทดลองอยู่',u=>u.plan==='trial'],['trainer','เทรนเนอร์',u=>u.modes.includes('trainer')||u.role==='เทรนเนอร์'],['gym','ยิม',u=>u.modes.includes('gym')||['Owner','Admin','Operator'].includes(u.role)],['susp','ระงับ',u=>u.status==='suspended']];
+
+function view(){
+  const fl=FILTERS.find(f=>f[0]===filter);
+  const rows=users.filter(u=>fl[2](u)&&match(u)).sort((a,b)=>b.uid.localeCompare(a.uid));
+  const trialSoon=users.filter(u=>u.plan==='trial'&&u.trialEnd&&daysTo(u.trialEnd)<=2).length;
+  const gyms=new Set(users.map(u=>u.gym).filter(Boolean)).size;
+  return `
+  <div class="note">ต้นแบบ · ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ยังไม่ได้ต่อฐานข้อมูลจริง · ตอนต่อ Supabase หน้านี้จะใช้รหัสผ่านนักพัฒนา และทุกการแก้ไขถูกบันทึก</div>
+  <div class="tiles">
+    <button class="tile" data-f="all"><span class="v">${users.length}</span><span class="l">ผู้ใช้ทั้งหมด</span></button>
+    <button class="tile" data-f="trial"><span class="v">${users.filter(u=>u.plan==='trial').length}</span><span class="l">กำลังทดลอง${trialSoon?` · ใกล้หมด ${trialSoon}`:''}</span></button>
+    <button class="tile" data-f="gym"><span class="v">${gyms}</span><span class="l">ยิม</span></button>
+    <button class="tile" data-f="susp"><span class="v">${users.filter(u=>u.status==='suspended').length}</span><span class="l">ถูกระงับ</span></button>
+  </div>
+  <section class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <label class="search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" value="${esc(q)}" placeholder="ค้นหา ชื่อ UID เบอร์ อีเมล ยิม" aria-label="ค้นหาผู้ใช้"></label>
+      <button class="btn p" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มผู้ใช้</button>
+    </div>
+    <div class="chips" style="margin-bottom:12px">${FILTERS.map(f=>`<button class="chip ${filter===f[0]?'on':''}" data-f="${f[0]}">${f[1]} <span class="num">${users.filter(f[2]).length}</span></button>`).join('')}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>UID</th><th>ชื่อ</th><th>เบอร์โทร</th><th>อีเมล</th><th>โหมด</th><th>ยิม · บทบาท</th><th>แผน</th><th>สถานะ</th><th>สมัคร</th></tr></thead>
+    <tbody>${rows.map(u=>{const p=planOf(u);return `<tr data-open="${u.uid}" tabindex="0" class="${u.status==='suspended'?'susp':''}"><td class="num">${u.uid}</td><td><b>${esc(u.name)}</b></td><td class="num">${esc(u.phone)||'–'}</td><td>${esc(u.email)||'<span class="muted">–</span>'}</td><td>${modeText(u)}</td><td>${u.gym?`${esc(u.gym)} · ${esc(u.role||'–')}`:'<span class="muted">–</span>'}</td><td><span class="pill ${p[1]}">${p[0]}</span></td><td>${u.status==='suspended'?'<span class="pill p-bad">ระงับ</span>':'<span class="pill p-ok">ใช้งาน</span>'}</td><td class="num">${thDate(u.created)}</td></tr>`}).join('')||`<tr><td colspan="9" class="muted">ไม่พบผู้ใช้${q?` ที่ตรงกับ "${esc(q)}"`:''}</td></tr>`}</tbody></table></div>
+    <p class="foot" style="margin:10px 0 0">กดแถวเพื่อแก้ไข / ระงับ / ลบ</p>
+  </section>
+  <section class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">บันทึกล่าสุด</h2><button class="btn sm" id="resetBtn">ล้างกลับเป็นข้อมูลตัวอย่าง</button></div>
+    <div class="log">${log.length?log.slice(0,12).map(l=>`<div><span class="t">${esc(l.t)}</span><span>${esc(l.x)}</span></div>`).join(''):'<div><span class="muted">ยังไม่มีการแก้ไข</span></div>'}</div>
+  </section>`;
+}
+
+const blank=()=>({name:'',phone:'',email:'',modes:[],gym:'',role:'',plan:'trial',trialEnd:addDays(7),status:'active',note:''});
+function field(id,label,val,o={}){const e=drawer.errs[id];return `<label class="f"><span>${label}</span><input class="in ${e?'err':''}" id="f_${id}" value="${esc(val)}" ${o.ph?`placeholder="${o.ph}"`:''} ${o.type?`type="${o.type}"`:''} ${o.im?`inputmode="${o.im}"`:''}>${e?`<span class="errt">${e}</span>`:o.hint?`<small>${o.hint}</small>`:''}</label>`;}
+
+function drawerHTML(){
+  if(!drawer) return '';
+  if(drawer.reset) return `<div class="scrim" data-close="1"></div><div class="drawer" role="dialog" aria-modal="true" aria-label="ล้างข้อมูล"><div class="dh"><h2>ล้างกลับเป็นข้อมูลตัวอย่าง</h2><button class="btn sm" data-close="1" aria-label="ปิด">✕</button></div><div class="db"><div class="danger"><b>ผู้ใช้ที่เพิ่ม/แก้ไขไว้ทั้งหมดจะหายไป</b><span>ใช้เมื่ออยากเริ่มทดสอบใหม่ตั้งแต่ต้น</span></div></div><div class="df"><button class="btn" data-close="1">ยกเลิก</button><button class="btn bad" id="resetGo">ล้างข้อมูล</button></div></div>`;
+  const f=drawer.f, isNew=drawer.mode==='new', u=isNew?null:users.find(x=>x.uid===drawer.uid);
+  const body=`
+    ${isNew?'':`<dl class="kv"><dt>UID</dt><dd class="num"><b>${u.uid}</b></dd><dt>สมัครเมื่อ</dt><dd>${thDate(u.created)}</dd></dl>`}
+    ${field('name','ชื่อที่แสดง *',f.name,{ph:'เช่น มิ้นท์ ศิริพร'})}
+    <div class="two">${field('phone','เบอร์โทร',f.phone,{ph:'081-234-5678',im:'tel'})}${field('email','อีเมล',f.email,{ph:'name@mail.com',type:'email'})}</div>
+    ${drawer.errs.contact?`<span class="errt" style="margin-top:-8px">${drawer.errs.contact}</span>`:'<small class="muted" style="margin-top:-8px;font-size:12px">ต้องมีเบอร์หรืออีเมลอย่างน้อย 1 อย่าง (ใช้ล็อกอิน)</small>'}
+    <div class="f"><span>โหมดที่เปิด</span><div class="tog"><button disabled class="on">ผู้ใช้ (ทุกคนมี)</button>${MODES.map(m=>`<button data-mode="${m[0]}" class="${f.modes.includes(m[0])?'on':''}" aria-pressed="${f.modes.includes(m[0])}">${m[1]}</button>`).join('')}</div></div>
+    <div class="two">${field('gym','สังกัดยิม',f.gym,{ph:'ว่าง = ไม่สังกัด'})}
+      <label class="f"><span>บทบาทในยิม</span><select class="in" id="f_role" ${f.gym?'':'disabled'}>${ROLES.map(r=>`<option value="${r}" ${f.role===r?'selected':''}>${r||'–'}</option>`).join('')}</select></label></div>
+    <div class="f"><span>แผน</span><div class="seg">${Object.entries(PLAN).map(([k,v])=>`<button data-plan="${k}" class="${f.plan===k?'on':''}">${v[0]}</button>`).join('')}</div></div>
+    ${f.plan==='trial'?`<div class="f"><span>ทดลองถึงวันที่</span><div class="row"><input type="date" class="in" id="f_trialEnd" value="${f.trialEnd}" style="max-width:200px"><button class="btn sm" data-ext="7">+7 วัน</button><button class="btn sm" data-ext="30">+30 วัน</button></div>${f.trialEnd?`<small>${daysTo(f.trialEnd)<0?'หมดแล้ว':`เหลือ ${daysTo(f.trialEnd)} วัน`}</small>`:''}</div>`:''}
+    <div class="f"><span>สถานะบัญชี</span><div class="seg"><button data-st="active" class="${f.status==='active'?'on':''}">ใช้งาน</button><button data-st="suspended" class="${f.status==='suspended'?'on':''}">ระงับ</button></div><small>ระงับ = ล็อกอินไม่ได้ แต่ข้อมูลยังอยู่ · ปลดได้ทุกเมื่อ</small></div>
+    <label class="f"><span>โน้ตนักพัฒนา</span><textarea class="in" id="f_note" rows="2" placeholder="เช่น บัญชีทดสอบ, ยิมนำร่อง">${esc(f.note)}</textarea></label>
+    ${isNew?'':(drawer.confirmDel?`<div class="danger"><b>ลบ ${esc(u.name)} ถาวร?</b><span>ข้อมูลการเทรน อาหาร และรูปของคนนี้จะหายทั้งหมด กู้คืนไม่ได้ · ถ้าแค่อยากปิดชั่วคราว ใช้ "ระงับ" แทน</span><div class="row"><button class="btn sm" id="delNo">ไม่ลบ</button><button class="btn sm bad" id="delYes">ลบถาวร</button></div></div>`:`<button class="btn badline" id="delAsk" style="align-self:flex-start">ลบผู้ใช้นี้</button>`)}`;
+  return `<div class="scrim" data-close="1"></div><div class="drawer" role="dialog" aria-modal="true" aria-label="${isNew?'เพิ่มผู้ใช้':'แก้ไขผู้ใช้'}">
+    <div class="dh"><h2>${isNew?'เพิ่มผู้ใช้':'แก้ไข · '+esc(u.name)}</h2><button class="btn sm" data-close="1" aria-label="ปิด">✕</button></div>
+    <div class="db">${body}</div>
+    <div class="df"><button class="btn" data-close="1">ยกเลิก</button><button class="btn p" id="saveBtn">${isNew?'เพิ่มผู้ใช้':'บันทึก'}</button></div></div>`;
+}
+
+function render(keepFocus){
+  $('#view').innerHTML=view();
+  const sc=drawer?document.querySelector('.db')?.scrollTop:0;
+  $('#layer').innerHTML=drawerHTML();
+  if(drawer&&document.querySelector('.db'))document.querySelector('.db').scrollTop=sc||0;
+  if(keepFocus){const el=$('#'+keepFocus);if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(e){}}}
+}
+let toastT;
+function toast(m){clearTimeout(toastT);let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=m;toastT=setTimeout(()=>t.remove(),2400);}
+
+function readForm(){
+  if(!drawer||drawer.reset)return;
+  const f=drawer.f;
+  ['name','phone','email','gym','note','trialEnd','role'].forEach(k=>{const el=$('#f_'+k);if(el)f[k]=el.value;});
+  if(!f.gym)f.role='';
+}
+function validate(){
+  const f=drawer.f,e={};
+  f.name=f.name.trim();f.phone=f.phone.trim();f.email=f.email.trim();f.gym=f.gym.trim();
+  if(!f.name)e.name='ใส่ชื่อ';
+  if(!f.phone&&!f.email)e.contact='ต้องมีเบอร์โทรหรืออีเมลอย่างน้อย 1 อย่าง';
+  if(f.phone&&(digits(f.phone).length<9||digits(f.phone).length>10))e.phone='เบอร์ต้องมี 9–10 หลัก';
+  if(f.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email))e.email='รูปแบบอีเมลไม่ถูก';
+  const others=users.filter(u=>u.uid!==drawer.uid);
+  if(!e.phone&&f.phone){const d=others.find(u=>digits(u.phone)===digits(f.phone));if(d)e.phone=`ซ้ำกับ ${d.name} (UID ${d.uid})`;}
+  if(!e.email&&f.email){const d=others.find(u=>(u.email||'').toLowerCase()===f.email.toLowerCase());if(d)e.email=`ซ้ำกับ ${d.name} (UID ${d.uid})`;}
+  if(f.plan==='trial'&&!f.trialEnd)f.trialEnd=addDays(7);
+  if(f.plan!=='trial')f.trialEnd='';
+  if(f.gym&&!f.role)f.role='สมาชิก';
+  drawer.errs=e;return !Object.keys(e).length;
+}
+const nextUid=()=>String(Math.max(100000,...users.map(u=>+u.uid||0))+1);
+
+document.addEventListener('input',e=>{
+  if(e.target.id==='q'){q=e.target.value;render('q');}
+  if(e.target.id==='f_gym'){const had=!!drawer.f.gym;readForm();if(had!==!!drawer.f.gym)render('f_gym');}
+});
+document.addEventListener('change',e=>{if(e.target.id==='f_trialEnd'){readForm();render();}});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&drawer){drawer=null;render();}
+  if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.open){openEdit(e.target.dataset.open);}
+});
+function openEdit(uid){const u=users.find(x=>x.uid===uid);drawer={mode:'edit',uid,f:JSON.parse(JSON.stringify(u)),errs:{},confirmDel:false};render();}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button,tr[data-open],.scrim');if(!b)return;
+  const D=b.dataset;
+  if(D.close){drawer=null;return render();}
+  if(D.f){filter=D.f;return render();}
+  if(D.open)return openEdit(D.open);
+  if(b.id==='addBtn'){drawer={mode:'new',uid:null,f:blank(),errs:{}};render();const el=$('#f_name');if(el)el.focus();return;}
+  if(b.id==='resetBtn'){drawer={reset:1};return render();}
+  if(b.id==='resetGo'){users=sample();log=[];addLog('ล้างกลับเป็นข้อมูลตัวอย่าง');save();drawer=null;q='';filter='all';toast('ล้างข้อมูลแล้ว');return render();}
+  if(!drawer||drawer.reset)return;
+  readForm();
+  if(D.mode){const m=drawer.f.modes,i=m.indexOf(D.mode);i<0?m.push(D.mode):m.splice(i,1);return render();}
+  if(D.plan){drawer.f.plan=D.plan;if(D.plan==='trial'&&!drawer.f.trialEnd)drawer.f.trialEnd=addDays(7);return render();}
+  if(D.ext){const base=drawer.f.trialEnd&&daysTo(drawer.f.trialEnd)>=0?pd(drawer.f.trialEnd):new Date(TODAY);base.setDate(base.getDate()+Number(D.ext));drawer.f.trialEnd=iso(base);return render();}
+  if(D.st){drawer.f.status=D.st;return render();}
+  if(b.id==='delAsk'){drawer.confirmDel=true;return render();}
+  if(b.id==='delNo'){drawer.confirmDel=false;return render();}
+  if(b.id==='delYes'){const u=users.find(x=>x.uid===drawer.uid);users=users.filter(x=>x.uid!==drawer.uid);addLog(`ลบ ${u.name} (UID ${u.uid})`);save();drawer=null;toast(`ลบ ${u.name} แล้ว`);return render();}
+  if(b.id==='saveBtn'){
+    if(!validate()){render();const first=document.querySelector('.in.err');if(first)first.focus();return;}
+    const f=drawer.f;
+    if(drawer.mode==='new'){const u=Object.assign({},f,{uid:nextUid(),created:iso(TODAY)});users.push(u);addLog(`เพิ่ม ${u.name} (UID ${u.uid})`);toast(`เพิ่ม ${u.name} แล้ว · UID ${u.uid}`);}
+    else{const i=users.findIndex(x=>x.uid===drawer.uid),old=users[i];const ch=[];
+      if(old.name!==f.name)ch.push('ชื่อ');if(old.phone!==f.phone)ch.push('เบอร์');if((old.email||'')!==f.email)ch.push('อีเมล');if(old.modes.join()!==f.modes.join())ch.push('โหมด');if(old.gym!==f.gym||old.role!==f.role)ch.push('ยิม/บทบาท');if(old.plan!==f.plan||old.trialEnd!==f.trialEnd)ch.push('แผน');if(old.note!==f.note)ch.push('โน้ต');
+      if(old.status!==f.status)ch.push(f.status==='suspended'?'ระงับบัญชี':'ปลดระงับ');
+      users[i]=Object.assign({},old,f);
+      if(ch.length)addLog(`แก้ ${f.name} (UID ${old.uid}): ${ch.join(', ')}`);
+      toast(ch.length?`บันทึกแล้ว · ${ch.join(', ')}`:'ไม่มีอะไรเปลี่ยน');}
+    save();drawer=null;return render();
+  }
+});
+render();
+})();
+</script>
+
+</body>
+</html>
