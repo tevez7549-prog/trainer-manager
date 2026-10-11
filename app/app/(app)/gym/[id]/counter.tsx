@@ -5,9 +5,10 @@ import { supabase, thError } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/lib/auth';
 import { baht, isDesk, PAY_TH, thTime, todayRange, useGym } from '../../../../src/lib/gym';
 import { enqueue, flush, loadMembers, searchMembers, takeFailed, useQueue, type Member, type QueuedCheckin, type QueuedWalkin } from '../../../../src/lib/counter';
-import { Btn, Card, Chips, Cols, ConfirmBtn, Field, H, Header, Notice, Pill, Screen, Txt } from '../../../../src/ui';
+import { Btn, Card, Chips, Cols, ConfirmBtn, Field, H, Header, Notice, Pill, Screen, Stat, Txt } from '../../../../src/ui';
 import { expiryText, MemberRow } from '../../../../src/ui/MemberRow';
 import { C, F, R } from '../../../../src/lib/theme';
+import { Icon } from '../../../../src/ui/Icon';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type LogCheckin = { id: string; member_id: string; kind: string; checked_at: string; member: { name: string; code: string } | null };
@@ -112,18 +113,21 @@ export default function Counter() {
         right={<Pill text={online ? 'ออนไลน์' : 'ออฟไลน์'} kind={online ? 'ok' : 'warn'} />} />
 
       {!online || cacheInfo?.offline ? (
-        <Notice kind="info" text={`ไม่มีอินเทอร์เน็ต · ยังเช็กอินและบันทึกขาจรได้ ระบบจะส่งให้เองเมื่อเน็ตกลับมา${cacheInfo?.at ? ` (รายชื่อสมาชิกล่าสุด ${thTime(cacheInfo.at)})` : ''}`} />
+        <Notice kind="offline" text={`ไม่มีอินเทอร์เน็ต · ยังเช็กอินและบันทึกขาจรได้ ระบบจะส่งให้เองเมื่อเน็ตกลับมา${cacheInfo?.at ? ` (รายชื่อสมาชิกล่าสุด ${thTime(cacheInfo.at)})` : ''}`} />
       ) : null}
-      {pending.length ? <Notice kind="info" text={`รอส่ง ${pending.length} รายการ`} /> : null}
+      {pending.length > 0 && online ? <Notice kind="offline" text={`รอส่ง ${pending.length} รายการ`} /> : null}
       {toast ? <Notice text={toast.t} kind={toast.ok ? 'ok' : 'bad'} /> : null}
 
       <Cols
         left={<>
           <Card>
-            <TextInput ref={searchRef} value={q} onChangeText={t => { setQ(t); setSel(null); setAgain(null); }} autoFocus
-              placeholder="ค้นหา ชื่อ / เบอร์ / รหัสสมาชิก" placeholderTextColor="#8a968f" accessibilityLabel="ค้นหาสมาชิก"
-              onSubmitEditing={() => { if (results.length === 1) setSel(results[0].id); }} returnKeyType="search"
-              style={{ borderWidth: 1.5, borderColor: C.accent, borderRadius: R.field, paddingHorizontal: 14, paddingVertical: 13, fontSize: 18, fontFamily: F.body, color: C.fg, backgroundColor: C.surface }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, borderRadius: R.field, borderWidth: 2, borderColor: C.accent, backgroundColor: C.surface, paddingHorizontal: 14 }}>
+              <Icon name="search" size={22} color={C.accent} />
+              <TextInput ref={searchRef} value={q} onChangeText={t => { setQ(t); setSel(null); setAgain(null); }} autoFocus
+                placeholder="ค้นหา ชื่อ / เบอร์ / รหัสสมาชิก" placeholderTextColor={C.muted} accessibilityLabel="ค้นหาสมาชิก"
+                onSubmitEditing={() => { if (results.length === 1) setSel(results[0].id); }} returnKeyType="search"
+                style={{ flex: 1, minWidth: 0, paddingVertical: 12, fontSize: 18, fontFamily: F.body, color: C.fg, outlineStyle: 'none' } as any} />
+            </View>
     
             {q.trim() && !results.length ? <Txt muted>ไม่พบ "{q.trim()}" · เพิ่มเป็นสมาชิกใหม่ หรือบันทึกเป็นขาจร</Txt> : null}
     
@@ -154,15 +158,15 @@ export default function Counter() {
             </Card>
           ) : (
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Btn kind="ghost" label="+ ขาจร" onPress={() => openWalk()} style={{ flex: 1 }} />
-              <Btn kind="ghost" label="+ สมาชิกใหม่" onPress={() => router.push(`/gym/${id}/member/new` as any)} style={{ flex: 1 }} />
+              <Btn kind="ghost" icon="wallet" label="ขาจร" onPress={() => openWalk()} style={{ flex: 1 }} />
+              <Btn kind="ghost" icon="user-plus" label="สมาชิกใหม่" onPress={() => router.push(`/gym/${id}/member/new` as any)} style={{ flex: 1 }} />
             </View>
           )}
         </>}
         right={<>
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Card style={{ flex: 1, padding: 12, gap: 0 }}><H size={22}>{checkins.length + pendingCheckins.length}</H><Txt muted size={12.5}>เช็กอินวันนี้</Txt></Card>
-            <Card style={{ flex: 1, padding: 12, gap: 0 }}><H size={22}>{walkins.length + pendingWalkins.length}</H><Txt muted size={12.5}>ขาจร · {baht(walkSum)}</Txt></Card>
+            <Stat n={checkins.length + pendingCheckins.length} t="เช็กอินวันนี้" />
+            <Stat n={walkins.length + pendingWalkins.length} t={`ขาจร · ${baht(walkSum)}`} />
           </View>
           <Card style={{ gap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -191,7 +195,7 @@ function LogLine({ time, text, tag, onUndo }: { time: string; text: string; tag?
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
         <Txt muted size={13} style={{ width: 44 }}>{thTime(time)}</Txt>
         <Txt size={14} style={{ flex: 1 }}>{text}</Txt>
-        {tag ? <Pill text={tag} kind="warn" /> : null}
+        {tag ? <Pill text={tag} kind="caution" /> : null}
         {onUndo ? <Txt size={13} accessibilityRole="button" accessibilityLabel="ตัวเลือกรายการนี้" style={{ color: C.muted, padding: 6 }} onPress={() => setOpen(!open)}>{open ? 'ปิด' : '⋯'}</Txt> : null}
       </View>
       {open && onUndo ? <ConfirmBtn label="ยกเลิกรายการนี้" onConfirm={onUndo} /> : null}

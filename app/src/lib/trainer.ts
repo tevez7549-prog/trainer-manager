@@ -31,7 +31,7 @@ export const APPT_COLS = 'id,trainer_id,trainer_client_id,gym_id,starts_at,durat
 export const DURATIONS = [30, 45, 60, 90] as const;
 
 export const APPT_TH: Record<ApptStatus, { t: string; k: 'ok' | 'warn' | 'bad' | 'info' | 'mute' }> = {
-  scheduled: { t: 'นัดไว้', k: 'info' },
+  scheduled: { t: 'นัดไว้', k: 'mute' },
   in_progress: { t: 'กำลังเทรน', k: 'info' },
   done: { t: 'มาแล้ว', k: 'ok' },
   noshow: { t: 'ไม่มา', k: 'bad' },

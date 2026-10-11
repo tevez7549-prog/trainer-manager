@@ -62,7 +62,7 @@ export default function GymSettings() {
         <View style={{ gap: 6 }}>
           <Txt bold size={13.5}>ประเทศของยิม</Txt>
           <Pressable accessibilityRole="button" onPress={() => setOpen(!open)}
-            style={{ borderWidth: 1, borderColor: open ? C.accent : C.line, borderRadius: R.field, padding: 12, backgroundColor: C.surface }}>
+            style={{ borderWidth: 1, borderColor: open ? C.accent : C.line, borderRadius: R.field, padding: 12, backgroundColor: C.surface2 }}>
             <Txt>{country.flag} {country.name} (+{country.dial}) ▾</Txt>
           </Pressable>
           {open ? (
@@ -87,8 +87,8 @@ export default function GymSettings() {
               const on = f.closed.includes(i);
               return (
                 <Pressable key={i} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => toggle(i)}
-                  style={{ minWidth: 44, height: 44, borderRadius: 12, borderWidth: 1.5, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accent : C.surface, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt bold style={{ color: on ? '#fff' : C.fg }}>{d}</Txt>
+                  style={{ minWidth: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accentSoft : C.surface2, alignItems: 'center', justifyContent: 'center' }}>
+                  <Txt bold style={{ color: on ? C.accent : C.fg }}>{d}</Txt>
                 </Pressable>
               );
             })}

@@ -76,7 +76,7 @@ export default function Admin() {
   return (
     <Screen wide>
       <Header title="Super Admin" sub="หลังบ้าน · จัดการผู้ใช้และยิมทั้งระบบ" back={() => router.replace('/')}
-        right={<Btn label="+ เพิ่มผู้ใช้" onPress={() => router.push('/admin/user/new' as any)} style={{ minHeight: 40 }} />} />
+        right={<Btn icon="user-plus" label="เพิ่มผู้ใช้" onPress={() => router.push('/admin/user/new' as any)} style={{ minHeight: 40 }} />} />
       {err ? <Notice text={err} /> : null}
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -104,7 +104,7 @@ export default function Admin() {
           {rows.map(u => wide ? (
             <Pressable key={u.id} accessibilityRole="button" onPress={() => router.push(`/admin/user/${u.id}` as any)}
               style={({ hovered, pressed }: any) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line,
-                backgroundColor: hovered || pressed ? C.surface2 : u.status === 'suspended' ? '#fdf3f3' : 'transparent' })}>
+                backgroundColor: hovered || pressed ? C.surface2 : u.status === 'suspended' ? C.badBg : 'transparent' })}>
               <Txt size={13.5} style={{ flex: COLW[0] }}>{u.uid}</Txt>
               <View style={{ flex: COLW[1], flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Txt bold size={14}>{u.display_name || '(ไม่มีชื่อ)'}</Txt>

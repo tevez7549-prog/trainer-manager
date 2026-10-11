@@ -50,8 +50,8 @@ export default function NewGym() {
               const on = closed.includes(i);
               return (
                 <Pressable key={i} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`ปิดวัน${d}`} onPress={() => toggle(i)}
-                  style={{ minWidth: 44, height: 44, borderRadius: 12, borderWidth: 1.5, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accent : C.surface, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt bold style={{ color: on ? '#fff' : C.fg }}>{d}</Txt>
+                  style={{ minWidth: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accentSoft : C.surface2, alignItems: 'center', justifyContent: 'center' }}>
+                  <Txt bold style={{ color: on ? C.accent : C.fg }}>{d}</Txt>
                 </Pressable>
               );
             })}

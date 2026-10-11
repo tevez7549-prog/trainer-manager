@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { addDays, baht, planLength, thDate, todayISO, type Plan } from '../lib/gym';
 import { Chips, DateField, Field, Notice, Txt } from './index';
+import { C } from '../lib/theme';
 
 export type Pay = 'cash' | 'transfer' | 'qr' | 'free';
 export type Sale = { planId: string | null; start: string; pay: Pay; price: string };
@@ -35,7 +36,7 @@ export function SellForm({ gymId, plans, value, onChange, currentEnd }: {
       <DateField label="วันเริ่ม" value={value.start} onChange={v => onChange({ ...value, start: v })}
         hint={currentEnd && currentEnd >= value.start ? `แพ็กเกจเดิมยังไม่หมด จะต่อจากวันหมดเดิม (${thDate(currentEnd)})` : undefined} />
       {plan ? (
-        <View style={{ backgroundColor: '#f6f8f7', borderRadius: 12, padding: 12, gap: 2 }}>
+        <View style={{ backgroundColor: C.surface2, borderRadius: 12, padding: 12, gap: 2 }}>
           <Txt bold>{plan.name} ({planLength(plan)})</Txt>
           <Txt>เริ่ม {thDate(realStart, true)} → หมด {end ? thDate(end, true) : '…'}</Txt>
           <Txt muted size={12}>วันปิดประจำและวันหยุดของยิมไม่นับ</Txt>

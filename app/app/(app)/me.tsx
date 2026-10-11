@@ -3,14 +3,16 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth';
-import { Btn, Card, Field, H, Notice, Screen, Txt } from '../../src/ui';
-import { C } from '../../src/lib/theme';
+import { Btn, Card, Chips, Field, H, Notice, Screen, Txt } from '../../src/ui';
+import { useThemeMode, type ThemeMode } from '../../src/lib/themePref';
+import { C, R } from '../../src/lib/theme';
 import { phoneError, splitE164, toE164 } from '../../src/lib/phone';
 import { PhoneField } from '../../src/ui/PhoneField';
 
 
 export default function Me() {
   const { profile, refresh, signOut } = useAuth();
+  const { mode, setMode } = useThemeMode();
   const [name, setName] = useState(profile?.display_name ?? '');
   const init = splitE164(profile?.phone);
   const [country, setCountry] = useState(init.country);
@@ -33,11 +35,11 @@ export default function Me() {
   return (
     <Screen>
       <Btn kind="ghost" label="‹ กลับ" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={{ alignSelf: 'flex-start', minHeight: 40 }} />
-      <Card style={{ alignItems: 'center', backgroundColor: C.accent }}>
-        <Txt size={13} style={{ color: '#d6efe4' }}>UID ของฉัน</Txt>
-        <H size={40} style={{ color: '#fff', letterSpacing: 2 }}>{profile.uid}</H>
-        <Txt size={13} style={{ color: '#d6efe4', textAlign: 'center' }}>บอก UID นี้ให้ยิมหรือเทรนเนอร์ เพื่อเพิ่มคุณเข้าระบบ</Txt>
-      </Card>
+      <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 2, alignItems: 'center' }}>
+        <Txt size={14} style={{ color: C.brandInk, opacity: 0.8 }}>UID ของฉัน</Txt>
+        <H size={40} style={{ color: C.brandInk, letterSpacing: 2 }}>{profile.uid}</H>
+        <Txt size={14} style={{ color: C.brandInk, textAlign: 'center' }}>บอก UID นี้ให้ยิมหรือเทรนเนอร์ เพื่อเพิ่มคุณเข้าระบบ</Txt>
+      </View>
       <Card>
         <H size={17}>ข้อมูลส่วนตัว</H>
         {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
@@ -49,7 +51,11 @@ export default function Me() {
         </View>
         <Btn label="บันทึก" onPress={save} loading={busy} />
       </Card>
-      <Btn kind="ghost" label="ออกจากระบบ" onPress={signOut} />
+      <Card>
+        <H size={17}>หน้าตาแอป</H>
+        <Chips options={[{ v: 'system', t: 'ตามเครื่อง' }, { v: 'dark', t: 'มืด' }, { v: 'light', t: 'สว่าง' }]} value={mode} onChange={v => setMode(v as ThemeMode)} />
+      </Card>
+      <Btn kind="danger" icon="log-out" label="ออกจากระบบ" onPress={signOut} />
     </Screen>
   );
 }

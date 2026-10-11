@@ -71,7 +71,7 @@ export default function TrainerHome() {
       <Card style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <H size={17} style={{ flex: 1 }}>ลูกเทรน ({tcs.length})</H>
-          <Btn label="+ เพิ่ม" onPress={() => router.push('/trainer/add' as any)} style={{ minHeight: 38 }} />
+          <Btn icon="plus" label="เพิ่ม" onPress={() => router.push('/trainer/add' as any)} style={{ minHeight: 38 }} />
         </View>
         {tcs.length > 6 ? <Field label="ค้นหาลูกเทรน" value={q} onChangeText={setQ} placeholder="ชื่อหรือเบอร์" /> : null}
         {!tcs.length ? <Txt muted style={{ paddingVertical: 8 }}>ยังไม่มีลูกเทรน · กด "+ เพิ่ม" เพื่อเชิญคนที่มีแอป หรือเพิ่มคนที่ไม่มีแอปด้วยชื่อและเบอร์</Txt> : null}

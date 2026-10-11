@@ -43,7 +43,7 @@ export default function Members() {
     <GymFrame id={id} gym={gym} role={role} active="members">
       <Header title="สมาชิก" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
       {offline ? <Notice kind="info" text="ออฟไลน์ · แสดงรายชื่อที่บันทึกไว้ในเครื่อง" /> : null}
-      <Btn label="+ เพิ่มสมาชิก" onPress={() => router.push(`/gym/${id}/member/new` as any)} />
+      <Btn icon="user-plus" label="เพิ่มสมาชิก" onPress={() => router.push(`/gym/${id}/member/new` as any)} />
       <Field label="ค้นหา" value={q} onChangeText={t => { setQ(t); setN(PAGE); }} placeholder="ชื่อ / เบอร์ / รหัสสมาชิก" />
       <Chips options={opts} value={f} onChange={v => { setF(v); setN(PAGE); }} />
       <Card style={{ gap: 0, paddingVertical: 4 }}>

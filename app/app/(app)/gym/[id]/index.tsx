@@ -39,7 +39,7 @@ export default function GymHome() {
       {err ? <Notice text={err} /> : null}
 
       {gym && isDesk(role) ? <>
-        <Btn label="เปิดเคาน์เตอร์ · เช็กอิน" onPress={() => go('counter')} style={{ minHeight: 56 }} />
+        <Btn icon="circle-check" label="เปิดเคาน์เตอร์ · เช็กอิน" onPress={() => go('counter')} style={{ minHeight: 56 }} />
         <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
           <Stat n={t?.checkins ?? '–'} t="เช็กอินวันนี้" />
           <Stat n={t?.walkins ?? '–'} t={`ขาจรวันนี้${t?.walkins ? ' · ' + baht(t.walkinSum) : ''}`} />
@@ -57,12 +57,12 @@ export default function GymHome() {
 
       {gym ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>
-          {isDesk(role) ? <Row icon="👥" title="สมาชิก" sub="ค้นหา เพิ่ม ต่ออายุ ดูประวัติ" onPress={() => go('members')} /> : null}
-          {isDesk(role) ? <Row icon="🏷" title="แพ็กเกจสมาชิก" sub={isManager(role) ? 'ตั้งราคาและระยะเวลา' : 'ดูราคา'} onPress={() => go('plans')} /> : null}
-          <Row icon="🧑‍🤝‍🧑" title="ทีมงาน" sub={role === 'owner' ? 'เพิ่ม Admin / Operator / เทรนเนอร์ ด้วย UID' : 'ดูรายชื่อทีม'} onPress={() => go('staff')} />
-          {isManager(role) ? <Row icon="📅" title="วันหยุดยิม" sub="ปิดพิเศษ · เลื่อนวันหมดสมาชิกให้อัตโนมัติ" onPress={() => go('holidays')} /> : null}
-          {isManager(role) ? <Row icon="📥" title="นำเข้าสมาชิกจาก Excel" sub="ใช้ไฟล์ตัวอย่างของเรา" onPress={() => go('import')} /> : null}
-          {isManager(role) ? <Row icon="⚙️" title="ตั้งค่ายิม" sub="ชื่อ ราคาขาจร วันปิด ประเทศ" onPress={() => go('settings')} /> : null}
+          {isDesk(role) ? <Row ic="users" title="สมาชิก" sub="ค้นหา เพิ่ม ต่ออายุ ดูประวัติ" onPress={() => go('members')} /> : null}
+          {isDesk(role) ? <Row ic="tag" title="แพ็กเกจสมาชิก" sub={isManager(role) ? 'ตั้งราคาและระยะเวลา' : 'ดูราคา'} onPress={() => go('plans')} /> : null}
+          <Row ic="id-card" title="ทีมงาน" sub={role === 'owner' ? 'เพิ่ม Admin / Operator / เทรนเนอร์ ด้วย UID' : 'ดูรายชื่อทีม'} onPress={() => go('staff')} />
+          {isManager(role) ? <Row ic="calendar-off" title="วันหยุดยิม" sub="ปิดพิเศษ · เลื่อนวันหมดสมาชิกให้อัตโนมัติ" onPress={() => go('holidays')} /> : null}
+          {isManager(role) ? <Row ic="file-up" title="นำเข้าสมาชิกจาก Excel" sub="ใช้ไฟล์ตัวอย่างของเรา" onPress={() => go('import')} /> : null}
+          {isManager(role) ? <Row ic="settings" title="ตั้งค่ายิม" sub="ชื่อ ราคาขาจร วันปิด ประเทศ" onPress={() => go('settings')} /> : null}
         </Card>
       ) : !err ? <Txt muted>กำลังโหลด…</Txt> : null}
     </GymFrame>

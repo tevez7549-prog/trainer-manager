@@ -230,7 +230,7 @@ function MemberPT({ gymId, m, manager }: { gymId: string; m: Member; manager: bo
           right={<Pill text={`เหลือ ${left[l.id] ?? 0} ครั้ง`} kind={(left[l.id] ?? 0) === 0 ? 'bad' : 'ok'} />}
           onPress={() => router.push(`/trainer/client/${l.id}` as any)} />
       ))}
-      {manager && !open ? <Btn kind="ghost" label="+ มอบหมายเทรนเนอร์" onPress={() => setOpen(true)} /> : null}
+      {manager && !open ? <Btn kind="ghost" icon="plus" label="มอบหมายเทรนเนอร์" onPress={() => setOpen(true)} /> : null}
       {manager && open ? (
         <View style={{ gap: 10 }}>
           {free.length

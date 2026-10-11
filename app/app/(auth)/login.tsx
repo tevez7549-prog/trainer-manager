@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import { signInWith, supabase, thError } from '../../src/lib/supabase';
 import { Btn, Card, Field, H, Notice, Screen, Txt } from '../../src/ui';
-import { C, F } from '../../src/lib/theme';
+import { C, F, LINE_GREEN, LINE_INK, R } from '../../src/lib/theme';
+import { Lockup } from '../../src/ui/Logo';
 
-function ProviderBtn({ label, bg, fg, border, mark, onPress, busy }: { label: string; bg: string; fg: string; border?: string; mark: string; onPress: () => void; busy?: boolean }) {
+// LINE and Google logos must be their official files; until they are added the buttons carry text only.
+function ProviderBtn({ label, bg, fg, border, onPress, busy }: { label: string; bg: string; fg: string; border?: string; onPress: () => void; busy?: boolean }) {
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ busy: !!busy }} onPress={busy ? undefined : onPress}
-      style={({ pressed }) => ({ minHeight: 52, borderRadius: 14, backgroundColor: bg, borderWidth: 1, borderColor: border ?? bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: busy ? 0.6 : pressed ? 0.85 : 1 })}>
-      <View style={{ width: 26, height: 26, borderRadius: 6, backgroundColor: fg === '#fff' ? 'rgba(255,255,255,.2)' : '#f1f3f4', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: fg === '#fff' ? '#fff' : '#4285F4', fontWeight: '800', fontSize: 14 }}>{mark}</Text>
-      </View>
-      <Text style={{ fontFamily: F.body, color: fg, fontWeight: '600', fontSize: 16 }}>{label}</Text>
+      style={(st: any) => ({ minHeight: 52, borderRadius: R.field, backgroundColor: bg, borderWidth: 1, borderColor: border ?? bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: busy ? 0.6 : st.pressed ? 0.85 : st.hovered ? 0.93 : 1 })}>
+      {busy ? <ActivityIndicator color={fg} /> : <Text style={{ fontFamily: F.body, color: fg, fontWeight: '600', fontSize: 16, lineHeight: 24 }}>{label}</Text>}
     </Pressable>
   );
 }
@@ -51,27 +50,24 @@ export default function Login() {
 
   return (
     <Screen center>
-      <View style={{ gap: 6, paddingHorizontal: 4 }}>
-        <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt size={22} bold style={{ color: '#fff' }}>TM</Txt>
-        </View>
-        <H size={30} style={{ marginTop: 8 }}>Trainer Manager</H>
-        <Txt muted>จัดการยิม เทรนเนอร์ และลูกเทรน ในที่เดียว</Txt>
+      <View style={{ gap: 16, paddingHorizontal: 4 }}>
+        <Lockup height={40} />
+        <Txt muted size={16}>จัดการยิม เทรนเนอร์ และลูกเทรน ในที่เดียว</Txt>
       </View>
 
       <Card>
-        <H size={19}>เข้าสู่ระบบ / สมัครใช้งาน</H>
+        <H size={22}>เข้าสู่ระบบ</H>
         <Txt muted size={13.5}>ครั้งแรกกดแล้วสมัครให้อัตโนมัติ</Txt>
         {err ? <Notice text={err} /> : null}
-        <ProviderBtn label="ดำเนินการต่อด้วย LINE" bg="#06C755" fg="#fff" mark="L" onPress={() => oauth('line')} busy={busy === 'line'} />
-        <ProviderBtn label="ดำเนินการต่อด้วย Google" bg="#fff" fg={C.fg} border={C.line} mark="G" onPress={() => oauth('google')} busy={busy === 'google'} />
+        <ProviderBtn label="ดำเนินการต่อด้วย LINE" bg={LINE_GREEN} fg={LINE_INK} onPress={() => oauth('line')} busy={busy === 'line'} />
+        <ProviderBtn label="ดำเนินการต่อด้วย Google" bg={C.surface} fg={C.fg} border={C.line} onPress={() => oauth('google')} busy={busy === 'google'} />
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 2 }}>
           <View style={{ flex: 1, height: 1, backgroundColor: C.line }} /><Txt muted size={12.5}>หรือ</Txt><View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
         </View>
 
         {!showEmail ? (
-          <Btn kind="ghost" label="ใช้อีเมลและรหัสผ่าน" onPress={() => setShowEmail(true)} />
+          <Btn kind="ghost" icon="mail" label="ใช้อีเมลและรหัสผ่าน" onPress={() => setShowEmail(true)} />
         ) : (
           <View style={{ gap: 12 }}>
             <Field label="อีเมล" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="username" />

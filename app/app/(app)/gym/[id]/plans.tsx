@@ -76,7 +76,7 @@ export default function Plans() {
           <Btn kind="ghost" label="ยกเลิก" onPress={() => { setD(null); setErr(''); }} />
           {d.id ? <ConfirmBtn label="ลบแพ็กเกจนี้" onConfirm={() => del(d)} /> : null}
         </Card>
-      ) : can ? <Btn label="+ เพิ่มแพ็กเกจ" onPress={() => setD({ ...empty })} /> : null}
+      ) : can ? <Btn icon="plus" label="เพิ่มแพ็กเกจ" onPress={() => setD({ ...empty })} /> : null}
 
       <Card style={{ gap: 0, paddingVertical: 4 }}>
         {plans.length === 0 ? <Txt muted style={{ paddingVertical: 12 }}>ยังไม่มีแพ็กเกจ{can ? ' · กด "เพิ่มแพ็กเกจ" ด้านบน' : ''}</Txt> : null}

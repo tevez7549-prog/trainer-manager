@@ -78,7 +78,7 @@ export default function Home() {
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="หน้าของฉัน" onPress={() => router.push('/me')}
           style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt bold style={{ color: C.accentInk }}>{(profile?.display_name || '?').slice(0, 1)}</Txt>
+          <Txt bold style={{ color: C.accent }}>{(profile?.display_name || '?').slice(0, 1)}</Txt>
         </Pressable>
       </View>
 
@@ -124,7 +124,7 @@ export default function Home() {
                 right={<Pill text={ROLE_TH[g.role] || g.role} kind={g.role === 'owner' ? 'ok' : 'info'} />}
                 onPress={() => router.push(`/gym/${g.gym.id}`)} />
             ))}
-        <Btn kind="ghost" label="+ สร้างยิมใหม่" onPress={() => router.push('/gym/new')} />
+        <Btn kind="ghost" icon="plus" label="สร้างยิมใหม่" onPress={() => router.push('/gym/new')} />
       </Card>
 
       <Card>

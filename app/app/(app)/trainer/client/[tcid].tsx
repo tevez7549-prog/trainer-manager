@@ -86,9 +86,9 @@ export default function ClientPage() {
 
       {canManage && panel === '' ? (
         <View style={{ gap: 10 }}>
-          <Btn label="+ นัดเทรน" onPress={() => setPanel('book')} />
+          <Btn icon="calendar" label="นัดเทรน" onPress={() => setPanel('book')} />
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Btn kind="ghost" label="+ ขายแพ็กเกจ PT" onPress={() => setPanel('sell')} style={{ flex: 1 }} />
+            <Btn kind="ghost" icon="receipt" label="ขายแพ็กเกจ PT" onPress={() => setPanel('sell')} style={{ flex: 1 }} />
             <Btn kind="ghost" label="แก้เป้าหมาย" onPress={() => setPanel('goal')} style={{ flex: 1 }} />
           </View>
         </View>

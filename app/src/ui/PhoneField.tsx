@@ -1,39 +1,47 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { COUNTRIES, type Country } from '../lib/phone';
 import { C, F, R } from '../lib/theme';
 import { Txt } from './index';
+import { Icon } from './Icon';
 
 /** Country dial-code picker + local number */
 export function PhoneField({ label, country, onCountry, value, onChangeText, error, hint }: {
   label: string; country: Country; onCountry: (c: Country) => void; value: string; onChangeText: (s: string) => void; error?: string; hint?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [focus, setFocus] = useState(false);
+  const bw = error || focus ? 2 : 1;
   return (
-    <View style={{ gap: 6 }}>
-      <Txt bold size={13.5}>{label}</Txt>
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={`รหัสประเทศ ${country.name} +${country.dial}`} onPress={() => setOpen(!open)}
-          style={{ borderWidth: 1, borderColor: open ? C.accent : C.line, borderRadius: R.field, paddingHorizontal: 10, justifyContent: 'center', backgroundColor: C.surface, minWidth: 96 }}>
-          <Txt>{country.flag} +{country.dial} ▾</Txt>
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: open ? C.accent : C.line, borderRadius: R.field, paddingHorizontal: 12, minHeight: 48, backgroundColor: C.surface2 }}>
+          <Txt bold>+{country.dial}</Txt><Icon name="chevron-down" size={16} />
         </Pressable>
         <TextInput value={value} onChangeText={onChangeText} keyboardType="phone-pad" autoComplete="tel" placeholder={country.code === 'TH' ? '081-234-5678' : ''}
-          placeholderTextColor="#8a968f" accessibilityLabel={label}
-          style={{ flex: 1, minWidth: 0, borderWidth: 1, borderColor: error ? C.badFg : C.line, borderRadius: R.field, paddingHorizontal: 12, paddingVertical: 11, fontSize: 16, backgroundColor: C.surface, color: C.fg, fontFamily: F.body }} />
+          placeholderTextColor={C.muted} accessibilityLabel={label} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+          style={{ flex: 1, minWidth: 0, borderWidth: bw, borderColor: error ? C.badFg : focus ? C.accent : C.line, borderRadius: R.field, paddingHorizontal: 16 - (bw - 1), minHeight: 48, fontSize: 16, backgroundColor: C.surface2, color: C.fg, fontFamily: F.body, outlineStyle: 'none' } as any} />
       </View>
       {open ? (
-        <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: R.field, backgroundColor: C.surface, maxHeight: 260 }}>
+        <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: R.field, backgroundColor: C.surface, maxHeight: 264, overflow: 'hidden' }}>
           <ScrollView nestedScrollEnabled>
-            {COUNTRIES.map(c => (
-              <Pressable key={c.code} accessibilityRole="button" onPress={() => { onCountry(c); setOpen(false); }}
-                style={({ pressed }) => ({ flexDirection: 'row', gap: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: c.code === country.code ? C.accentSoft : pressed ? C.surface2 : 'transparent' })}>
-                <Txt>{c.flag}</Txt><Txt style={{ flex: 1 }}>{c.name}</Txt><Txt muted>+{c.dial}</Txt>
-              </Pressable>
-            ))}
+            {COUNTRIES.map((c, i) => {
+              const on = c.code === country.code;
+              return (
+                <Pressable key={c.code} accessibilityRole="button" onPress={() => { onCountry(c); setOpen(false); }}
+                  style={(st: any) => ({ flexDirection: 'row', gap: 12, alignItems: 'center', paddingHorizontal: 16, minHeight: 44, borderTopWidth: i ? 1 : 0, borderTopColor: C.line,
+                    backgroundColor: on ? C.accentSoft : st.pressed || st.hovered ? C.surface2 : 'transparent' })}>
+                  <Txt style={{ flex: 1, color: on ? C.accent : C.fg }} bold={on}>{c.name}</Txt><Txt muted style={on ? { color: C.accent } : undefined}>+{c.dial}</Txt>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
       ) : null}
-      {error ? <Txt size={12.5} style={{ color: C.badFg }}>{error}</Txt> : hint ? <Txt size={12} muted>{hint}</Txt> : null}
+      {error ? <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}><Icon name="circle-x" size={16} color={C.badFg} /><Txt size={13} bold style={{ color: C.badFg }}>{error}</Txt></View>
+        : hint ? <Txt size={13} muted>{hint}</Txt> : null}
     </View>
   );
 }
