@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../src/lib/supabase';
@@ -14,7 +14,7 @@ import { C } from '../../../../src/lib/theme';
 
 type Ledger = { id: string; package_id: string; delta: number; kind: string; reason: string | null; extend_days: number | null; at: string };
 const KIND_TH: Record<string, string> = { session: 'มาเทรน', noshow: 'ไม่มา (หัก)', bonus: 'แถม', refund: 'คืนเงิน', adjust: 'ปรับ', extend: 'ขยายวันหมด', import: 'นำเข้า' };
-type Panel = '' | 'book' | 'sell' | 'goal';
+type Panel = '' | 'book' | 'sell' | 'goal' | 'move';
 
 export default function ClientPage() {
   const { tcid } = useLocalSearchParams<{ tcid: string }>();
@@ -25,6 +25,7 @@ export default function ClientPage() {
   const [ledger, setLedger] = useState<Ledger[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [canManage, setCanManage] = useState(false);
+  const [mgr, setMgr] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [panel, setPanel] = useState<Panel>('');
@@ -48,6 +49,7 @@ export default function ClientPage() {
     setLeaves((lv.data as Leave[]) ?? []);
     const r = (role as any)?.data?.role as string | undefined;
     setCanManage(x.trainer_id === profile?.id || r === 'owner' || r === 'admin' || !!profile?.is_super_admin);
+    setMgr(!!x.gym_id && (r === 'owner' || r === 'admin' || !!profile?.is_super_admin));
   }, [tcid, profile]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -91,11 +93,13 @@ export default function ClientPage() {
             {!tc.gym_id ? <Btn kind="ghost" icon="receipt" label="ขายแพ็กเกจ PT" onPress={() => setPanel('sell')} style={{ flex: 1 }} /> : null}
             <Btn kind="ghost" icon="pencil" label="แก้เป้าหมาย" onPress={() => setPanel('goal')} style={{ flex: 1 }} />
           </View>
+          {mgr ? <Btn kind="ghost" icon="refresh-cw" label="ย้ายไปเทรนเนอร์คนอื่น" onPress={() => setPanel('move')} /> : null}
           {tc.gym_id ? <Txt muted size={13}>ซื้อ PT เพิ่ม: ขายที่หน้าสมาชิกของยิม (ขาย / ต่ออายุ › PT)</Txt> : null}
         </View>
       ) : null}
       {panel === 'book' ? <BookForm tc={tc} leaves={leaves} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
       {panel === 'sell' ? <SellPkgForm tc={tc} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
+      {panel === 'move' ? <MoveForm tc={tc} onClose={(t, id) => { setPanel(''); if (t) { done(t, true); if (id && id !== tc.id) router.replace(`/trainer/client/${id}` as any); } }} /> : null}
       {panel === 'goal' ? <GoalForm tc={tc} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
 
       <Card style={{ gap: 2 }}>
@@ -300,5 +304,44 @@ function PkgRow({ p, canManage, onDone }: { p: Pkg; canManage: boolean; onDone: 
         </View>
       ) : null}
     </View>
+  );
+}
+
+type GymTrainer = { user_id: string; role: string; profile: { display_name: string } | null };
+
+/** Owner / manager: hand this trainee to another trainer. Sessions left and future appointments go along. */
+function MoveForm({ tc, onClose }: { tc: TC; onClose: (msg?: string, id?: string) => void }) {
+  const { profile } = useAuth();
+  const [list, setList] = useState<GymTrainer[] | null>(null);
+  const [pick, setPick] = useState<string | null>(null);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    supabase.from('gym_staff').select('user_id,role,profile:profiles(display_name)').eq('gym_id', tc.gym_id!).eq('active', true).in('role', ['trainer', 'owner', 'admin'])
+      .then(({ data }) => setList((((data as any) ?? []) as GymTrainer[]).filter(t => t.user_id !== tc.trainer_id)));
+  }, [tc.gym_id, tc.trainer_id]);
+  const nameOf = (t: GymTrainer) => (t.user_id === profile?.id ? 'คุณ' : t.profile?.display_name ?? 'เทรนเนอร์');
+
+  async function go() {
+    if (!pick) { setErr('เลือกเทรนเนอร์'); return; }
+    setBusy(true); setErr('');
+    const { data, error } = await supabase.rpc('move_trainee', { tc: tc.id, new_trainer: pick });
+    setBusy(false);
+    if (error) { setErr(thError(error)); return; }
+    const r = data as { trainer_client_id: string; future_appointments: number };
+    const who = nameOf(list!.find(t => t.user_id === pick)!);
+    onClose(`ย้ายไปให้ ${who} แล้ว${r.future_appointments ? ` · นัดที่จะถึง ${r.future_appointments} นัดย้ายไปด้วย` : ''}`, r.trainer_client_id);
+  }
+
+  return (
+    <Card>
+      <H size={17}>ย้ายไปเทรนเนอร์คนอื่น</H>
+      {err ? <Notice text={err} /> : null}
+      {list === null ? <Txt muted>กำลังโหลด…</Txt> : !list.length ? <Txt muted>ยังไม่มีเทรนเนอร์คนอื่นในทีม เพิ่มได้ที่ เพิ่มเติม › ทีมงาน</Txt>
+        : <Chips label="ย้ายไปให้" options={list.map(t => ({ v: t.user_id, t: nameOf(t) }))} value={pick} onChange={setPick} />}
+      <Txt muted size={13}>ครั้งที่เหลือและนัดที่จะถึงย้ายไปด้วย · ครั้งที่เทรนไปแล้วยังนับเป็นของเทรนเนอร์คนเดิม</Txt>
+      {list?.length ? <Btn label="ยืนยันการย้าย" onPress={go} loading={busy} /> : null}
+      <Btn kind="ghost" label="ยกเลิก" onPress={() => onClose()} />
+    </Card>
   );
 }

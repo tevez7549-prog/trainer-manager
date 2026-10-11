@@ -54,6 +54,10 @@ export function thError(e: unknown): string {
   if (/no membership to freeze/i.test(m)) return 'ไม่มีแพ็กเกจที่ยังใช้อยู่ในช่วงนี้ให้พัก';
   if (/freeze already over/i.test(m)) return 'การพักนี้จบไปแล้ว';
   if (/freeze end before start/i.test(m)) return 'วันสุดท้ายต้องไม่ก่อนวันแรก';
+  if (/same trainer/i.test(m)) return 'เป็นเทรนเนอร์คนนี้อยู่แล้ว';
+  if (/trainer not in this gym/i.test(m)) return 'เทรนเนอร์คนนี้ไม่ได้อยู่ในทีมยิมนี้';
+  if (/pt plan not found/i.test(m)) return 'ไม่พบแพ็กเกจ PT นี้ อาจถูกปิดหรือลบไปแล้ว';
+  if (/trainee not found/i.test(m)) return 'ไม่พบลูกเทรนนี้ อาจถูกย้ายไปแล้ว';
   if (/appointment not found/i.test(m)) return 'ไม่พบนัดนี้ อาจถูกลบไปแล้ว';
   return m || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง';
 }
