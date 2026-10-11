@@ -84,7 +84,9 @@ export default function Login() {
           </View>
         )}
       </Card>
-      <Txt muted size={12} style={{ textAlign: 'center' }}>การเข้าใช้งานถือว่ายอมรับเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว</Txt>
+      <Txt muted size={12} style={{ textAlign: 'center' }}>
+        การเข้าใช้งานถือว่ายอมรับ<Link href="/terms"><Txt size={12} style={{ color: C.accent }}>เงื่อนไขการใช้งาน</Txt></Link>และ<Link href="/privacy"><Txt size={12} style={{ color: C.accent }}>นโยบายความเป็นส่วนตัว</Txt></Link>
+      </Txt>
     </Screen>
   );
 }

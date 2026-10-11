@@ -1,19 +1,12 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Redirect, router } from 'expo-router';
+import { Link, Redirect, router } from 'expo-router';
 import { supabase, thError } from '../src/lib/supabase';
 import { PDPA_VERSION, useAuth } from '../src/lib/auth';
 import { Btn, Card, H, Loading, Notice, Screen, Txt } from '../src/ui';
 import { C } from '../src/lib/theme';
 
-// Draft wording for the pilot. Have a lawyer review before public launch.
-const POINTS = [
-  'เราเก็บชื่อ เบอร์โทร อีเมล และข้อมูลที่คุณบันทึกในแอป เพื่อให้บริการจัดการยิม การเทรน และโภชนาการ',
-  'รูปร่างกาย น้ำหนัก สัดส่วน และอาหาร: เห็นได้เฉพาะคุณ เทรนเนอร์ที่ดูแลคุณ และเจ้าของยิมที่คุณเป็นสมาชิก',
-  'เทรนเนอร์คนอื่น แอดมิน และพนักงานเคาน์เตอร์ ไม่เห็นรูปและอาหารของคุณ',
-  'ยิมเห็นข้อมูลสมาชิก (ชื่อ เบอร์ แบบสมาชิก วันหมดอายุ การเช็กอิน) เพื่อใช้ที่เคาน์เตอร์',
-  'คุณขอดู แก้ไข หรือลบข้อมูล และถอนความยินยอมได้ทุกเมื่อจากหน้า "ฉัน"',
-];
+import { PRIVACY_POINTS as POINTS } from '../src/lib/legal';
 
 export default function Consent() {
   const { loading, session, hasConsent, refresh, signOut } = useAuth();
@@ -43,6 +36,10 @@ export default function Consent() {
             <Txt style={{ flex: 1 }}>{p}</Txt>
           </View>
         ))}
+        <View style={{ flexDirection: 'row', gap: 16 }}>
+          <Link href="/privacy"><Txt size={13.5} bold style={{ color: C.accent }}>อ่านนโยบายฉบับเต็ม</Txt></Link>
+          <Link href="/terms"><Txt size={13.5} bold style={{ color: C.accent }}>เงื่อนไขการใช้งาน</Txt></Link>
+        </View>
       </Card>
       {err ? <Notice text={err} /> : null}
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: ok }} onPress={() => setOk(!ok)}
