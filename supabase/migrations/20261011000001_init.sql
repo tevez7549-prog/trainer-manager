@@ -6,7 +6,7 @@
 --   * Trainers only see their own trainees.
 --   * Everyone consents to PDPA; no age-based rules.
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 -- =====================================================================
 -- 1. People
@@ -309,7 +309,7 @@ create table public.reschedule_requests (
 
 create table public.invites (
   id          uuid primary key default gen_random_uuid(),
-  token       text not null unique default encode(gen_random_bytes(12), 'hex'),
+  token       text not null unique default encode(extensions.gen_random_bytes(12), 'hex'),
   from_user   uuid not null references public.profiles(id) on delete cascade,
   gym_id      uuid references public.gyms(id) on delete cascade,
   kind        text not null check (kind in ('client','trainer','staff','member')),
