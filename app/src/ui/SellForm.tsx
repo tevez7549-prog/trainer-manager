@@ -27,7 +27,7 @@ export function SellForm({ gymId, plans, value, onChange, currentEnd }: {
     return () => { alive = false; };
   }, [gymId, plan?.id, realStart]);
 
-  if (!plans.length) return <Notice kind="info" text="ยังไม่มีแพ็กเกจ ให้เจ้าของหรือ Admin เพิ่มที่เมนู แพ็กเกจสมาชิก ก่อน" />;
+  if (!plans.length) return <Notice kind="info" text="ยังไม่มีแพ็กเกจ ให้เจ้าของหรือผู้จัดการ เพิ่มที่เมนู เพิ่มเติม › แพ็กเกจและราคา ก่อน" />;
 
   return (
     <View style={{ gap: 12 }}>

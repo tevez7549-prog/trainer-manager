@@ -2,9 +2,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../../../src/lib/supabase';
-import { isManager, ROLE_TH, useGym, type Role } from '../../../../src/lib/gym';
+import { useAuth } from '../../../../src/lib/auth';
+import { isManager, useGym, type Role } from '../../../../src/lib/gym';
 import { APPT_COLS, sessionsLeft, TC_COLS, tcName, type Appt, type TC } from '../../../../src/lib/trainer';
-import { Card, Chips, Empty, Field, H, Header, Notice, Pill, Row, Stat, Txt } from '../../../../src/ui';
+import { Card, Chips, Empty, Field, Header, Label, Notice, Pill, Row, Txt } from '../../../../src/ui';
 import { ApptCard } from '../../../../src/ui/Appt';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 
@@ -13,8 +14,9 @@ type Range = 'today' | 'week';
 
 /** Owner / Admin / Operator: every trainer's trainees, sessions left and appointments at this gym */
 export default function GymPT() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, low: low0 } = useLocalSearchParams<{ id: string; low?: string }>();
   const { gym, role } = useGym(id);
+  const me = useAuth().profile?.id;
   const [staff, setStaff] = useState<Staff[]>([]);
   const [tcs, setTcs] = useState<TC[] | null>(null);
   const [left, setLeft] = useState<Record<string, number>>({});
@@ -22,6 +24,7 @@ export default function GymPT() {
   const [who, setWho] = useState<string>('all');
   const [range, setRange] = useState<Range>('today');
   const [q, setQ] = useState('');
+  const [low, setLow] = useState(low0 === '1');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
 
   const load = useCallback(async () => {
@@ -49,79 +52,67 @@ export default function GymPT() {
     return [...ids].map(uid => {
       const st = staff.find(s => s.user_id === uid);
       const mine = (tcs ?? []).filter(t => t.trainer_id === uid);
-      const name = st?.profile?.display_name || mine[0]?.trainer?.display_name || 'เทรนเนอร์';
+      const name = uid === me ? 'คุณ' : st?.profile?.display_name || mine[0]?.trainer?.display_name || 'เทรนเนอร์';
       return { id: uid, name, role: st?.role ?? null, count: mine.length,
         today: appts.filter(a => a.trainer_id === uid && a.status !== 'cancelled').length,
         low: mine.filter(t => (left[t.id] ?? 0) <= 2).length };
     }).sort((a, b) => b.count - a.count);
-  }, [staff, tcs, appts, left]);
+  }, [staff, tcs, appts, left, me]);
 
   const nameOf = (uid: string) => trainers.find(t => t.id === uid)?.name ?? 'เทรนเนอร์';
   const shownTc = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return (tcs ?? []).filter(t => (who === 'all' || t.trainer_id === who) && (!s || tcName(t).toLowerCase().includes(s) || (t.member?.code ?? '').toLowerCase().includes(s)));
-  }, [tcs, who, q]);
+    return (tcs ?? []).filter(t => (who === 'all' || t.trainer_id === who) && (!low || (left[t.id] ?? 0) <= 2) && (!s || tcName(t).toLowerCase().includes(s) || (t.member?.code ?? '').toLowerCase().includes(s)));
+  }, [tcs, who, q, low, left]);
   const shownAppt = appts.filter(a => who === 'all' || a.trainer_id === who);
   const total = tcs?.length ?? 0;
   const lowAll = (tcs ?? []).filter(t => (left[t.id] ?? 0) <= 2).length;
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="pt">
-      <Header title="เทรนเนอร์ & PT" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
+      <Header title="PT" sub={gym?.name} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
-      <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-        <Stat n={tcs ? total : '–'} t="ลูกเทรน PT" />
-        <Stat n={tcs ? appts.filter(a => a.status !== 'cancelled').length : '–'} t={range === 'today' ? 'นัดวันนี้' : 'นัด 7 วัน'} />
-        <Stat n={tcs ? lowAll : '–'} t="ใกล้หมด (≤ 2 ครั้ง)" kind={lowAll ? 'warn' : undefined} />
-      </View>
-
-      <Card style={{ gap: 0, paddingVertical: 4 }}>
-        <H size={17} style={{ paddingTop: 10, paddingBottom: 4 }}>เทรนเนอร์ ({trainers.length})</H>
-        {tcs && !trainers.length ? (
-          <Empty ic="dumbbell" title="ยังไม่มีเทรนเนอร์" text={isManager(role) ? 'เพิ่มเทรนเนอร์ที่เมนู ทีมงาน หรือมอบหมายเทรนเนอร์ให้สมาชิกที่หน้าสมาชิก' : undefined} />
-        ) : null}
-        {trainers.map(t => (
-          <Row key={t.id} icon={t.name.slice(0, 2)} title={t.name}
-            sub={[t.role && t.role !== 'trainer' ? ROLE_TH[t.role] : null, `ลูกเทรน ${t.count} คน`, `นัด${range === 'today' ? 'วันนี้' : ' 7 วัน'} ${t.today}`].filter(Boolean).join(' · ')}
-            right={t.low ? <Pill text={`ใกล้หมด ${t.low}`} kind="warn" /> : who === t.id ? <Pill text="กำลังดู" kind="info" /> : undefined}
-            onPress={() => setWho(who === t.id ? 'all' : t.id)} />
-        ))}
-      </Card>
-
-      {trainers.length > 1 ? (
-        <Chips label="ดูของ" options={[{ v: 'all', t: 'ทุกคน' }, ...trainers.map(t => ({ v: t.id, t: t.name }))]} value={who} onChange={setWho} />
+      {trainers.length ? (
+        <Chips options={[{ v: 'all', t: `ทุกคน (${total})` }, ...trainers.map(t => ({ v: t.id, t: `${t.name} (${t.count})` }))]} value={who} onChange={setWho} />
+      ) : null}
+      {tcs && !trainers.length ? (
+        <Card><Empty ic="dumbbell" title="ยังไม่มี PT" text="ขาย PT ได้ที่หน้าสมาชิก: กด ขาย / ต่ออายุ แล้วเลือก PT · เพิ่มเทรนเนอร์ได้ที่ เพิ่มเติม › ทีมงาน" /></Card>
       ) : null}
 
-      <Card style={{ gap: 6 }}>
+      {tcs?.length ? <>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <H size={17} style={{ flex: 1 }}>นัดเทรน</H>
+          <Label style={{ flex: 1 }}>นัด ({shownAppt.filter(a => a.status !== 'cancelled').length})</Label>
           <Chips options={[{ v: 'today', t: 'วันนี้' }, { v: 'week', t: '7 วัน' }]} value={range} onChange={setRange} />
         </View>
-        {!shownAppt.length ? <Txt muted>{range === 'today' ? 'วันนี้ไม่มีนัด' : 'ไม่มีนัดใน 7 วันนี้'}</Txt> : null}
-        {shownAppt.map(a => (
-          <View key={a.id}>
-            {who === 'all' ? <Txt muted size={12} style={{ paddingTop: 6 }}>{nameOf(a.trainer_id)}</Txt> : null}
-            <ApptCard a={a} showDay={range === 'week'} canManage={isManager(role)} onDone={(t, ok) => { setMsg({ t, ok }); load(); }} />
-          </View>
-        ))}
-      </Card>
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          {!shownAppt.length ? <Txt muted style={{ paddingVertical: 14 }}>{range === 'today' ? 'วันนี้ไม่มีนัด' : 'ไม่มีนัดใน 7 วันนี้'}</Txt> : null}
+          {shownAppt.map(a => (
+            <View key={a.id}>
+              {who === 'all' ? <Txt muted size={12.5} style={{ paddingTop: 8 }}>กับ {nameOf(a.trainer_id)}</Txt> : null}
+              <ApptCard a={a} showDay={range === 'week'} canManage={isManager(role)} onDone={(t, ok) => { setMsg({ t, ok }); load(); }} />
+            </View>
+          ))}
+        </Card>
 
-      <Card style={{ gap: 4 }}>
-        <H size={17}>ลูกเทรน ({shownTc.length})</H>
-        {total > 6 ? <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="ชื่อหรือรหัสสมาชิก" /> : null}
-        {tcs === null ? <Txt muted>กำลังโหลด…</Txt> : !shownTc.length ? <Txt muted style={{ paddingVertical: 8 }}>ยังไม่มีลูกเทรน</Txt> : null}
-        {shownTc.map(t => {
-          const n = left[t.id] ?? 0;
-          return (
-            <Row key={t.id} icon={tcName(t).slice(0, 2)} title={tcName(t)}
-              sub={[who === 'all' ? `เทรนเนอร์ ${nameOf(t.trainer_id)}` : null, t.member?.code ?? null].filter(Boolean).join(' · ') || undefined}
-              right={<Pill text={`เหลือ ${n} ครั้ง`} kind={n === 0 ? 'bad' : n <= 2 ? 'warn' : 'ok'} />}
-              onPress={() => router.push(`/trainer/client/${t.id}` as any)} />
-          );
-        })}
-        <Txt muted size={12} style={{ paddingTop: 6 }}>เห็นเฉพาะลูกเทรนที่ผูกกับยิมนี้ · ลูกเทรนส่วนตัวของเทรนเนอร์ (นอกยิม) เป็นข้อมูลของเทรนเนอร์คนนั้น</Txt>
-      </Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Label style={{ flex: 1 }}>ลูกเทรน ({shownTc.length})</Label>
+          <Chips options={[{ v: 'all', t: 'ทั้งหมด' }, { v: 'low', t: `ใกล้หมด (${lowAll})` }]} value={low ? 'low' : 'all'} onChange={v => setLow(v === 'low')} />
+        </View>
+        {total > 8 ? <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="ชื่อหรือรหัสสมาชิก" /> : null}
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          {!shownTc.length ? <Txt muted style={{ paddingVertical: 14 }}>ไม่มีลูกเทรนในกลุ่มนี้</Txt> : null}
+          {shownTc.map(t => {
+            const n = left[t.id] ?? 0;
+            return (
+              <Row key={t.id} icon={tcName(t).slice(0, 2)} title={tcName(t)}
+                sub={[who === 'all' ? `กับ ${nameOf(t.trainer_id)}` : null, t.member?.code ?? null].filter(Boolean).join(' · ') || undefined}
+                right={<Pill text={`เหลือ ${n} ครั้ง`} kind={n === 0 ? 'bad' : n <= 2 ? 'warn' : 'ok'} />}
+                onPress={() => router.push(`/trainer/client/${t.id}` as any)} />
+            );
+          })}
+        </Card>
+      </> : null}
     </GymFrame>
   );
 }

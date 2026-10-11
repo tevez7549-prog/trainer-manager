@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../../src/lib/supabase';
 import { useAuth } from '../../../../../src/lib/auth';
-import { addDays, baht, daysBetween, gymCountry, todayISO, isDesk, isManager, PAY_TH, thDate, thDateTs, thTime, type Plan, useGym } from '../../../../../src/lib/gym';
+import { addDays, baht, daysBetween, gymCountry, todayISO, isDesk, isManager, PAY_TH, thDate, thDateTs, thTime, type Plan, type PtPlan, useGym } from '../../../../../src/lib/gym';
 import { enqueue, liveStatus, STATUS_TH, type Member } from '../../../../../src/lib/counter';
 import { phoneError, prettyPhone, splitE164, toE164, type Country } from '../../../../../src/lib/phone';
 import { Btn, Card, ConfirmBtn, Field, H, Header, Notice, Pill, Screen, Toggle, Txt } from '../../../../../src/ui';
@@ -33,6 +33,8 @@ export default function MemberPage() {
   const [sale, setSale] = useState<Sale>(newSale());
   const [busy, setBusy] = useState(false);
   const [openMs, setOpenMs] = useState<string | null>(null);
+  const [sellKind, setSellKind] = useState<'mem' | 'pt'>(sellParam === 'pt' ? 'pt' : 'mem');
+  const [ptKey, setPtKey] = useState(0);
 
   const load = useCallback(async () => {
     const [a, b, c, p] = await Promise.all([
@@ -97,20 +99,27 @@ export default function MemberPage() {
         <Txt muted size={12.5}>{m.profile_id ? '✓ เชื่อมกับบัญชีแอปแล้ว' : 'ยังไม่ได้ใช้แอป · ถ้าสมัครแอปด้วยเบอร์นี้ จะเชื่อมให้เอง'}{m.imported ? ' · นำเข้าจาก Excel' : ''}</Txt>
       </Card>
 
+      {desk ? <MemberPT m={m} reloadKey={ptKey} /> : null}
+
       {desk && mode === '' ? (
         <View style={{ gap: 10 }}>
-          {canCheckIn ? <Btn label="เช็กอินวันนี้" onPress={checkIn} /> : null}
-          <Btn kind={canCheckIn ? 'ghost' : 'primary'} label={m.end_date ? 'ต่ออายุ / ขายแพ็กเกจ' : 'ขายแพ็กเกจ'} onPress={() => setMode('sell')} />
-          {m.end_date && m.end_date >= todayISO() && !m.pt_only ? <Btn kind="ghost" label="พักสมาชิก" onPress={() => setMode('freeze')} /> : null}
-          <Btn kind="ghost" label="แก้ไขข้อมูล" onPress={() => setMode('edit')} />
+          <Btn icon="receipt" label="ขาย / ต่ออายุ" onPress={() => setMode('sell')} />
+          {canCheckIn ? <Btn kind="ghost" icon="circle-check" label="เช็กอินวันนี้" onPress={checkIn} /> : null}
+          <Card style={{ gap: 0, paddingVertical: 4 }}>
+            {m.end_date && m.end_date >= todayISO() && !m.pt_only ? <Row ic="pause" title="พักสมาชิก" onPress={() => setMode('freeze')} /> : null}
+            <Row ic="pencil" title="แก้ไขข้อมูล" onPress={() => setMode('edit')} />
+          </Card>
         </View>
       ) : null}
 
       {mode === 'sell' ? (
         <Card>
-          <H size={17}>{m.end_date ? 'ต่ออายุ / ขายแพ็กเกจ' : 'ขายแพ็กเกจ'}</H>
-          <SellForm gymId={id} plans={plans} value={sale} onChange={setSale} currentEnd={m.end_date} />
-          <Btn label="ยืนยันการขาย" onPress={doSell} loading={busy} />
+          <H size={17}>ขายให้ {m.name}</H>
+          <Chips options={[{ v: 'mem', t: 'สมาชิกยิม' }, { v: 'pt', t: 'PT' }]} value={sellKind} onChange={setSellKind} />
+          {sellKind === 'mem' ? <>
+            <SellForm gymId={id} plans={plans} value={sale} onChange={setSale} currentEnd={m.end_date} />
+            <Btn label="ยืนยันการขาย" onPress={doSell} loading={busy} />
+          </> : <PtSell gymId={id} m={m} onDone={(t) => { setMsg({ t, ok: true }); setMode(''); setPtKey(k => k + 1); }} />}
           <Btn kind="ghost" label="ยกเลิก" onPress={() => setMode('')} />
         </Card>
       ) : null}
@@ -119,8 +128,6 @@ export default function MemberPage() {
 
       {mode === 'freeze' ? <FreezeForm m={m} onDone={(t) => { setMode(''); if (t) setMsg({ t, ok: true }); load(); }} /> : null}
       {desk ? <Freezes m={m} onDone={(t, ok) => { setMsg({ t, ok }); load(); }} /> : null}
-
-      {desk ? <MemberPT gymId={id} m={m} manager={mgr} /> : null}
 
       <Card style={{ gap: 4 }}>
         <H size={17}>ประวัติแพ็กเกจ ({ms.length})</H>
@@ -190,59 +197,89 @@ function EditMember({ m, country, onDone }: { m: Member; country: Country; onDon
 }
 
 type PtLink = { id: string; trainer_id: string; trainer: { display_name: string } | null };
-type GymTrainer = { user_id: string; role: string; profile: { display_name: string } | null };
+type Staff = { user_id: string; role: string; profile: { display_name: string } | null };
 
-/** Trainers this member trains with at this gym; owner/admin can assign one */
-function MemberPT({ gymId, m, manager }: { gymId: string; m: Member; manager: boolean }) {
+/** This member's PT: one row per trainer, sessions left; tap to book or mark sessions */
+function MemberPT({ m, reloadKey }: { m: Member; reloadKey: number }) {
   const [links, setLinks] = useState<PtLink[]>([]);
   const [left, setLeft] = useState<Record<string, number>>({});
-  const [trainers, setTrainers] = useState<GymTrainer[]>([]);
-  const [pick, setPick] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
-  const [err, setErr] = useState('');
-
   const load = useCallback(async () => {
-    const [l, t] = await Promise.all([
-      supabase.from('trainer_clients').select('id,trainer_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)').eq('member_id', m.id).eq('status', 'active'),
-      // owner and admin can coach too
-      supabase.from('gym_staff').select('user_id,role,profile:profiles(display_name)').eq('gym_id', gymId).in('role', ['trainer', 'owner', 'admin']).eq('active', true),
-    ]);
-    const ls = ((l.data as any) ?? []) as PtLink[];
-    setLinks(ls); setTrainers(((t.data as any) ?? []) as GymTrainer[]);
+    const { data } = await supabase.from('trainer_clients').select('id,trainer_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)').eq('member_id', m.id).eq('status', 'active');
+    const ls = ((data as any) ?? []) as PtLink[];
+    setLinks(ls);
     setLeft(await sessionsLeft(ls.map(x => x.id)));
-  }, [gymId, m.id]);
-  useEffect(() => { load(); }, [load]);
-
-  async function assign() {
-    if (!pick) { setErr('เลือกเทรนเนอร์'); return; }
-    const { error } = await supabase.from('trainer_clients').insert({ trainer_id: pick, member_id: m.id, client_id: m.profile_id, gym_id: gymId });
-    if (error) { setErr(thError(error)); return; }
-    setOpen(false); setPick(null); setErr(''); load();
-  }
-
-  const free = trainers.filter(t => !links.some(l => l.trainer_id === t.user_id));
+  }, [m.id]);
+  useEffect(() => { load(); }, [load, reloadKey]);
+  if (!links.length) return null;
   return (
-    <Card style={{ gap: 4 }}>
-      <H size={17}>เทรน PT</H>
-      {err ? <Notice text={err} /> : null}
-      {!links.length ? <Txt muted>ยังไม่มีเทรนเนอร์</Txt> : null}
-      {links.map(l => (
-        <Row key={l.id} title={l.trainer?.display_name ?? 'เทรนเนอร์'} sub="ดูนัดและแพ็กเกจ PT"
-          right={<Pill text={`เหลือ ${left[l.id] ?? 0} ครั้ง`} kind={(left[l.id] ?? 0) === 0 ? 'bad' : 'ok'} />}
-          onPress={() => router.push(`/trainer/client/${l.id}` as any)} />
-      ))}
-      {manager && !open ? <Btn kind="ghost" icon="plus" label="มอบหมายเทรนเนอร์" onPress={() => setOpen(true)} /> : null}
-      {manager && open ? (
-        <View style={{ gap: 10 }}>
-          {free.length
-            ? <Chips label="เทรนเนอร์ของยิม" options={free.map(t => ({ v: t.user_id, t: (t.profile?.display_name ?? 'เทรนเนอร์') + (t.role === 'owner' ? ' (เจ้าของ)' : t.role === 'admin' ? ' (Admin)' : '') }))} value={pick} onChange={setPick} />
-            : <Txt muted size={13}>ยังไม่มีเทรนเนอร์ในทีม เพิ่มได้ที่เมนู ทีมงาน (ตำแหน่ง เทรนเนอร์)</Txt>}
-          {free.length ? <Btn label="มอบหมาย" onPress={assign} /> : null}
-          <Btn kind="ghost" label="ยกเลิก" onPress={() => setOpen(false)} />
-        </View>
-      ) : null}
+    <Card style={{ gap: 0, paddingVertical: 4 }}>
+      {links.map(l => {
+        const n = left[l.id] ?? 0;
+        return (
+          <Row key={l.id} ic="dumbbell" title={`PT กับ ${l.trainer?.display_name ?? 'เทรนเนอร์'}`} sub="นัดเทรน · ดูครั้งที่ใช้"
+            right={<Pill text={`เหลือ ${n} ครั้ง`} kind={n === 0 ? 'bad' : n <= 2 ? 'warn' : 'ok'} />}
+            onPress={() => router.push(`/trainer/client/${l.id}` as any)} />
+        );
+      })}
     </Card>
   );
+}
+
+/** Sell a PT plan: plan, trainer, payment */
+function PtSell({ gymId, m, onDone }: { gymId: string; m: Member; onDone: (msg: string) => void }) {
+  const { profile } = useAuth();
+  const [plans, setPlans] = useState<PtPlan[] | null>(null);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [plan, setPlan] = useState<string | null>(null);
+  const [trainer, setTrainer] = useState<string | null>(null);
+  const [pay, setPay] = useState<'cash' | 'transfer' | 'qr' | 'free'>('cash');
+  const [price, setPrice] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      supabase.from('pt_plans').select('*').eq('gym_id', gymId).eq('active', true).order('sessions'),
+      supabase.from('gym_staff').select('user_id,role,profile:profiles(display_name)').eq('gym_id', gymId).eq('active', true).in('role', ['trainer', 'owner', 'admin']),
+    ]).then(([p, s]) => {
+      const ps = (p.data as PtPlan[]) ?? [];
+      setPlans(ps);
+      if (ps[0]) { setPlan(ps[0].id); setPrice(String(ps[0].price)); }
+      const st = (((s.data as any) ?? []) as Staff[]).sort((a, b) => (a.role === 'trainer' ? 0 : 1) - (b.role === 'trainer' ? 0 : 1));
+      setStaff(st);
+      if (st.length === 1) setTrainer(st[0].user_id);
+    });
+  }, [gymId]);
+
+  const pl = (plans ?? []).find(x => x.id === plan);
+  async function go() {
+    if (!plan) { setErr('เลือกแพ็กเกจ'); return; }
+    if (!trainer) { setErr('เลือกเทรนเนอร์'); return; }
+    const p = Number(price);
+    if (price === '' || Number.isNaN(p) || p < 0) { setErr('ใส่จำนวนเงินเป็นตัวเลข'); return; }
+    setBusy(true); setErr('');
+    const { error } = await supabase.rpc('sell_pt', { m: m.id, plan, trainer, pay, price_paid: p });
+    setBusy(false);
+    if (error) { setErr(thError(error)); return; }
+    const tn = trainer === profile?.id ? 'คุณ' : staff.find(s => s.user_id === trainer)?.profile?.display_name ?? 'เทรนเนอร์';
+    onDone(`ขาย ${pl?.name ?? 'PT'} กับ ${tn} แล้ว`);
+  }
+
+  if (plans === null) return <Txt muted>กำลังโหลด…</Txt>;
+  if (!plans.length) return <Notice kind="info" text="ยังไม่มีแพ็กเกจ PT · เจ้าของหรือผู้จัดการเพิ่มได้ที่ เพิ่มเติม › แพ็กเกจและราคา › PT" />;
+  return <>
+    {err ? <Notice text={err} /> : null}
+    <Chips label="แพ็กเกจ" options={plans.map(x => ({ v: x.id, t: `${x.name} · ${baht(x.price)}` }))} value={plan}
+      onChange={v => { setPlan(v); setPrice(pay === 'free' ? '0' : String(plans.find(x => x.id === v)?.price ?? '')); }} />
+    {staff.length ? (
+      <Chips label="เทรนเนอร์" options={staff.map(s => ({ v: s.user_id, t: s.user_id === profile?.id ? 'คุณ' : s.profile?.display_name ?? 'เทรนเนอร์' }))} value={trainer} onChange={setTrainer} />
+    ) : <Notice kind="info" text="ยังไม่มีเทรนเนอร์ในทีม เพิ่มได้ที่ เพิ่มเติม › ทีมงาน" />}
+    <Chips label="ชำระโดย" options={[{ v: 'cash', t: 'เงินสด' }, { v: 'transfer', t: 'โอน' }, { v: 'qr', t: 'QR' }, { v: 'free', t: 'ฟรี' }]} value={pay}
+      onChange={v => { setPay(v); setPrice(v === 'free' ? '0' : price === '0' ? String(pl?.price ?? '') : price); }} />
+    <Field label="รับเงิน (บาท)" value={price} onChangeText={v => setPrice(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad"
+      hint={pl ? `${pl.sessions} ครั้ง${pl.months ? ` · ใช้ภายใน ${pl.months} เดือน` : ''}` : undefined} />
+    <Btn label={`รับเงิน ${baht(Number(price || 0))}`} onPress={go} loading={busy} />
+  </>;
 }
 
 /** Put a membership on hold: the end date moves back by the days on hold */

@@ -49,8 +49,8 @@ export default function GymSettings() {
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="settings">
-      <Header title="ตั้งค่ายิม" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
-      {!isManager(role) && gym ? <Notice text="เฉพาะเจ้าของและ Admin แก้ไขได้" /> : null}
+      <Header title="ข้อมูลยิม" sub={gym?.name} back={() => router.replace(`/gym/${id}/more` as any)} />
+      {!isManager(role) && gym ? <Notice text="เฉพาะเจ้าของและผู้จัดการ แก้ไขได้" /> : null}
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
       <Card>
         <Field label="ชื่อยิม" value={f.name} onChangeText={v => setF({ ...f, name: v })} />

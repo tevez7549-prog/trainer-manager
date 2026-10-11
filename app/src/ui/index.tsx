@@ -22,14 +22,15 @@ export function Label({ children, style }: { children: React.ReactNode; style?: 
 }
 
 /** Phone-width column, centred on large screens */
-export function Screen({ children, scroll = true, center, wide }: { children: React.ReactNode; scroll?: boolean; center?: boolean; wide?: boolean }) {
+export function Screen({ children, scroll = true, center, wide, footer }: { children: React.ReactNode; scroll?: boolean; center?: boolean; wide?: boolean; footer?: React.ReactNode }) {
   const inner = (
     <View style={[{ width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32, gap: 16 },
       wide && { maxWidth: 1180, paddingHorizontal: 24 }, center && { flexGrow: 1, justifyContent: 'center' }]}>{children}</View>
   );
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      {scroll ? <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{inner}</ScrollView> : inner}
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={footer ? ['top'] : ['top', 'bottom']}>
+      {scroll ? <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{inner}</ScrollView> : <View style={{ flex: 1 }}>{inner}</View>}
+      {footer}
     </SafeAreaView>
   );
 }
@@ -39,16 +40,17 @@ export function Card({ children, style }: { children: React.ReactNode; style?: V
 }
 
 type BtnKind = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-solid';
-export function Btn({ label, onPress, kind = 'primary', loading, disabled, style, icon }: {
-  label: string; onPress?: () => void; kind?: BtnKind; loading?: boolean; disabled?: boolean; style?: ViewStyle; icon?: IconName;
+export function Btn({ label, onPress, kind = 'primary', loading, disabled, style, icon, textColor }: {
+  label: string; onPress?: () => void; kind?: BtnKind; loading?: boolean; disabled?: boolean; style?: ViewStyle; icon?: IconName; textColor?: string;
 }) {
   const off = disabled || loading;
-  const [bg, fg, border] =
+  const [bg, fg0, border] =
     kind === 'primary' ? [C.brand, C.brandInk, C.brand]
     : kind === 'secondary' ? [C.surface2, C.fg, C.surface2]
     : kind === 'danger' ? [C.badBg, C.badFg, C.badBg]
     : kind === 'danger-solid' ? [C.badFg, C.surface, C.badFg]
     : ['transparent', C.fg, C.line];       // ghost = outline
+  const fg = textColor ?? fg0;
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!loading }} onPress={off ? undefined : onPress}
       style={(st: any) => [{ minHeight: 48, borderRadius: R.field, borderWidth: 1, borderColor: border, backgroundColor: bg, flexDirection: 'row', gap: 8,
@@ -134,13 +136,13 @@ export function Pill({ text, kind = 'ok' }: { text: string; kind?: PillKind }) {
 }
 
 /** Back link + page title */
-export function Header({ title, sub, back, right }: { title: string; sub?: string; back: () => void; right?: React.ReactNode }) {
+export function Header({ title, sub, back, right }: { title: string; sub?: string; back?: () => void; right?: React.ReactNode }) {
   return (
-    <View style={{ gap: 4 }}>
-      <Pressable accessibilityRole="button" accessibilityLabel="กลับ" onPress={back} hitSlop={8}
+    <View style={{ gap: 4, paddingTop: back ? 0 : 8 }}>
+      {back ? <Pressable accessibilityRole="button" accessibilityLabel="กลับ" onPress={back} hitSlop={8}
         style={({ pressed }) => ({ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 6, paddingRight: 12, marginLeft: -4, opacity: pressed ? 0.6 : 1 })}>
         <Icon name="chevron-left" size={18} /><Txt muted size={14}>กลับ</Txt>
-      </Pressable>
+      </Pressable> : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <H size={24} numberOfLines={1}>{title}</H>

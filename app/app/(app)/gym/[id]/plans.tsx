@@ -2,8 +2,8 @@ import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../src/lib/supabase';
-import { baht, isManager, planLength, type Plan, useGym } from '../../../../src/lib/gym';
-import { Btn, Card, ConfirmBtn, Field, H, Header, Notice, Pill, Row, Screen, Toggle, Txt } from '../../../../src/ui';
+import { baht, isManager, planLength, type Plan, type PtPlan, useGym } from '../../../../src/lib/gym';
+import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Notice, Pill, Row, Toggle, Txt } from '../../../../src/ui';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 
 const QUICK = [
@@ -22,6 +22,7 @@ export default function Plans() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const can = isManager(role);
+  const [kind, setKind] = useState<'mem' | 'pt'>('mem');
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('membership_plans').select('*').eq('gym_id', id).order('active', { ascending: false }).order('sort').order('months').order('days');
@@ -52,7 +53,9 @@ export default function Plans() {
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="plans">
-      <Header title="แพ็กเกจสมาชิก" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
+      <Header title="แพ็กเกจและราคา" sub={gym?.name} back={() => router.replace(`/gym/${id}/more` as any)} />
+      <Chips options={[{ v: 'mem', t: 'สมาชิกยิม' }, { v: 'pt', t: 'PT' }]} value={kind} onChange={v => { setKind(v); setD(null); setErr(''); }} />
+      {kind === 'pt' ? <PtPlans gymId={id} can={can} /> : <>
       {err ? <Notice text={err} /> : null}
 
       {d ? (
@@ -86,6 +89,75 @@ export default function Plans() {
             onPress={can ? () => setD({ id: p.id, name: p.name, months: String(p.months), days: String(p.days), price: String(p.price), active: p.active }) : undefined} />
         ))}
       </Card>
+      </>}
     </GymFrame>
   );
+}
+
+type PtDraft = { id?: string; name: string; sessions: string; months: string; price: string; active: boolean };
+const PT_QUICK = [{ s: 10, m: 3 }, { s: 20, m: 6 }, { s: 1, m: 0 }];
+
+function PtPlans({ gymId, can }: { gymId: string; can: boolean }) {
+  const [list, setList] = useState<PtPlan[]>([]);
+  const [d, setD] = useState<PtDraft | null>(null);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('pt_plans').select('*').eq('gym_id', gymId).order('active', { ascending: false }).order('sessions');
+    setList((data as PtPlan[]) ?? []);
+  }, [gymId]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  async function save() {
+    if (!d) return;
+    const sessions = Number(d.sessions), months = Number(d.months || 0), price = Number(d.price);
+    if (!(sessions > 0)) { setErr('ใส่จำนวนครั้ง'); return; }
+    if (d.price === '' || Number.isNaN(price) || price < 0) { setErr('ใส่ราคาเป็นตัวเลข'); return; }
+    const name = d.name.trim() || (sessions === 1 ? 'PT 1 ครั้ง' : `PT ${sessions} ครั้ง`);
+    setBusy(true); setErr('');
+    const row = { gym_id: gymId, name, sessions, months, price, active: d.active, sort: sessions };
+    const { error } = d.id ? await supabase.from('pt_plans').update(row).eq('id', d.id) : await supabase.from('pt_plans').insert(row);
+    setBusy(false);
+    if (error) { setErr(thError(error)); return; }
+    setD(null); load();
+  }
+  async function del(x: PtDraft) {
+    const { error } = await supabase.from('pt_plans').delete().eq('id', x.id!);
+    if (error) { setErr(thError(error)); return; }
+    setD(null); load();
+  }
+
+  return <>
+    {err ? <Notice text={err} /> : null}
+    {d ? (
+      <Card>
+        <H size={17}>{d.id ? 'แก้แพ็กเกจ PT' : 'เพิ่มแพ็กเกจ PT'}</H>
+        {!d.id ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {PT_QUICK.map(q => <Btn key={q.s} kind="ghost" label={`${q.s} ครั้ง`} style={{ minHeight: 38 }}
+              onPress={() => setD({ ...d, sessions: String(q.s), months: String(q.m), name: '' })} />)}
+          </View>
+        ) : null}
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flex: 1 }}><Field label="จำนวนครั้ง" value={d.sessions} onChangeText={v => setD({ ...d, sessions: v.replace(/\D/g, '') })} keyboardType="number-pad" /></View>
+          <View style={{ flex: 1 }}><Field label="ใช้ภายใน (เดือน)" value={d.months} onChangeText={v => setD({ ...d, months: v.replace(/\D/g, '') })} keyboardType="number-pad" hint="0 = ไม่หมดอายุ" /></View>
+        </View>
+        <Field label="ราคา (บาท)" value={d.price} onChangeText={v => setD({ ...d, price: v.replace(/[^\d.]/g, '') })} keyboardType="decimal-pad" />
+        <Field label="ชื่อ (ไม่บังคับ)" value={d.name} onChangeText={v => setD({ ...d, name: v })} placeholder={`PT ${d.sessions || 10} ครั้ง`} />
+        <Toggle label="เปิดขาย" value={d.active} onChange={v => setD({ ...d, active: v })} />
+        <Btn label="บันทึก" onPress={save} loading={busy} />
+        <Btn kind="ghost" label="ยกเลิก" onPress={() => { setD(null); setErr(''); }} />
+        {d.id ? <ConfirmBtn label="ลบแพ็กเกจนี้" onConfirm={() => del(d)} /> : null}
+      </Card>
+    ) : can ? <Btn icon="plus" label="เพิ่มแพ็กเกจ PT" onPress={() => setD({ name: '', sessions: '10', months: '3', price: '', active: true })} /> : null}
+    <Card style={{ gap: 0, paddingVertical: 4 }}>
+      {!list.length ? <Txt muted style={{ paddingVertical: 12 }}>ยังไม่มีแพ็กเกจ PT{can ? ' · กด "เพิ่มแพ็กเกจ PT"' : ''}</Txt> : null}
+      {list.map(p => (
+        <Row key={p.id} title={p.name} sub={`${p.sessions} ครั้ง · ${p.months ? `ใช้ภายใน ${p.months} เดือน` : 'ไม่หมดอายุ'}`}
+          right={<View style={{ alignItems: 'flex-end', gap: 4 }}><Txt bold>{baht(p.price)}</Txt>{!p.active ? <Pill text="ปิดขาย" kind="mute" /> : null}</View>}
+          onPress={can ? () => setD({ id: p.id, name: p.name, sessions: String(p.sessions), months: String(p.months), price: String(p.price), active: p.active }) : undefined} />
+      ))}
+    </Card>
+    <Txt muted size={13}>ขาย PT ที่หน้าสมาชิก: กด ขาย / ต่ออายุ แล้วเลือก PT และเทรนเนอร์</Txt>
+  </>;
 }

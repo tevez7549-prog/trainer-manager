@@ -11,12 +11,12 @@ type Filter = 'all' | MemberStatus;
 const PAGE = 50;
 
 export default function Members() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, f: f0 } = useLocalSearchParams<{ id: string; f?: string }>();
   const { gym, role } = useGym(id);
   const [rows, setRows] = useState<Member[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Filter>('all');
+  const [f, setF] = useState<Filter>((f0 as Filter) || 'all');
   const [n, setN] = useState(PAGE);
 
   useFocusEffect(useCallback(() => {
@@ -41,7 +41,7 @@ export default function Members() {
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="members">
-      <Header title="สมาชิก" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
+      <Header title="สมาชิก" sub={gym?.name} />
       {offline ? <Notice kind="info" text="ออฟไลน์ · แสดงรายชื่อที่บันทึกไว้ในเครื่อง" /> : null}
       <Btn icon="user-plus" label="เพิ่มสมาชิก" onPress={() => router.push(`/gym/${id}/member/new` as any)} />
       <Field label="ค้นหา" value={q} onChangeText={t => { setQ(t); setN(PAGE); }} placeholder="ชื่อ / เบอร์ / รหัสสมาชิก" />

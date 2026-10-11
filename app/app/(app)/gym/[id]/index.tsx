@@ -1,74 +1,96 @@
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../../../src/lib/supabase';
-import { baht, isDesk, isManager, ROLE_TH, todayRange, useGym } from '../../../../src/lib/gym';
-import { Btn, Card, Header, Notice, Pill, Row, Screen, Stat, Txt } from '../../../../src/ui';
+import { baht, thDate, todayISO, todayRange, useGym } from '../../../../src/lib/gym';
+import { APPT_COLS, APPT_TH, apptRange, sessionsLeft, tcName, type Appt } from '../../../../src/lib/trainer';
+import { Btn, Card, Header, Label, Notice, Pill, Row, Stat, Txt } from '../../../../src/ui';
 import { GymFrame } from '../../../../src/ui/GymFrame';
+import { C } from '../../../../src/lib/theme';
 
-type Today = { checkins: number; walkins: number; walkinSum: number; expiring: number; expired: number; active: number };
+type Today = { checkins: number; income: number; expiring: number; ptLow: number };
+type A = Appt & { trainer?: { display_name: string } | null };
 
-export default function GymHome() {
+/** Owner / manager home: what needs doing today, nothing else */
+export default function GymToday() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { gym, role, err } = useGym(id);
   const [t, setT] = useState<Today | null>(null);
+  const [appts, setAppts] = useState<A[]>([]);
 
   useFocusEffect(useCallback(() => {
-    if (!isDesk(role)) return;
+    if (role !== 'owner' && role !== 'admin') return;
     let alive = true;
-    const { from, to } = todayRange();
-    const count = (status: string) => supabase.from('member_status').select('id', { count: 'exact', head: true }).eq('gym_id', id).eq('status', status);
-    Promise.all([
-      supabase.from('checkins').select('id', { count: 'exact', head: true }).eq('gym_id', id).gte('checked_at', from).lt('checked_at', to),
-      supabase.from('walkins').select('price').eq('gym_id', id).gte('at', from).lt('at', to),
-      count('expiring'), count('expired'), count('active'),
-    ]).then(([c, w, ex, ed, ac]) => {
+    (async () => {
+      const { from, to } = todayRange();
+      const [c, w, ms, pk, ex, tcs] = await Promise.all([
+        supabase.from('checkins').select('id', { count: 'exact', head: true }).eq('gym_id', id).gte('checked_at', from).lt('checked_at', to),
+        supabase.from('walkins').select('price').eq('gym_id', id).gte('at', from).lt('at', to),
+        supabase.from('memberships').select('price').eq('gym_id', id).gte('created_at', from).lt('created_at', to),
+        supabase.from('pt_packages').select('price').eq('gym_id', id).gte('created_at', from).lt('created_at', to),
+        supabase.from('member_status').select('id', { count: 'exact', head: true }).eq('gym_id', id).eq('status', 'expiring'),
+        supabase.from('trainer_clients').select('id').eq('gym_id', id).eq('status', 'active'),
+      ]);
+      const sum = (r: any) => ((r.data as { price: number }[]) ?? []).reduce((a, x) => a + Number(x.price), 0);
+      const ids = ((tcs.data as { id: string }[]) ?? []).map(x => x.id);
+      const left = await sessionsLeft(ids);
+      const a = ids.length ? await supabase.from('appointments')
+        .select(APPT_COLS + ',trainer:profiles!appointments_trainer_id_fkey(display_name)')
+        .in('trainer_client_id', ids).gte('starts_at', from).lt('starts_at', to).neq('status', 'cancelled').order('starts_at') : { data: [] };
       if (!alive) return;
-      const ws = (w.data as { price: number }[]) ?? [];
-      setT({ checkins: c.count ?? 0, walkins: ws.length, walkinSum: ws.reduce((a, x) => a + Number(x.price), 0), expiring: ex.count ?? 0, expired: ed.count ?? 0, active: ac.count ?? 0 });
-    });
+      setT({ checkins: c.count ?? 0, income: sum(w) + sum(ms) + sum(pk), expiring: ex.count ?? 0, ptLow: ids.filter(x => (left[x] ?? 0) <= 2).length });
+      setAppts(((a.data as any) ?? []) as A[]);
+    })();
     return () => { alive = false; };
   }, [id, role]));
 
+  if (role === 'operator') return <Redirect href={`/gym/${id}/counter` as any} />;
   const go = (p: string) => router.push(`/gym/${id}/${p}` as any);
+  const todo = t ? [
+    t.expiring ? { k: 'exp', t: 'สมาชิกใกล้หมดใน 7 วัน', n: t.expiring, go: () => go('members?f=expiring') } : null,
+    t.ptLow ? { k: 'pt', t: 'PT เหลือไม่เกิน 2 ครั้ง', n: t.ptLow, go: () => router.replace(`/gym/${id}/pt?low=1` as any) } : null,
+  ].filter(Boolean) as { k: string; t: string; n: number; go: () => void }[] : [];
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="home">
-      <Header title={gym?.name ?? 'ยิม'} sub={gym?.branch ? `สาขา${gym.branch}` : undefined} back={() => router.replace('/')}
-        right={role ? <Pill text={ROLE_TH[role]} kind={role === 'owner' ? 'ok' : 'info'} /> : null} />
+      <Header title="วันนี้" sub={gym?.name} right={<Txt muted size={14}>{thDate(todayISO())}</Txt>} />
       {err ? <Notice text={err} /> : null}
 
-      {gym && isDesk(role) ? <>
-        <Btn icon="circle-check" label="เปิดเคาน์เตอร์ · เช็กอิน" onPress={() => go('counter')} style={{ minHeight: 56 }} />
-        <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-          <Stat n={t?.checkins ?? '–'} t="เช็กอินวันนี้" />
-          <Stat n={t?.walkins ?? '–'} t={`ขาจรวันนี้${t?.walkins ? ' · ' + baht(t.walkinSum) : ''}`} />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
-          <Stat n={t?.active ?? '–'} t="สมาชิกใช้งาน" />
-          <Stat n={t?.expiring ?? '–'} t="ใกล้หมด (7 วัน)" kind={t?.expiring ? 'warn' : undefined} />
-          <Stat n={t?.expired ?? '–'} t="หมดอายุ" kind={t?.expired ? 'bad' : undefined} />
-        </View>
-      </> : null}
+      <Btn icon="circle-check" label="เช็กอินสมาชิก" onPress={() => router.replace(`/gym/${id}/counter` as any)} style={{ minHeight: 60 }} />
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        <Stat n={t?.checkins ?? '–'} t="เช็กอินวันนี้" />
+        <Stat n={t ? baht(t.income) : '–'} t="รายรับวันนี้" />
+      </View>
 
-      {gym && role === 'trainer' ? (
-        <Card>
-          <Txt muted size={13.5}>คุณอยู่ในทีมยิมนี้ในฐานะเทรนเนอร์ · ลูกเทรน นัด และแพ็กเกจ PT อยู่ที่หน้าเทรนเนอร์</Txt>
-          <Btn icon="dumbbell" label="เปิดหน้าเทรนเนอร์" onPress={() => router.push('/trainer' as any)} />
-        </Card>
-      ) : null}
-
-      {gym ? (
+      <View style={{ gap: 8 }}>
+        <Label>ต้องดูแล</Label>
         <Card style={{ gap: 0, paddingVertical: 4 }}>
-          {isDesk(role) ? <Row ic="users" title="สมาชิก" sub="ค้นหา เพิ่ม ต่ออายุ ดูประวัติ" onPress={() => go('members')} /> : null}
-          {isDesk(role) ? <Row ic="dumbbell" title="เทรนเนอร์ & PT" sub="ลูกเทรนของเทรนเนอร์แต่ละคน นัด และครั้งที่เหลือ" onPress={() => go('pt')} /> : null}
-          {isDesk(role) ? <Row ic="tag" title="แพ็กเกจสมาชิก" sub={isManager(role) ? 'ตั้งราคาและระยะเวลา' : 'ดูราคา'} onPress={() => go('plans')} /> : null}
-          <Row ic="id-card" title="ทีมงาน" sub={role === 'owner' ? 'เพิ่ม Admin / Operator / เทรนเนอร์ ด้วย UID' : 'ดูรายชื่อทีม'} onPress={() => go('staff')} />
-          {isManager(role) ? <Row ic="calendar-off" title="วันหยุดยิม" sub="ปิดพิเศษ · เลื่อนวันหมดสมาชิกให้อัตโนมัติ" onPress={() => go('holidays')} /> : null}
-          {isManager(role) ? <Row ic="file-up" title="นำเข้าสมาชิกจาก Excel" sub="ใช้ไฟล์ตัวอย่างของเรา" onPress={() => go('import')} /> : null}
-          {isManager(role) ? <Row ic="settings" title="ตั้งค่ายิม" sub="ชื่อ ราคาขาจร วันปิด ประเทศ" onPress={() => go('settings')} /> : null}
+          {t && !todo.length ? <Txt muted style={{ paddingVertical: 14 }}>เรียบร้อยดี ไม่มีอะไรค้าง</Txt> : null}
+          {todo.map(x => (
+            <Row key={x.k} ic="triangle-alert" title={x.t} right={<Pill text={`${x.n} คน`} kind="warn" />} onPress={x.go} />
+          ))}
         </Card>
-      ) : !err ? <Txt muted>กำลังโหลด…</Txt> : null}
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Label style={{ flex: 1 }}>นัด PT วันนี้ · ทุกเทรนเนอร์</Label>
+          <Txt size={14} style={{ color: C.accent }} onPress={() => router.replace(`/gym/${id}/pt` as any)}>ดูทั้งหมด</Txt>
+        </View>
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          {!appts.length ? <Txt muted style={{ paddingVertical: 14 }}>วันนี้ไม่มีนัด PT</Txt> : null}
+          {appts.map(a => (
+            <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, borderBottomWidth: 1, borderBottomColor: C.line }}>
+              <Txt bold style={{ width: 52, color: C.accent }}>{apptRange(a).split('–')[0]}</Txt>
+              <View style={{ flex: 1 }}>
+                <Txt bold>{tcName(a.tc)}</Txt>
+                <Txt muted size={14}>กับ {a.trainer?.display_name ?? 'เทรนเนอร์'}</Txt>
+              </View>
+              <Pill text={APPT_TH[a.status].t} kind={APPT_TH[a.status].k} />
+            </View>
+          ))}
+        </Card>
+      </View>
     </GymFrame>
   );
 }

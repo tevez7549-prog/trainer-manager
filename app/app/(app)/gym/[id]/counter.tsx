@@ -104,12 +104,12 @@ export default function Counter() {
   const walkSum = walkins.reduce((a, w) => a + Number(w.price), 0) + pendingWalkins.reduce((a, w) => a + w.price, 0);
 
   if (gym && !isDesk(role)) return (
-    <GymFrame id={id} gym={gym} role={role} active="counter"><Header title="เคาน์เตอร์" back={() => router.replace(`/gym/${id}` as any)} /><Notice text="หน้าเคาน์เตอร์สำหรับเจ้าของ Admin และ Operator" /></GymFrame>
+    <GymFrame id={id} gym={gym} role={role} active="counter"><Header title="เคาน์เตอร์" /><Notice text="หน้าเคาน์เตอร์สำหรับเจ้าของ ผู้จัดการ และพนักงานเคาน์เตอร์" /></GymFrame>
   );
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="counter">
-      <Header title="เคาน์เตอร์" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)}
+      <Header title="เช็กอิน" sub={gym?.name}
         right={<Pill text={online ? 'ออนไลน์' : 'ออฟไลน์'} kind={online ? 'ok' : 'warn'} />} />
 
       {!online || cacheInfo?.offline ? (

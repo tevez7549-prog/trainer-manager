@@ -88,9 +88,10 @@ export default function ClientPage() {
         <View style={{ gap: 10 }}>
           <Btn icon="calendar" label="นัดเทรน" onPress={() => setPanel('book')} />
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Btn kind="ghost" icon="receipt" label="ขายแพ็กเกจ PT" onPress={() => setPanel('sell')} style={{ flex: 1 }} />
-            <Btn kind="ghost" icon="pencil" label="แก้ข้อมูล" onPress={() => setPanel('goal')} style={{ flex: 1 }} />
+            {!tc.gym_id ? <Btn kind="ghost" icon="receipt" label="ขายแพ็กเกจ PT" onPress={() => setPanel('sell')} style={{ flex: 1 }} /> : null}
+            <Btn kind="ghost" icon="pencil" label="แก้เป้าหมาย" onPress={() => setPanel('goal')} style={{ flex: 1 }} />
           </View>
+          {tc.gym_id ? <Txt muted size={13}>ซื้อ PT เพิ่ม: ขายที่หน้าสมาชิกของยิม (ขาย / ต่ออายุ › PT)</Txt> : null}
         </View>
       ) : null}
       {panel === 'book' ? <BookForm tc={tc} leaves={leaves} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
@@ -239,7 +240,7 @@ function GoalForm({ tc, onClose }: { tc: TC; onClose: (msg?: string) => void }) 
       <Field label="เป้าหมาย" value={goal} onChangeText={setGoal} multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
       {mine && !tc.member_id && gyms.length ? <>
         <Chips label="ลูกเทรนของ" options={gymChoice(gyms)} value={gym} onChange={setGym} />
-        <Txt muted size={12.5}>เลือกยิม = เจ้าของและ Admin ของยิมนั้นเห็นลูกเทรนคนนี้ นัด และครั้งที่เหลือ · ส่วนตัว = เห็นแค่คุณ</Txt>
+        <Txt muted size={12.5}>เลือกยิม = เจ้าของและผู้จัดการ ของยิมนั้นเห็นลูกเทรนคนนี้ นัด และครั้งที่เหลือ · ส่วนตัว = เห็นแค่คุณ</Txt>
       </> : null}
       <Btn label="บันทึก" onPress={save} />
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onClose()} />

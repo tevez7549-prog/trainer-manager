@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth';
 import { Btn, Card, Chips, Field, H, Notice, Screen, Txt } from '../../src/ui';
@@ -8,11 +8,18 @@ import { useThemeMode, type ThemeMode } from '../../src/lib/themePref';
 import { C, R } from '../../src/lib/theme';
 import { phoneError, splitE164, toE164 } from '../../src/lib/phone';
 import { PhoneField } from '../../src/ui/PhoneField';
+import { TabBar } from '../../src/ui/TabBar';
+import { MEMBER_TABS, operatorTabs, rememberGym, TRAINER_TABS, usePlaces } from '../../src/lib/nav';
+import { ROLE_TH } from '../../src/lib/gym';
+import { Row } from '../../src/ui';
 
 
 export default function Me() {
   const { profile, refresh, signOut } = useAuth();
   const { mode, setMode } = useThemeMode();
+  const { from, g } = useLocalSearchParams<{ from?: string; g?: string }>();
+  const places = usePlaces();
+  const tabs = from === 'trainer' ? TRAINER_TABS : from === 'member' ? MEMBER_TABS : from === 'desk' && g ? operatorTabs(g) : null;
   const [name, setName] = useState(profile?.display_name ?? '');
   const init = splitE164(profile?.phone);
   const [country, setCountry] = useState(init.country);
@@ -33,8 +40,9 @@ export default function Me() {
   }
 
   return (
-    <Screen>
-      <Btn kind="ghost" label="‹ กลับ" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={{ alignSelf: 'flex-start', minHeight: 40 }} />
+    <Screen footer={tabs ? <TabBar tabs={tabs} active="me" /> : undefined}>
+      {tabs ? <H size={24} style={{ paddingTop: 8 }}>ฉัน</H>
+        : <Btn kind="ghost" label="‹ กลับ" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={{ alignSelf: 'flex-start', minHeight: 40 }} />}
       <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 2, alignItems: 'center' }}>
         <Txt size={14} style={{ color: C.brandInk, opacity: 0.8 }}>UID ของฉัน</Txt>
         <H size={40} style={{ color: C.brandInk, letterSpacing: 2 }}>{profile.uid}</H>
@@ -55,6 +63,16 @@ export default function Me() {
         <H size={17}>หน้าตาแอป</H>
         <Chips options={[{ v: 'system', t: 'ตามเครื่อง' }, { v: 'dark', t: 'มืด' }, { v: 'light', t: 'สว่าง' }]} value={mode} onChange={v => setMode(v as ThemeMode)} />
       </Card>
+      {tabs && (places ?? []).some(p => p.role !== 'trainer' || from !== 'trainer') ? (
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <H size={17} style={{ paddingTop: 8 }}>ยิมของฉัน</H>
+          {(places ?? []).filter(p => !(p.role === 'trainer' && from === 'trainer')).map(p => (
+            <Row key={p.gym.id} icon={p.gym.name.slice(0, 2)} title={p.gym.name} sub={ROLE_TH[p.role]}
+              onPress={() => { rememberGym(p.gym.id); router.replace((p.role === 'trainer' ? '/trainer' : p.role === 'operator' ? `/gym/${p.gym.id}/counter` : `/gym/${p.gym.id}`) as any); }} />
+          ))}
+        </Card>
+      ) : null}
+      {profile.is_super_admin ? <Btn kind="ghost" icon="shield" label="หลังบ้าน (Super Admin)" onPress={() => router.push('/admin' as any)} /> : null}
       <Btn kind="danger" icon="log-out" label="ออกจากระบบ" onPress={signOut} />
     </Screen>
   );

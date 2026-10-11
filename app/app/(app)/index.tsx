@@ -1,95 +1,122 @@
 import { useCallback, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth';
 import { thDate } from '../../src/lib/gym';
-import { apptRange, dayLabel, sessionsLeft, type Pkg } from '../../src/lib/trainer';
-import { Btn, Card, H, Notice, Pill, Row, Screen, Txt } from '../../src/ui';
-import { C } from '../../src/lib/theme';
+import { landing, MEMBER_TABS } from '../../src/lib/nav';
+import { STATUS_TH, type Member } from '../../src/lib/counter';
+import { apptRange, dayLabel, sessionsLeft } from '../../src/lib/trainer';
+import { Btn, Card, H, Loading, Notice, Pill, Screen, Txt } from '../../src/ui';
+import { TabBar } from '../../src/ui/TabBar';
+import { C, R } from '../../src/lib/theme';
 
-type MyGym = { role: string; gym: { id: string; name: string; branch: string | null } };
-type Invite = { id: string; kind: string; from_name: string; from_uid: number };
-type MyTrainer = { id: string; trainer: { display_name: string } | null; gym: { name: string } | null };
-type NextAppt = { trainer_client_id: string; starts_at: string; duration_min: number };
-const ROLE_TH: Record<string, string> = { owner: 'เจ้าของ', admin: 'Admin', operator: 'Operator', trainer: 'เทรนเนอร์' };
+type Mode = 'loading' | 'member' | 'start';
 
+/** Opening the app: staff go straight to their job; members see their card; new people get one clear next step */
 export default function Home() {
   const { profile } = useAuth();
-  const [gyms, setGyms] = useState<MyGym[] | null>(null);
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [mine, setMine] = useState<MyTrainer[]>([]);
+  const [mode, setMode] = useState<Mode>('loading');
+
+  useFocusEffect(useCallback(() => {
+    if (!profile) return;
+    let alive = true;
+    landing(profile.id).then(r => {
+      if (!alive) return;
+      if ('to' in r) router.replace(r.to as any);
+      else setMode('member' in r ? 'member' : 'start');
+    });
+    return () => { alive = false; };
+  }, [profile]));
+
+  if (mode === 'loading') return <Loading />;
+  if (mode === 'start') return <Start />;
+  return <MemberHome />;
+}
+
+function Start() {
+  const { profile } = useAuth();
+  return (
+    <Screen>
+      <View style={{ gap: 2, paddingTop: 8 }}>
+        <Txt muted size={14}>สวัสดี</Txt>
+        <H size={24}>{profile?.display_name || 'ผู้ใช้ใหม่'}</H>
+      </View>
+      <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 4, alignItems: 'center' }}>
+        <Txt size={14} style={{ color: C.brandInk }}>UID ของคุณ</Txt>
+        <H size={40} style={{ color: C.brandInk, letterSpacing: 2 }}>{profile?.uid}</H>
+        <Txt size={14} style={{ color: C.brandInk, textAlign: 'center' }}>ทีมงานหรือสมาชิกยิม: บอกเลขนี้ให้ยิม แล้วแอปจะพาไปหน้างานของคุณเอง</Txt>
+      </View>
+      <Card>
+        <H size={17}>เป็นเจ้าของยิม?</H>
+        <Txt muted size={14}>สร้างยิมแล้วเริ่มเช็กอิน ขายแพ็กเกจ และดู PT ได้ทันที</Txt>
+        <Btn icon="plus" label="สร้างยิม" onPress={() => router.push('/gym/new' as any)} />
+      </Card>
+      {profile?.is_super_admin ? <Btn kind="ghost" icon="shield" label="หลังบ้าน (Super Admin)" onPress={() => router.push('/admin' as any)} /> : null}
+      <Btn kind="ghost" icon="user" label="ข้อมูลของฉัน" onPress={() => router.push('/me' as any)} />
+    </Screen>
+  );
+}
+
+type Tc = { id: string; member_id: string | null; trainer: { display_name: string } | null };
+type Next = { trainer_client_id: string; starts_at: string; duration_min: number };
+type Invite = { id: string; from_name: string; from_uid: number };
+
+function MemberHome() {
+  const { profile } = useAuth();
+  const [cards, setCards] = useState<(Member & { gym: { name: string } | null })[] | null>(null);
+  const [tcs, setTcs] = useState<Tc[]>([]);
   const [left, setLeft] = useState<Record<string, number>>({});
-  const [pkgEnd, setPkgEnd] = useState<Record<string, string | null>>({});
-  const [next, setNext] = useState<Record<string, NextAppt>>({});
-  const [todayCount, setTodayCount] = useState(0);
-  const [traineeCount, setTraineeCount] = useState(0);
+  const [next, setNext] = useState<Next[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
-  const [err, setErr] = useState('');
 
   const load = useCallback(async () => {
     if (!profile) return;
-    const s = new Date(); s.setHours(0, 0, 0, 0);
-    const e = new Date(s); e.setDate(e.getDate() + 1);
-    const [g, inv, my, today, tcount] = await Promise.all([
-      supabase.from('gym_staff').select('role, gym:gyms(id,name,branch)').eq('user_id', profile.id).eq('active', true),
+    const [m, inv] = await Promise.all([
+      supabase.from('member_status').select('*, gym:gyms(name)').eq('profile_id', profile.id),
       supabase.rpc('my_invites'),
-      supabase.from('trainer_clients').select('id, trainer:profiles!trainer_clients_trainer_id_fkey(display_name), gym:gyms(name)').eq('client_id', profile.id).eq('status', 'active'),
-      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('trainer_id', profile.id).eq('status', 'scheduled').gte('starts_at', s.toISOString()).lt('starts_at', e.toISOString()),
-      supabase.from('trainer_clients').select('id', { count: 'exact', head: true }).eq('trainer_id', profile.id).eq('status', 'active'),
     ]);
-    if (g.error) setErr('โหลดข้อมูลยิมไม่สำเร็จ'); else setGyms((g.data as any) ?? []);
+    const rows = ((m.data as any) ?? []) as (Member & { gym: { name: string } | null })[];
+    setCards(rows);
     setInvites((inv.data as Invite[]) ?? []);
-    const m = ((my.data as any) ?? []) as MyTrainer[];
-    setMine(m);
-    setTodayCount(today.count ?? 0);
-    setTraineeCount(tcount.count ?? 0);
-    if (m.length) {
-      const ids = m.map(x => x.id);
-      const [l, p, a] = await Promise.all([
-        sessionsLeft(ids),
-        supabase.from('pt_package_status').select('trainer_client_id,end_date,sessions_left').in('trainer_client_id', ids).gt('sessions_left', 0).order('end_date'),
-        supabase.from('appointments').select('trainer_client_id,starts_at,duration_min').in('trainer_client_id', ids).eq('status', 'scheduled').gte('starts_at', new Date().toISOString()).order('starts_at').limit(20),
+    const ids = rows.map(r => r.id);
+    const t = await supabase.from('trainer_clients').select('id,member_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)')
+      .eq('status', 'active').or(ids.length ? `client_id.eq.${profile.id},member_id.in.(${ids.join(',')})` : `client_id.eq.${profile.id}`);
+    const list = ((t.data as any) ?? []) as Tc[];
+    setTcs(list);
+    if (list.length) {
+      const [l, a] = await Promise.all([
+        sessionsLeft(list.map(x => x.id)),
+        supabase.from('appointments').select('trainer_client_id,starts_at,duration_min').in('trainer_client_id', list.map(x => x.id))
+          .eq('status', 'scheduled').gte('starts_at', new Date(Date.now() - 3600000).toISOString()).order('starts_at').limit(5),
       ]);
-      setLeft(l);
-      const ends: Record<string, string | null> = {};
-      ((p.data as Pick<Pkg, 'trainer_client_id' | 'end_date'>[]) ?? []).forEach(x => { if (!(x.trainer_client_id in ends)) ends[x.trainer_client_id] = x.end_date; });
-      setPkgEnd(ends);
-      const nx: Record<string, NextAppt> = {};
-      ((a.data as NextAppt[]) ?? []).forEach(x => { if (!nx[x.trainer_client_id]) nx[x.trainer_client_id] = x; });
-      setNext(nx);
+      setLeft(l); setNext((a.data as Next[]) ?? []);
     }
   }, [profile]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   async function answer(i: Invite, accept: boolean) {
     const { error } = await supabase.rpc('answer_invite', { i: i.id, accept });
-    if (error) { setMsg({ t: thError(error), ok: false }); return; }
-    setMsg({ t: accept ? `รับ ${i.from_name} เป็นเทรนเนอร์แล้ว` : 'ปฏิเสธคำเชิญแล้ว', ok: true });
+    setMsg(error ? { t: thError(error), ok: false } : { t: accept ? `รับ ${i.from_name} เป็นเทรนเนอร์แล้ว` : 'ปฏิเสธคำเชิญแล้ว', ok: true });
     load();
   }
 
-  return (
-    <Screen>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Txt muted size={13}>สวัสดี</Txt>
-          <H size={24}>{profile?.display_name || 'ผู้ใช้ใหม่'}</H>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="หน้าของฉัน" onPress={() => router.push('/me')}
-          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt bold style={{ color: C.accent }}>{(profile?.display_name || '?').slice(0, 1)}</Txt>
-        </Pressable>
-      </View>
+  const trainerOf = (tcId: string) => tcs.find(t => t.id === tcId)?.trainer?.display_name ?? 'เทรนเนอร์';
+  const ptLeft = (memberId?: string) => tcs.filter(t => !memberId || t.member_id === memberId).reduce((s, t) => s + (left[t.id] ?? 0), 0);
+  const first = next[0];
 
-      {err ? <Notice text={err} /> : null}
+  return (
+    <Screen footer={<TabBar tabs={MEMBER_TABS} active="card" />}>
+      <View style={{ gap: 2, paddingTop: 8 }}>
+        <Txt muted size={14}>สวัสดี</Txt>
+        <H size={24}>{profile?.display_name}</H>
+      </View>
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
       {invites.map(i => (
-        <Card key={i.id} style={{ borderWidth: 1.5, borderColor: C.accent }}>
-          <H size={17}>คำเชิญจากเทรนเนอร์</H>
-          <Txt><Txt bold>{i.from_name}</Txt> (UID {i.from_uid}) เชิญคุณเป็นลูกเทรน</Txt>
-          <Txt muted size={12.5}>ถ้ารับ เทรนเนอร์จะเห็นชื่อ เบอร์ นัดเทรน รูปร่างกาย และอาหารของคุณ · ยกเลิกทีหลังได้</Txt>
+        <Card key={i.id}>
+          <Txt><Txt bold>{i.from_name}</Txt> เชิญคุณเป็นลูกเทรน</Txt>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Btn label="รับ" onPress={() => answer(i, true)} style={{ flex: 1 }} />
             <Btn kind="ghost" label="ไม่รับ" onPress={() => answer(i, false)} style={{ flex: 1 }} />
@@ -97,49 +124,44 @@ export default function Home() {
         </Card>
       ))}
 
-      {mine.length ? (
+      {first ? (
+        <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 4 }}>
+          <Txt bold size={14} style={{ color: C.brandInk }}>นัด PT ถัดไป</Txt>
+          <H size={28} style={{ color: C.brandInk }}>{dayLabel(first.starts_at)} {apptRange(first).split('–')[0]}</H>
+          <Txt size={14} style={{ color: C.brandInk }}>กับ {trainerOf(first.trainer_client_id)} · เหลือ {left[first.trainer_client_id] ?? 0} ครั้ง</Txt>
+        </View>
+      ) : null}
+
+      {cards === null ? <Txt muted>กำลังโหลด…</Txt> : null}
+      {(cards ?? []).map(m => {
+        const st = STATUS_TH[m.status];
+        const pt = ptLeft(m.id);
+        return (
+          <Card key={m.id} style={{ gap: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <H size={18} style={{ flex: 1 }}>{m.gym?.name ?? 'ยิม'}</H>
+              <Pill text={st.t} kind={st.k} />
+            </View>
+            <View style={{ alignItems: 'center', paddingVertical: 14, borderRadius: R.field, backgroundColor: C.surface2, gap: 2 }}>
+              <Txt muted size={14}>แสดงรหัสนี้ที่เคาน์เตอร์</Txt>
+              <H size={40} style={{ letterSpacing: 2 }}>{m.code}</H>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}><Txt muted size={14}>หมดอายุ</Txt><Txt bold>{m.status === 'frozen' ? `พักถึง ${thDate(m.frozen_until)}` : thDate(m.end_date)}</Txt></View>
+              <View style={{ flex: 1 }}><Txt muted size={14}>PT เหลือ</Txt><Txt bold>{pt} ครั้ง</Txt></View>
+            </View>
+          </Card>
+        );
+      })}
+
+      {next.length > 1 ? (
         <Card style={{ gap: 6 }}>
-          <H size={17}>เทรนเนอร์ของฉัน</H>
-          {mine.map(t => {
-            const n = left[t.id] ?? 0, nx = next[t.id];
-            return (
-              <View key={t.id} style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: C.line, gap: 2 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Txt bold style={{ flex: 1 }}>{t.trainer?.display_name ?? 'เทรนเนอร์'}{t.gym ? ` · ${t.gym.name}` : ''}</Txt>
-                  <Pill text={`เหลือ ${n} ครั้ง`} kind={n === 0 ? 'bad' : n <= 2 ? 'warn' : 'ok'} />
-                </View>
-                <Txt muted size={13}>{nx ? `นัดถัดไป ${dayLabel(nx.starts_at)} ${apptRange(nx)}` : 'ยังไม่มีนัด'}{pkgEnd[t.id] ? ` · แพ็กเกจหมด ${thDate(pkgEnd[t.id])}` : ''}</Txt>
-              </View>
-            );
-          })}
+          <H size={17}>นัดที่จะถึง</H>
+          {next.slice(1).map(a => <Txt key={a.starts_at + a.trainer_client_id}>{dayLabel(a.starts_at)} {apptRange(a)} · {trainerOf(a.trainer_client_id)}</Txt>)}
         </Card>
       ) : null}
-
-      <Card>
-        <H size={17}>ยิมของฉัน</H>
-        {gyms === null ? <Txt muted>กำลังโหลด…</Txt> :
-          gyms.length === 0 ? <Txt muted>ยังไม่มียิม ถ้าคุณเป็นเจ้าของยิม สร้างยิมได้เลย · ถ้าเป็นทีมงาน ให้เจ้าของยิมเพิ่มคุณด้วย UID {profile?.uid}</Txt> :
-            gyms.map(g => (
-              <Row key={g.gym.id} icon={g.gym.name.slice(0, 2)} title={g.gym.name} sub={g.gym.branch || undefined}
-                right={<Pill text={ROLE_TH[g.role] || g.role} kind={g.role === 'owner' ? 'ok' : 'info'} />}
-                onPress={() => router.push(`/gym/${g.gym.id}`)} />
-            ))}
-        <Btn kind="ghost" icon="plus" label="สร้างยิมใหม่" onPress={() => router.push('/gym/new')} />
-      </Card>
-
-      <Card>
-        <H size={17}>เทรนเนอร์</H>
-        <Txt muted size={13.5}>{traineeCount ? `ลูกเทรน ${traineeCount} คน · นัดวันนี้ ${todayCount} นัด` : 'เป็นเทรนเนอร์ฟรีแลนซ์หรือเทรนเนอร์ของยิม จัดการลูกเทรน นัด และแพ็กเกจ PT ได้ที่นี่'}</Txt>
-        <Btn kind={traineeCount ? 'primary' : 'ghost'} label="เปิดหน้าเทรนเนอร์" onPress={() => router.push('/trainer' as any)} />
-      </Card>
-
-      {profile?.is_super_admin ? (
-        <Card>
-          <H size={17}>Super Admin</H>
-          <Txt muted size={13.5}>หลังบ้าน: ผู้ใช้ แผน ระงับ/ลบบัญชี ยิมทั้งหมด และบันทึกการแก้ไข</Txt>
-          <Btn label="เปิดหลังบ้าน" onPress={() => router.push('/admin' as any)} />
-        </Card>
-      ) : null}
+      {cards && !cards.length && !tcs.length ? <Txt muted>ยังไม่มีบัตรสมาชิก</Txt> : null}
+      {!cards?.length && tcs.length ? <Txt muted>PT เหลือทั้งหมด {ptLeft()} ครั้ง</Txt> : null}
     </Screen>
   );
 }

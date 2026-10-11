@@ -59,11 +59,11 @@ export default function ImportPage() {
     setBusy(false); setProgress(''); setResult(total); setRows(null);
   }
 
-  if (gym && !isManager(role)) return <GymFrame id={id} gym={gym} role={role} active="import"><Header title="นำเข้า Excel" back={() => router.replace(`/gym/${id}` as any)} /><Notice text="เฉพาะเจ้าของและ Admin นำเข้าได้" /></GymFrame>;
+  if (gym && !isManager(role)) return <GymFrame id={id} gym={gym} role={role} active="import"><Header title="นำเข้า Excel" back={() => router.replace(`/gym/${id}/more` as any)} /><Notice text="เฉพาะเจ้าของและผู้จัดการ นำเข้าได้" /></GymFrame>;
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="import">
-      <Header title="นำเข้าสมาชิกจาก Excel" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
+      <Header title="นำเข้าสมาชิกจาก Excel" sub={gym?.name} back={() => router.replace(`/gym/${id}/more` as any)} />
       {Platform.OS !== 'web' ? <Notice kind="info" text="นำเข้า Excel ใช้ได้บนเว็บ (คอมพิวเตอร์) เท่านั้น" /> : null}
       {err ? <Notice text={err} /> : null}
       {warn ? <Notice kind="info" text={warn} /> : null}

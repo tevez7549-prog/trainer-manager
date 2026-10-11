@@ -8,11 +8,11 @@ import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Notice, Pill, Row, Scre
 import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type Staff = { role: Role; user_id: string; active: boolean; profile: { display_name: string; uid: number } | null };
-const ADDABLE: { v: Role; t: string }[] = [{ v: 'admin', t: 'Admin' }, { v: 'operator', t: 'Operator' }, { v: 'trainer', t: 'เทรนเนอร์' }];
+const ADDABLE: { v: Role; t: string }[] = [{ v: 'trainer', t: 'เทรนเนอร์' }, { v: 'operator', t: 'พนักงานเคาน์เตอร์' }, { v: 'admin', t: 'ผู้จัดการ' }];
 const ROLE_HINT: Record<string, string> = {
-  admin: 'ทำได้ทุกอย่างที่เคาน์เตอร์ + ตั้งแพ็กเกจ นำเข้า Excel แก้/ลบรายการ',
-  operator: 'เช็กอิน เพิ่มสมาชิก ขายแพ็กเกจ ขาจร (แก้หรือลบรายการเก่าไม่ได้)',
-  trainer: 'เทรนเนอร์ของยิม · ดูได้เฉพาะลูกเทรนของตัวเอง (เจ้าของกับ Admin เทรนเองได้อยู่แล้ว ไม่ต้องเพิ่ม)',
+  admin: 'ช่วยเจ้าของดูแลยิม: ทำได้เกือบทุกอย่าง ยกเว้นเพิ่มหรือลบทีมงาน',
+  operator: 'เฝ้าเคาน์เตอร์: เช็กอิน เพิ่มสมาชิก ขายแพ็กเกจ ขาจร',
+  trainer: 'สอน PT: เห็นนัดและลูกเทรนของตัวเอง · เจ้าของกับผู้จัดการสอน PT ได้อยู่แล้ว ไม่ต้องเพิ่ม',
 };
 
 export default function StaffPage() {
@@ -21,7 +21,7 @@ export default function StaffPage() {
   const { gym, role } = useGym(id);
   const [list, setList] = useState<Staff[]>([]);
   const [uid, setUid] = useState('');
-  const [newRole, setNewRole] = useState<Role>('operator');
+  const [newRole, setNewRole] = useState<Role>('trainer');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [edit, setEdit] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export default function StaffPage() {
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="staff">
-      <Header title="ทีมงาน" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
+      <Header title="ทีมงาน" sub={gym?.name} back={() => router.replace(`/gym/${id}/more` as any)} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
       {owner ? (

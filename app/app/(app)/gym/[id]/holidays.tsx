@@ -56,7 +56,7 @@ export default function Holidays() {
 
   return (
     <GymFrame id={id} gym={gym} role={role} active="holidays">
-      <Header title="วันหยุดยิม" sub="ปิดพิเศษ เช่น สงกรานต์ ปีใหม่ ปิดปรับปรุง" back={() => router.replace(`/gym/${id}` as any)} />
+      <Header title="วันหยุดยิม" sub="ปิดพิเศษ เช่น สงกรานต์ ปีใหม่ ปิดปรับปรุง" back={() => router.replace(`/gym/${id}/more` as any)} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
       {can ? (
         <Card>
@@ -70,7 +70,7 @@ export default function Holidays() {
           </Txt>
           <Btn label="บันทึกและเลื่อนวันหมด" onPress={add} loading={busy} />
         </Card>
-      ) : <Notice kind="info" text="เฉพาะเจ้าของและ Admin เพิ่มวันหยุดได้" />}
+      ) : <Notice kind="info" text="เฉพาะเจ้าของและผู้จัดการ เพิ่มวันหยุดได้" />}
 
       <Card style={{ gap: 6 }}>
         <H size={17}>วันหยุดที่บันทึกไว้</H>

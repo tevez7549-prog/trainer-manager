@@ -64,7 +64,7 @@ export default function AddTrainee() {
           <Field label="เป้าหมาย (ไม่บังคับ)" value={goal} onChangeText={setGoal} placeholder="เช่น ลดไขมัน 5 กก. ใน 3 เดือน" />
           {gyms.length ? <>
             <Chips label="ลูกเทรนของ" options={gymChoice(gyms)} value={gym} onChange={setGym} />
-            <Txt muted size={12.5}>เลือกยิม = เจ้าของและ Admin ของยิมนั้นเห็นลูกเทรนคนนี้ · ส่วนตัว = เห็นแค่คุณ</Txt>
+            <Txt muted size={12.5}>เลือกยิม = เจ้าของและผู้จัดการ ของยิมนั้นเห็นลูกเทรนคนนี้ · ส่วนตัว = เห็นแค่คุณ</Txt>
           </> : null}
           <Btn label="เพิ่มลูกเทรน" onPress={addNoApp} loading={busy} />
         </Card>

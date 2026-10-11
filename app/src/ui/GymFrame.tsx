@@ -1,38 +1,48 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { isDesk, isManager, ROLE_TH, type Gym, type Role } from '../lib/gym';
+import { rememberGym, tabsFor } from '../lib/nav';
 import { C, F } from '../lib/theme';
 import { H, Pill, Screen, Txt, useWide } from './index';
 import { Icon, type IconName } from './Icon';
 import { Lockup } from './Logo';
+import { TabBar } from './TabBar';
 
-export type GymTab = 'home' | 'counter' | 'members' | 'pt' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
+export type GymTab = 'home' | 'counter' | 'members' | 'pt' | 'more' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
 
 const NAV: { k: GymTab; t: string; icon: IconName; show: (r: Role | null) => boolean }[] = [
-  { k: 'home', t: 'ภาพรวม', icon: 'house', show: () => true },
-  { k: 'counter', t: 'เคาน์เตอร์', icon: 'circle-check', show: isDesk },
+  { k: 'home', t: 'วันนี้', icon: 'house', show: isManager },
+  { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', show: isDesk },
   { k: 'members', t: 'สมาชิก', icon: 'users', show: isDesk },
-  { k: 'pt', t: 'เทรนเนอร์ & PT', icon: 'dumbbell', show: isDesk },
-  { k: 'plans', t: 'แพ็กเกจสมาชิก', icon: 'tag', show: isDesk },
-  { k: 'staff', t: 'ทีมงาน', icon: 'id-card', show: () => true },
+  { k: 'pt', t: 'PT', icon: 'dumbbell', show: isManager },
+  { k: 'plans', t: 'แพ็กเกจและราคา', icon: 'tag', show: isManager },
+  { k: 'staff', t: 'ทีมงาน', icon: 'id-card', show: isManager },
   { k: 'holidays', t: 'วันหยุดยิม', icon: 'calendar-off', show: isManager },
   { k: 'import', t: 'นำเข้า Excel', icon: 'file-up', show: isManager },
-  { k: 'settings', t: 'ตั้งค่ายิม', icon: 'settings', show: isManager },
+  { k: 'settings', t: 'ข้อมูลยิม', icon: 'settings', show: isManager },
+  { k: 'more', t: 'เพิ่มเติม', icon: 'menu', show: () => true },
 ];
+// pages reached from "เพิ่มเติม" keep that tab lit
+const TAB_OF: Partial<Record<GymTab, string>> = { plans: 'more', staff: 'more', holidays: 'more', import: 'more', settings: 'more' };
 
-/** Gym pages: a side menu on computer screens, the normal phone column otherwise */
+/** Gym pages: a side menu on computer screens, a bottom menu on phones */
 export function GymFrame({ id, gym, role, active, children }: { id: string; gym: Gym | null; role: Role | null; active: GymTab; children: ReactNode }) {
   const wide = useWide();
-  if (!wide) return <Screen>{children}</Screen>;
+  useEffect(() => { if (role) rememberGym(id); }, [id, role]);
+  if (role === 'trainer') return <Redirect href={'/trainer' as any} />;
+  if (!wide) {
+    const tab = TAB_OF[active] ?? (role === 'operator' && active === 'more' ? 'me' : active);
+    return <Screen footer={<TabBar tabs={tabsFor(role, id)} active={tab} />}>{children}</Screen>;
+  }
   const go = (k: GymTab) => router.replace((k === 'home' ? `/gym/${id}` : `/gym/${id}/${k}`) as any);
   return (
     <SafeAreaView style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>
       <View style={{ width: 240, backgroundColor: C.surface, borderRightWidth: 1, borderRightColor: C.line, paddingVertical: 20, paddingHorizontal: 12, gap: 4 }}>
-        <Pressable accessibilityRole="link" accessibilityLabel="หน้าแรก" onPress={() => router.replace('/')} style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
+        <View style={{ paddingHorizontal: 12, paddingBottom: 16 }}>
           <Lockup height={26} on={C.surface} />
-        </Pressable>
+        </View>
         <View style={{ paddingHorizontal: 10, paddingBottom: 14, gap: 4 }}>
           <H size={19}>{gym?.name ?? '…'}</H>
           {gym?.branch ? <Txt muted size={13}>สาขา{gym.branch}</Txt> : null}

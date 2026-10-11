@@ -9,9 +9,10 @@ export type Gym = {
   id: string; name: string; branch: string | null; phone: string | null; walkin_price: number;
   closed_weekdays: number[]; country_code: string; address: string | null;
 };
+export type PtPlan = { id: string; gym_id: string; name: string; sessions: number; months: number; price: number; active: boolean; sort: number };
 export type Plan = { id: string; gym_id: string; name: string; months: number; days: number; price: number; active: boolean; sort: number };
 
-export const ROLE_TH: Record<string, string> = { owner: 'เจ้าของ', admin: 'Admin', operator: 'Operator', trainer: 'เทรนเนอร์' };
+export const ROLE_TH: Record<string, string> = { owner: 'เจ้าของ', admin: 'ผู้จัดการ', operator: 'พนักงานเคาน์เตอร์', trainer: 'เทรนเนอร์' };
 export const DAYS_SHORT = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 export const DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
 export const PAY_TH: Record<string, string> = { cash: 'เงินสด', transfer: 'โอน', qr: 'QR', free: 'ฟรี', import: 'นำเข้า' };
