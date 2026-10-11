@@ -54,6 +54,7 @@ export function thError(e: unknown): string {
   if (/no membership to freeze/i.test(m)) return 'ไม่มีแพ็กเกจที่ยังใช้อยู่ในช่วงนี้ให้พัก';
   if (/freeze already over/i.test(m)) return 'การพักนี้จบไปแล้ว';
   if (/freeze end before start/i.test(m)) return 'วันสุดท้ายต้องไม่ก่อนวันแรก';
+  if (/uid already linked in this gym/i.test(m)) return 'UID นี้เชื่อมกับสมาชิกคนอื่นในยิมนี้อยู่แล้ว';
   if (/same trainer/i.test(m)) return 'เป็นเทรนเนอร์คนนี้อยู่แล้ว';
   if (/trainer not in this gym/i.test(m)) return 'เทรนเนอร์คนนี้ไม่ได้อยู่ในทีมยิมนี้';
   if (/pt plan not found/i.test(m)) return 'ไม่พบแพ็กเกจ PT นี้ อาจถูกปิดหรือลบไปแล้ว';

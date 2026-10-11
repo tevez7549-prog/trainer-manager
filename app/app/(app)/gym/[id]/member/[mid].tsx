@@ -96,7 +96,8 @@ export default function MemberPage() {
         {expiryText(m) ? <Txt>{expiryText(m)}</Txt> : null}
         {m.phone_norm || m.phone ? <Txt muted>โทร {prettyPhone(m.phone_norm ?? m.phone)}</Txt> : <Txt muted>ไม่มีเบอร์โทร</Txt>}
         {m.note ? <Txt muted>หมายเหตุ: {m.note}</Txt> : null}
-        <Txt muted size={12.5}>{m.profile_id ? '✓ เชื่อมกับบัญชีแอปแล้ว' : 'ยังไม่ได้ใช้แอป · ถ้าสมัครแอปด้วยเบอร์นี้ จะเชื่อมให้เอง'}{m.imported ? ' · นำเข้าจาก Excel' : ''}</Txt>
+        <Txt muted size={12.5}>{m.profile_id ? '✓ ใช้แอปแล้ว · เห็นบัตร นัด PT และบันทึกของตัวเองในแอป' : 'ยังไม่ได้เชื่อมกับแอป · ถ้าเขาใช้แอปด้วยเบอร์นี้ จะเชื่อมให้เอง'}{m.imported ? ' · นำเข้าจาก Excel' : ''}</Txt>
+        {!m.profile_id && desk ? <LinkUid mid={m.id} onDone={(t) => { setMsg({ t, ok: true }); load(); }} /> : null}
       </Card>
 
       {desk ? <MemberPT m={m} reloadKey={ptKey} /> : null}
@@ -341,5 +342,30 @@ function Freezes({ m, onDone }: { m: Member; onDone: (t: string, ok: boolean) =>
         </View>
       ))}
     </Card>
+  );
+}
+
+/** Phones didn't match (typo, new number): link the member to their app account by UID */
+function LinkUid({ mid, onDone }: { mid: string; onDone: (msg: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [uid, setUid] = useState('');
+  const [err, setErr] = useState('');
+  async function go() {
+    const n = Number(uid.replace(/\D/g, ''));
+    if (!n) { setErr('ใส่ UID (ตัวเลข)'); return; }
+    const { data, error } = await supabase.rpc('link_member_uid', { m: mid, person_uid: n });
+    if (error) { setErr(thError(error)); return; }
+    setOpen(false); onDone(`เชื่อมกับ ${(data as any)?.display_name || 'UID ' + n} แล้ว`);
+  }
+  if (!open) return <Txt size={14} style={{ color: C.accent }} onPress={() => setOpen(true)}>ใช้แอปเบอร์อื่นอยู่? เชื่อมด้วย UID</Txt>;
+  return (
+    <View style={{ gap: 8 }}>
+      {err ? <Notice text={err} /> : null}
+      <Field label="UID ของสมาชิก (หน้า ฉัน ในแอปของเขา)" value={uid} onChangeText={setUid} keyboardType="number-pad" />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Btn label="เชื่อม" onPress={go} style={{ flex: 1 }} />
+        <Btn kind="ghost" label="ยกเลิก" onPress={() => setOpen(false)} style={{ flex: 1 }} />
+      </View>
+    </View>
   );
 }
