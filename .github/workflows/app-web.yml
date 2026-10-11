@@ -27,5 +27,12 @@ jobs:
             echo "::error title=build::$(tail -60 build.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"; exit 1; fi
           echo "::notice title=build::$(tail -15 build.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
       - run: ls -la dist && test -f dist/_redirects
+      - name: Smoke test
+        run: |
+          npm i --no-save playwright@1.48.2 serve@14.2.4 > /dev/null 2>&1
+          npx playwright install --with-deps chromium > /dev/null 2>&1
+          (npx serve -s dist -l 4000 > /dev/null 2>&1 &) ; sleep 3
+          node scripts/smoke.mjs > smoke.log 2>&1 || true
+          echo "::notice title=smoke::$(cat smoke.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
       - uses: actions/upload-artifact@v4
         with: { name: web-dist, path: app/dist }

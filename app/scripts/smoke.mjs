@@ -1,0 +1,28 @@
+// Opens the built web app and checks the first screens render without errors.
+import { chromium } from 'playwright';
+const out = [];
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+const errs = [];
+p.on('pageerror', e => errs.push('pageerror: ' + e.message));
+p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+await p.goto('http://localhost:4000/', { waitUntil: 'networkidle' });
+await p.waitForTimeout(1500);
+out.push('url after load: ' + p.url());
+out.push('text: ' + (await p.textContent('body')).replace(/\s+/g, ' ').slice(0, 200));
+await p.getByText('สมัครใช้งาน').first().click();
+await p.waitForTimeout(800);
+out.push('signup url: ' + p.url());
+await p.getByRole('button', { name: 'สมัครใช้งาน' }).last().click();
+await p.waitForTimeout(500);
+out.push('signup validation: ' + (await p.textContent('body')).replace(/\s+/g, ' ').match(/ใส่ชื่อ|รูปแบบอีเมลไม่ถูก|อย่างน้อย 8 ตัว/g));
+await p.goto('http://localhost:4000/login', { waitUntil: 'networkidle' });
+await p.getByLabel('อีเมล').fill('nobody@example.com');
+await p.getByLabel('รหัสผ่าน').fill('wrongpass1');
+await p.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
+await p.waitForTimeout(3000);
+out.push('wrong login message: ' + ((await p.textContent('body')).includes('อีเมลหรือรหัสผ่านไม่ถูก')));
+await p.screenshot({ path: 'smoke-login.png' });
+out.push('errors: ' + JSON.stringify(errs.slice(0, 5)));
+console.log(out.join('\n'));
+await b.close();
