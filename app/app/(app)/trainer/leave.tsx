@@ -86,7 +86,7 @@ export default function LeavePage() {
         {list.map(l => (
           <View key={l.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 6 }}>
             <Txt style={{ flex: 1 }}>{leaveText(l)}</Txt>
-            <Txt muted onPress={() => del(l.id)}>ลบ</Txt>
+            <Txt muted accessibilityRole="button" accessibilityLabel="ลบวันลานี้" onPress={() => del(l.id)} style={{ padding: 6 }}>ลบ</Txt>
           </View>
         ))}
       </Card>

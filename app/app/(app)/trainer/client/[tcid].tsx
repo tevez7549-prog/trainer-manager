@@ -278,7 +278,7 @@ function PkgRow({ p, canManage, onDone }: { p: Pkg; canManage: boolean; onDone: 
           <Txt bold>{p.sessions_left}/{p.sessions_total}</Txt>
           {overdue && p.sessions_left > 0 ? <Pill text={`เกินกำหนด ${p.days_overdue} วัน`} kind="warn" /> : p.sessions_left <= 0 ? <Pill text="ใช้ครบ" kind="mute" /> : null}
         </View>
-        {canManage ? <Txt muted onPress={() => setOpen(!open)} style={{ paddingLeft: 6 }}>{open ? 'ปิด' : 'แก้'}</Txt> : null}
+        {canManage ? <Txt muted accessibilityRole="button" accessibilityLabel="แก้แพ็กเกจนี้" onPress={() => setOpen(!open)} style={{ padding: 6 }}>{open ? 'ปิด' : 'แก้'}</Txt> : null}
       </View>
       {open ? (
         <View style={{ gap: 10, backgroundColor: C.surface2, borderRadius: 12, padding: 10 }}>

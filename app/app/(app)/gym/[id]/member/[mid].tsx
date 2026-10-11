@@ -131,7 +131,7 @@ export default function MemberPage() {
                 <Txt>{baht(x.price)}</Txt>
                 <Txt muted size={12}>{PAY_TH[x.pay_method ?? ''] ?? ''}</Txt>
               </View>
-              {mgr ? <Txt muted onPress={() => setOpenMs(openMs === x.id ? null : x.id)} style={{ paddingLeft: 6 }}>⋯</Txt> : null}
+              {mgr ? <Txt muted accessibilityRole="button" accessibilityLabel="ตัวเลือกรายการนี้" onPress={() => setOpenMs(openMs === x.id ? null : x.id)} style={{ padding: 6 }}>⋯</Txt> : null}
             </View>
             {openMs === x.id ? <ConfirmBtn label="ลบรายการนี้ (ขายผิด)" onConfirm={() => delMs(x)} /> : null}
           </View>

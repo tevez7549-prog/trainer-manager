@@ -188,7 +188,7 @@ function LogLine({ time, text, tag, onUndo }: { time: string; text: string; tag?
         <Txt muted size={13} style={{ width: 44 }}>{thTime(time)}</Txt>
         <Txt size={14} style={{ flex: 1 }}>{text}</Txt>
         {tag ? <Pill text={tag} kind="warn" /> : null}
-        {onUndo ? <Txt size={13} style={{ color: C.muted }} onPress={() => setOpen(!open)}>{open ? 'ปิด' : '⋯'}</Txt> : null}
+        {onUndo ? <Txt size={13} accessibilityRole="button" accessibilityLabel="ตัวเลือกรายการนี้" style={{ color: C.muted, padding: 6 }} onPress={() => setOpen(!open)}>{open ? 'ปิด' : '⋯'}</Txt> : null}
       </View>
       {open && onUndo ? <ConfirmBtn label="ยกเลิกรายการนี้" onConfirm={onUndo} /> : null}
     </View>
