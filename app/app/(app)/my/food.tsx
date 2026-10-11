@@ -21,7 +21,7 @@ type NewItem = Omit<MealItem, 'id' | 'meal_id'>;
 const SHORT: Record<string, string> = { 'มื้อเช้า': 'เช้า', 'มื้อกลางวัน': 'เที่ยง', 'มื้อเย็น': 'เย็น', 'ของว่าง': 'ว่าง' };
 const mealNow = () => { const h = new Date().getHours(); return h < 10 ? 'มื้อเช้า' : h < 15 ? 'มื้อกลางวัน' : h < 21 ? 'มื้อเย็น' : 'ของว่าง'; };
 const scaled = (f: Food, x: number, ai = false): NewItem => ({
-  name: f.name_th, grams: Math.round(f.serving_g * x), kcal: Math.round(f.kcal * x), protein_g: +(f.protein_g * x).toFixed(1),
+  name: f.name_th, grams: f.serving_g > 0 ? Math.round(f.serving_g * x) : null, kcal: Math.round(f.kcal * x), protein_g: +(f.protein_g * x).toFixed(1),
   carb_g: +(f.carb_g * x).toFixed(1), fat_g: +(f.fat_g * x).toFixed(1), from_ai: ai, food_id: f.id,
 });
 const macroLine = (i: { kcal: number; protein_g: number; carb_g: number; fat_g: number }) =>
@@ -223,11 +223,17 @@ function useFavIds() {
 /** Pick a food, then how much */
 function Portion({ f, onAdd, onBack, busy }: { f: Food; onAdd: (x: number) => void; onBack: () => void; busy: boolean }) {
   const [x, setX] = useState(1);
+  const [g, setG] = useState('');
+  const byWeight = f.serving_g > 0;
+  // a typed amount (what you really ate) wins over the quick ×½ ×1 ×2 buttons
+  const mult = byWeight && Number(g) > 0 ? Number(g) / f.serving_g : x;
   return <>
     <Txt bold>{f.name_th}</Txt>
-    <Chips label="ปริมาณ" options={[0.5, 1, 1.5, 2].map(v => ({ v, t: v === 1 ? '1 ที่' : `×${v}` }))} value={x} onChange={setX} />
-    <Txt muted size={14}>{macroLine(scaled(f, x))}</Txt>
-    <Btn label="เพิ่ม" onPress={() => onAdd(x)} loading={busy} />
+    {byWeight ? <Txt muted size={13}>ค่าในระบบต่อ 1 ที่ = {fmt1(f.serving_g)} กรัม</Txt> : null}
+    <Chips label="ปริมาณ" options={[0.5, 1, 1.5, 2].map(v => ({ v, t: v === 1 ? '1 ที่' : `×${v}` }))} value={g ? null : x} onChange={v => { setX(v); setG(''); }} />
+    {byWeight ? <Field label="หรือกรอกที่กินจริง (กรัม)" value={g} onChangeText={v => setG(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder={`เช่น ${Math.round(f.serving_g * 1.5)}`} /> : null}
+    <Txt muted size={14}>{macroLine(scaled(f, mult))}</Txt>
+    <Btn label="เพิ่ม" onPress={() => onAdd(mult)} loading={busy} />
     <Btn kind="ghost" label="เลือกอย่างอื่น" onPress={onBack} />
   </>;
 }
@@ -304,40 +310,70 @@ function Recent({ onPick }: { onPick: (i: NewItem) => void }) {
   );
 }
 
-/** Type the macros; calories follow (4 / 4 / 9). Optionally keep it as my own menu. */
+const UNITS = ['กรัม', 'มล.', 'ขวด', 'กล่อง', 'ชิ้น', 'อัน', 'ถ้วย', 'ช้อน'];
+
+/**
+ * Own menu from a nutrition label: the label's amount and macros, then how much was really eaten
+ * (e.g. label per 100 g, ate 150 g → ×1.5). Calories: typed from the label, or worked out from the macros (4 / 4 / 9).
+ */
 function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean }) {
   const { profile } = useAuth();
   const [name, setName] = useState('');
-  const [g, setG] = useState('');
+  const [unit, setUnit] = useState('กรัม');
+  const [per, setPer] = useState('100');          // label: values are per this amount
   const [p, setP] = useState(''); const [c, setC_] = useState(''); const [f, setF] = useState('');
+  const [kcal, setKcal] = useState('');            // label kcal; empty = from macros
+  const [ate, setAte] = useState('');              // amount really eaten; empty = same as label
   const [keep, setKeep] = useState(true);
   const [err, setErr] = useState('');
-  const kcal = Math.round(Number(p || 0) * 4 + Number(c || 0) * 4 + Number(f || 0) * 9);
   const num = (v: string) => v.replace(/[^\d.]/g, '');
+  const macroKcal = Math.round(Number(p || 0) * 4 + Number(c || 0) * 4 + Number(f || 0) * 9);
+  const labelKcal = kcal !== '' ? Number(kcal) : macroKcal;
+  const perN = Number(per) || 0, ateN = ate !== '' ? Number(ate) : perN;
+  const ratio = perN > 0 ? ateN / perN : 1;
+  const out = { kcal: Math.round(labelKcal * ratio), protein_g: +(Number(p || 0) * ratio).toFixed(1), carb_g: +(Number(c || 0) * ratio).toFixed(1), fat_g: +(Number(f || 0) * ratio).toFixed(1) };
+
   async function go() {
     if (!name.trim()) { setErr('ใส่ชื่อเมนู'); return; }
-    if (!kcal) { setErr('ใส่โปรตีน คาร์บ หรือไขมันอย่างน้อย 1 ช่อง'); return; }
+    if (!perN) { setErr('ใส่ปริมาณตามฉลาก'); return; }
+    if (!labelKcal) { setErr('ใส่แคลอรี หรือโปรตีน คาร์บ ไขมันอย่างน้อย 1 ช่อง'); return; }
+    const grams = unit === 'กรัม' || unit === 'มล.';
     let foodId: string | null = null;
     if (keep) {
-      const r = await supabase.from('foods').insert({ name_th: name.trim(), serving_g: Number(g || 100), kcal, protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0), created_by: profile!.id }).select('id').single();
+      // saved per the label amount; weight-based units can be scaled later by grams
+      const r = await supabase.from('foods').insert({ name_th: grams ? name.trim() : `${name.trim()} (${fmt1(perN)} ${unit})`, serving_g: grams ? perN : 0,
+        kcal: labelKcal, protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0), created_by: profile!.id }).select('id').single();
       if (!r.error) { foodId = r.data.id; await supabase.from('food_favorites').insert({ user_id: profile!.id, food_id: foodId }); }
     }
-    onSave({ name: name.trim(), grams: g ? Number(g) : null, kcal, protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0), from_ai: false, food_id: foodId });
+    onSave({ name: `${name.trim()} ${fmt1(ateN)} ${unit}`, grams: grams ? ateN : null, ...out, from_ai: false, food_id: foodId });
   }
+
   return <>
     {err ? <Notice text={err} /> : null}
-    <Field label="ชื่อเมนู" value={name} onChangeText={setName} placeholder="เช่น ข้าวกล่องอกไก่ของแม่" />
+    <Field label="ชื่อเมนู" value={name} onChangeText={setName} placeholder="เช่น นมจืด, ข้าวกล่องอกไก่ของแม่" />
+
+    <Txt bold size={14}>ตามฉลาก</Txt>
+    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
+      <View style={{ width: 110 }}><Field label="ค่าต่อ" value={per} onChangeText={v => setPer(num(v))} keyboardType="decimal-pad" /></View>
+      <View style={{ flex: 1 }}><Chips options={UNITS.map(u => ({ v: u, t: u }))} value={unit} onChange={setUnit} /></View>
+    </View>
     <View style={{ flexDirection: 'row', gap: 8 }}>
       <View style={{ flex: 1 }}><Field label="โปรตีน g" value={p} onChangeText={v => setP(num(v))} keyboardType="decimal-pad" /></View>
       <View style={{ flex: 1 }}><Field label="คาร์บ g" value={c} onChangeText={v => setC_(num(v))} keyboardType="decimal-pad" /></View>
       <View style={{ flex: 1 }}><Field label="ไขมัน g" value={f} onChangeText={v => setF(num(v))} keyboardType="decimal-pad" /></View>
     </View>
-    <Field label="น้ำหนักอาหาร g (ไม่บังคับ)" value={g} onChangeText={v => setG(num(v))} keyboardType="decimal-pad" />
-    <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
-      <Txt bold>{kcal.toLocaleString('en-US')} kcal</Txt>
-      <Txt muted size={13}>คำนวณจาก โปรตีน×4 + คาร์บ×4 + ไขมัน×9</Txt>
+    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
+      <View style={{ flex: 1 }}><Field label="แคลอรี (kcal)" value={kcal} onChangeText={v => setKcal(num(v))} keyboardType="decimal-pad" placeholder={macroKcal ? `${macroKcal} จาก Macro` : 'ตามฉลาก'} /></View>
+      <Btn kind="ghost" label="คำนวณจาก Macro" onPress={() => setKcal(macroKcal ? String(macroKcal) : '')} style={{ minHeight: 48 }} />
     </View>
-    <Toggle label="เก็บเป็นเมนูโปรด" value={keep} onChange={setKeep} hint="ครั้งหน้ากดจาก เมนูโปรด ได้เลย" />
+    <Txt muted size={12.5}>ว่างไว้ = ใช้ค่าจาก Macro (โปรตีน×4 + คาร์บ×4 + ไขมัน×9) · ฉลากบอกแคลไว้ก็กรอกตามฉลาก</Txt>
+
+    <Field label={`กินจริง (${unit})`} value={ate} onChangeText={v => setAte(num(v))} keyboardType="decimal-pad" placeholder={per ? `${per} = ตามฉลาก` : ''} />
+    <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface2, gap: 2 }}>
+      <Txt bold>{out.kcal.toLocaleString('en-US')} kcal · P {fmt1(out.protein_g)} C {fmt1(out.carb_g)} F {fmt1(out.fat_g)}</Txt>
+      <Txt muted size={13}>{perN && ateN !== perN ? `กิน ${fmt1(ateN)} ${unit} จากฉลาก ${fmt1(perN)} ${unit} = ×${fmt1(ratio)}` : 'ตามฉลาก 1 ส่วน'}</Txt>
+    </View>
+    <Toggle label="เก็บเป็นเมนูโปรด" value={keep} onChange={setKeep} hint="ครั้งหน้ากดจาก เมนูโปรด แล้วกรอกปริมาณที่กินได้เลย" />
     <Btn label="เพิ่ม" onPress={go} loading={busy} />
   </>;
 }
