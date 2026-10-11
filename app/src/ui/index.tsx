@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type TextInputProps, type TextProps, type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,6 +76,101 @@ export function Row({ title, sub, right, onPress, icon }: { title: string; sub?:
 export function Pill({ text, kind = 'ok' }: { text: string; kind?: 'ok' | 'warn' | 'bad' | 'info' | 'mute' }) {
   const m = { ok: [C.accentSoft, C.accentInk], warn: [C.warnBg, C.warnFg], bad: [C.badBg, C.badFg], info: [C.infoBg, C.infoFg], mute: [C.surface2, C.muted] }[kind];
   return <View style={{ backgroundColor: m[0], borderRadius: R.pill, paddingHorizontal: 9, paddingVertical: 2 }}><Txt size={12} bold style={{ color: m[1] }}>{text}</Txt></View>;
+}
+
+/** Back button + page title */
+export function Header({ title, sub, back, right }: { title: string; sub?: string; back: () => void; right?: React.ReactNode }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="กลับ" onPress={back} hitSlop={8}
+        style={({ pressed }) => ({ alignSelf: 'flex-start', paddingVertical: 6, paddingRight: 12, opacity: pressed ? 0.6 : 1 })}>
+        <Txt muted>‹ กลับ</Txt>
+      </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <H size={24}>{title}</H>
+          {sub ? <Txt muted size={13.5}>{sub}</Txt> : null}
+        </View>
+        {right}
+      </View>
+    </View>
+  );
+}
+
+/** Single choice from a few options, shown as chips */
+export function Chips<T extends string | number>({ options, value, onChange, label }: {
+  options: { v: T; t: string }[]; value: T | null; onChange: (v: T) => void; label?: string;
+}) {
+  return (
+    <View style={{ gap: 6 }}>
+      {label ? <Txt bold size={13.5}>{label}</Txt> : null}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {options.map(o => {
+          const on = o.v === value;
+          return (
+            <Pressable key={String(o.v)} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => onChange(o.v)}
+              style={({ pressed }) => ({ minHeight: 40, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1.5, justifyContent: 'center',
+                borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accent : pressed ? C.surface2 : C.surface })}>
+              <Txt size={14} bold={on} style={{ color: on ? C.accentFg : C.fg }}>{o.t}</Txt>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+/** Date picker: the browser's own calendar on web, typed YYYY-MM-DD on phones */
+export function DateField({ label, value, onChange, hint, min, max }: { label: string; value: string; onChange: (v: string) => void; hint?: string; min?: string; max?: string }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Txt bold size={13.5}>{label}</Txt>
+      {Platform.OS === 'web'
+        ? React.createElement('input', {
+            type: 'date', value, min, max, 'aria-label': label,
+            onChange: (e: any) => e.target.value && onChange(e.target.value),
+            style: { border: `1px solid ${C.line}`, borderRadius: R.field, padding: '10px 12px', fontSize: 16, fontFamily: F.body, color: C.fg, background: C.surface, minHeight: 46, boxSizing: 'border-box', width: '100%' },
+          })
+        : <TextInput value={value} onChangeText={onChange} placeholder="2026-10-11" accessibilityLabel={label} style={s.input} />}
+      {hint ? <Txt size={12} muted>{hint}</Txt> : null}
+    </View>
+  );
+}
+
+/** Big number with a caption */
+export function Stat({ n, t, kind }: { n: string | number; t: string; kind?: 'warn' | 'bad' }) {
+  const fg = kind === 'warn' ? C.warnFg : kind === 'bad' ? C.badFg : C.fg;
+  return (
+    <View style={{ flex: 1, minWidth: 90, backgroundColor: C.surface, borderRadius: R.card, padding: 14, gap: 2 }}>
+      <H size={24} style={{ color: fg }}>{String(n)}</H>
+      <Txt muted size={12.5}>{t}</Txt>
+    </View>
+  );
+}
+
+/** Button that asks "tap again to confirm" before doing something hard to undo */
+export function ConfirmBtn({ label, confirmLabel, onConfirm, kind = 'danger', loading }: { label: string; confirmLabel?: string; onConfirm: () => void; kind?: 'danger' | 'ghost' | 'primary'; loading?: boolean }) {
+  const [armed, setArmed] = React.useState(false);
+  React.useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 4000); return () => clearTimeout(t); }, [armed]);
+  return armed
+    ? <Btn kind={kind} label={confirmLabel ?? `กดอีกครั้งเพื่อยืนยัน: ${label}`} loading={loading} onPress={() => { setArmed(false); onConfirm(); }} />
+    : <Btn kind="ghost" label={label} loading={loading} onPress={() => setArmed(true)} />;
+}
+
+/** On/off row */
+export function Toggle({ label, value, onChange, hint }: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
+  return (
+    <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} onPress={() => onChange(!value)}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
+      <View style={{ flex: 1 }}>
+        <Txt bold size={14}>{label}</Txt>
+        {hint ? <Txt muted size={12}>{hint}</Txt> : null}
+      </View>
+      <View style={{ width: 46, height: 28, borderRadius: 14, padding: 3, backgroundColor: value ? C.accent : C.line, alignItems: value ? 'flex-end' : 'flex-start' }}>
+        <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' }} />
+      </View>
+    </Pressable>
+  );
 }
 
 export function Loading() {
