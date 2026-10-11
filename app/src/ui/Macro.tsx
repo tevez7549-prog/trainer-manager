@@ -1,0 +1,71 @@
+import { View } from 'react-native';
+import { C, R } from '../lib/theme';
+import type { Target, Totals } from '../lib/me';
+import { H, Txt } from './index';
+
+const pct = (a: number, b: number | null | undefined) => (b ? Math.min(1, a / b) : 0);
+
+function Bar({ value, max, color, over }: { value: number; max?: number | null; color: string; over?: boolean }) {
+  return (
+    <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: max ?? 0, now: Math.round(value) }}
+      style={{ height: 8, borderRadius: R.pill, backgroundColor: C.surface2, overflow: 'hidden' }}>
+      <View style={{ width: `${pct(value, max) * 100}%`, height: 8, borderRadius: R.pill, backgroundColor: over ? C.over : color }} />
+    </View>
+  );
+}
+
+/** "กินไปแล้ว 1,240 / 1,800 kcal" with one bar per macro */
+export function DayTotals({ t, target, compact }: { t: Totals; target: Target | null; compact?: boolean }) {
+  const kcalOver = !!target && t.kcal > target.kcal;
+  const left = target ? Math.round(target.kcal - t.kcal) : null;
+  const rows: [string, number, number | null | undefined, string][] = [
+    ['โปรตีน', t.p, target?.protein_g, C.protein], ['คาร์บ', t.c, target?.carb_g, C.carb], ['ไขมัน', t.f, target?.fat_g, C.fat],
+  ];
+  return (
+    <View style={{ gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+        <H size={compact ? 32 : 40} style={{ fontVariant: ['tabular-nums'] }}>{Math.round(t.kcal).toLocaleString('en-US')}</H>
+        <Txt muted size={14}>{target ? `/ ${target.kcal.toLocaleString('en-US')} kcal` : 'kcal'}</Txt>
+        <View style={{ flex: 1 }} />
+        {left !== null ? <Txt size={14} bold style={{ color: kcalOver ? C.over : C.accent }}>{kcalOver ? `เกิน ${-left}` : `เหลือ ${left}`}</Txt> : null}
+      </View>
+      {target ? <Bar value={t.kcal} max={target.kcal} color={C.brand} over={kcalOver} /> : null}
+      {rows.map(([name, v, max, color]) => (
+        <View key={name} style={{ gap: 4 }}>
+          <View style={{ flexDirection: 'row' }}>
+            <Txt size={13} style={{ flex: 1 }}>{name}</Txt>
+            <Txt muted size={13} style={{ fontVariant: ['tabular-nums'] }}>{Math.round(v)}{max ? ` / ${max}` : ''} g</Txt>
+          </View>
+          <Bar value={v} max={max ?? Math.max(v, 1)} color={color} over={!!max && v > max * 1.1} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Small bar chart for a series over time (weight, waist …). Oldest on the left. */
+export function MiniChart({ points, unit, height = 120 }: { points: { label: string; v: number }[]; unit: string; height?: number }) {
+  if (points.length < 2) return <Txt muted size={13}>บันทึกอย่างน้อย 2 ครั้งเพื่อดูกราฟ</Txt>;
+  const vs = points.map(p => p.v), min = Math.min(...vs), max = Math.max(...vs);
+  const span = max - min || 1;
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4, height }} accessibilityLabel={`กราฟ ${points.map(p => `${p.label} ${p.v} ${unit}`).join(', ')}`}>
+        {points.map((p, i) => {
+          const h = 16 + ((p.v - min) / span) * (height - 36);
+          const last = i === points.length - 1;
+          return (
+            <View key={i} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
+              {last || i === 0 ? <Txt size={11} bold={last} style={{ color: last ? C.accent : C.muted }}>{p.v}</Txt> : null}
+              <View style={{ width: '100%', maxWidth: 22, height: h, borderRadius: 6, backgroundColor: last ? C.brand : C.surface2 }} />
+            </View>
+          );
+        })}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Txt muted size={11.5}>{points[0].label}</Txt>
+        <Txt muted size={11.5}>{points[points.length - 1].label}</Txt>
+      </View>
+    </View>
+  );
+}

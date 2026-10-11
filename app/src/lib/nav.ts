@@ -26,7 +26,10 @@ export const TRAINER_TABS: Tab[] = [
   { k: 'me', t: 'ฉัน', icon: 'user', href: '/me?from=trainer' },
 ];
 export const MEMBER_TABS: Tab[] = [
-  { k: 'card', t: 'บัตร', icon: 'id-card', href: '/' },
+  { k: 'home', t: 'หน้าแรก', icon: 'house', href: '/' },
+  { k: 'food', t: 'อาหาร', icon: 'utensils', href: '/my/food' },
+  { k: 'body', t: 'ร่างกาย', icon: 'scale', href: '/my/body' },
+  { k: 'train', t: 'ออกกำลัง', icon: 'dumbbell', href: '/my/train' },
   { k: 'me', t: 'ฉัน', icon: 'user', href: '/me?from=member' },
 ];
 
@@ -42,12 +45,8 @@ const LAST = 'tm-last-gym';
 export const rememberGym = (id: string) => setJSON(LAST, id);
 
 /** Where someone lands when they open the app: their own job, no picking */
-export async function landing(userId: string): Promise<{ to: string } | { member: true } | { start: true }> {
-  const [s, mem, tc] = await Promise.all([
-    supabase.from('gym_staff').select('role,gym_id').eq('user_id', userId).eq('active', true),
-    supabase.from('members').select('id', { count: 'exact', head: true }).eq('profile_id', userId),
-    supabase.from('trainer_clients').select('id', { count: 'exact', head: true }).eq('client_id', userId).eq('status', 'active'),
-  ]);
+export async function landing(userId: string): Promise<{ to: string } | { member: true }> {
+  const s = await supabase.from('gym_staff').select('role,gym_id').eq('user_id', userId).eq('active', true);
   const staff = (s.data as { role: Role; gym_id: string }[]) ?? [];
   if (staff.length) {
     const last = await getJSON<string>(LAST);
@@ -57,8 +56,8 @@ export async function landing(userId: string): Promise<{ to: string } | { member
     if (pick.role === 'operator') return { to: `/gym/${pick.gym_id}/counter` };
     return { to: `/gym/${pick.gym_id}` };
   }
-  if ((mem.count ?? 0) > 0 || (tc.count ?? 0) > 0) return { member: true };
-  return { start: true };
+  // everyone else uses the app for themselves: food, body, training, their gym card
+  return { member: true };
 }
 
 /** My gyms and roles (for the gym switcher) */

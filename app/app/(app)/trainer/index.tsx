@@ -9,6 +9,7 @@ import { Btn, Card, Chips, H, Header, Label, Notice, Screen, Txt } from '../../.
 import { ApptCard } from '../../../src/ui/Appt';
 import { TabBar } from '../../../src/ui/TabBar';
 import { WeekGrid } from '../../../src/ui/WeekGrid';
+import { MoveRequests } from '../../../src/ui/MoveRequests';
 import { C, R } from '../../../src/lib/theme';
 
 type Range = 'today' | 'week' | 'grid';
@@ -62,6 +63,7 @@ export default function TrainerAppts() {
         right={appts && range === 'today' && live ? <Txt muted size={14}>เช็กแล้ว {done}/{live}</Txt> : undefined} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
       {onLeaveNow ? <Notice kind="info" text={`ตอนนี้คุณลาอยู่ · ${leaveText(onLeaveNow)}`} /> : null}
+      <MoveRequests key={appts?.map(a => a.starts_at).join()} onChange={(t, ok) => { setMsg({ t, ok }); load(); }} />
 
       {next ? (
         <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 8 }}>

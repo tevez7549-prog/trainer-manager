@@ -11,6 +11,7 @@ import {
 import { Btn, Card, Chips, ConfirmBtn, DateField, Field, H, Header, Notice, Pill, Screen, TimeField, Toggle, Txt } from '../../../../src/ui';
 import { ApptCard } from '../../../../src/ui/Appt';
 import { WeekGrid } from '../../../../src/ui/WeekGrid';
+import { TraineeHealth } from '../../../../src/ui/TraineeHealth';
 import { C } from '../../../../src/lib/theme';
 
 type Ledger = { id: string; package_id: string; delta: number; kind: string; reason: string | null; extend_days: number | null; at: string };
@@ -110,6 +111,8 @@ export default function ClientPage() {
       {panel === 'sell' ? <SellPkgForm tc={tc} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
       {panel === 'move' ? <MoveForm tc={tc} onClose={(t, id) => { setPanel(''); if (t) { done(t, true); if (id && id !== tc.id) router.replace(`/trainer/client/${id}` as any); } }} /> : null}
       {panel === 'goal' ? <GoalForm tc={tc} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
+
+      {canManage ? <TraineeHealth clientId={tc.client_id ?? tc.member?.profile_id ?? null} tcId={tc.id} name={tcName(tc)} /> : null}
 
       <Card style={{ gap: 2 }}>
         <H size={17}>นัดที่จะถึง ({upcoming.length})</H>

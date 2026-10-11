@@ -18,6 +18,7 @@ const dark = {
   cautionFg: '#F2D46B', cautionBg: '#33300F',
   badFg: '#F59A92', badBg: '#3A1A1A',
   scrim: 'rgba(0,0,0,0.6)',
+  protein: '#7AA2F7', carb: '#F2B45C', fat: '#E58AC4', over: '#FB923C',
 };
 const light: typeof dark = {
   bg: '#F5F5F2',
@@ -35,6 +36,7 @@ const light: typeof dark = {
   cautionFg: '#7A5F00', cautionBg: '#FBF3CF',
   badFg: '#B3261E', badBg: '#FCE4E2',
   scrim: 'rgba(17,18,20,0.45)',
+  protein: '#3D6FD9', carb: '#C27C0E', fat: '#B8478E', over: '#C2410C',
 };
 
 export type Scheme = 'dark' | 'light';

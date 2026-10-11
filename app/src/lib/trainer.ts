@@ -7,7 +7,7 @@ export type TC = {
   id: string; trainer_id: string; client_id: string | null; member_id: string | null; gym_id: string | null;
   goal: string | null; status: 'active' | 'removed'; client_name: string | null; client_phone: string | null; created_at: string;
   client: { display_name: string; uid: number; phone: string | null } | null;
-  member: { name: string; code: string; phone_norm: string | null } | null;
+  member: { name: string; code: string; phone_norm: string | null; profile_id?: string | null } | null;
   trainer: { display_name: string; uid: number } | null;
   gym: { name: string } | null;
 };
@@ -25,7 +25,7 @@ export type Leave = { id: string; start_at: string; end_at: string; reason: stri
 export const TC_COLS = 'id,trainer_id,client_id,member_id,gym_id,goal,status,client_name,client_phone,created_at,'
   + 'client:profiles!trainer_clients_client_id_fkey(display_name,uid,phone),'
   + 'trainer:profiles!trainer_clients_trainer_id_fkey(display_name,uid),'
-  + 'member:members(name,code,phone_norm),gym:gyms(name)';
+  + 'member:members(name,code,phone_norm,profile_id),gym:gyms(name)';
 export const APPT_COLS = 'id,trainer_id,trainer_client_id,gym_id,starts_at,duration_min,status,note,'
   + 'tc:trainer_clients(id,client_name,client:profiles!trainer_clients_client_id_fkey(display_name,uid,phone),member:members(name,code,phone_norm))';
 
