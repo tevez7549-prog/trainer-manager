@@ -5,12 +5,12 @@ import { applyTheme, type Scheme } from './theme';
 
 export type ThemeMode = 'system' | 'dark' | 'light';
 const KEY = 'tm-theme';
-const Ctx = createContext<{ mode: ThemeMode; scheme: Scheme; setMode: (m: ThemeMode) => void }>({ mode: 'system', scheme: 'dark', setMode: () => {} });
+const Ctx = createContext<{ mode: ThemeMode; scheme: Scheme; setMode: (m: ThemeMode) => void }>({ mode: 'dark', scheme: 'dark', setMode: () => {} });
 
-/** Follows the device's light/dark setting unless the person picked one on "ฉัน" */
+/** Dark by default; the person can pick light, or follow the device, on "ฉัน" */
 export function ThemeProvider({ children }: { children: (scheme: Scheme) => React.ReactNode }) {
   const device = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('system');
+  const [mode, setModeState] = useState<ThemeMode>('dark');
   useEffect(() => { getJSON<ThemeMode>(KEY).then(m => { if (m === 'dark' || m === 'light' || m === 'system') setModeState(m); }); }, []);
   const scheme: Scheme = mode === 'system' ? (device === 'light' ? 'light' : 'dark') : mode;
   applyTheme(scheme);   // before children render, so every C.* read below gets this palette

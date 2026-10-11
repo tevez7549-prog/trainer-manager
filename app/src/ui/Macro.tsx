@@ -29,7 +29,7 @@ export function DayTotals({ t, target, compact }: { t: Totals; target: Target | 
         <Txt muted size={14}>{target ? `/ ${target.kcal.toLocaleString('en-US')} kcal` : 'kcal'}</Txt>
       </View>
       {target ? <>
-        <Bar value={t.kcal} max={target.kcal} color={C.brand} over={kcalOver} />
+        <Bar value={t.kcal} max={target.kcal} color={C.accent} over={kcalOver} />
         <Txt size={13} style={{ color: kcalOver ? C.over : C.muted, marginTop: -6 }}>{kcalOver ? `เกิน ${-left!} kcal` : `เหลือ ${left} kcal`}</Txt>
       </> : null}
       <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -65,7 +65,7 @@ export function MiniChart({ points, unit, height = 120 }: { points: { label: str
           return (
             <View key={i} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
               {last || i === 0 ? <Txt size={11} bold={last} style={{ color: last ? C.accent : C.muted }}>{p.v}</Txt> : null}
-              <View style={{ width: '100%', maxWidth: 22, height: h, borderRadius: 6, backgroundColor: last ? C.brand : C.surface2 }} />
+              <View style={{ width: '100%', maxWidth: 22, height: h, borderRadius: 6, backgroundColor: last ? C.accent : C.surface2 }} />
             </View>
           );
         })}

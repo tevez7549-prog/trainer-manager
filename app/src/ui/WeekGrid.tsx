@@ -98,7 +98,7 @@ export function WeekGrid({ trainerId, closedDays = [], onPick, reloadKey }: {
               const sel = picked === key;
               const box = (
                 <View style={{ flex: 1, margin: 1, borderRadius: 6, backgroundColor: sel ? C.brand : bg, alignItems: 'center', justifyContent: 'center',
-                  borderWidth: c.kind === 'free' && !sel ? 1 : 0, borderColor: C.line, opacity: c.kind === 'past' || c.kind === 'closed' ? 0.5 : 1 }}>
+                  borderWidth: sel ? 1.5 : c.kind === 'free' ? 1 : 0, borderColor: sel ? C.accent : C.line, opacity: c.kind === 'past' || c.kind === 'closed' ? 0.5 : 1 }}>
                   {c.label ? <Txt size={10.5} bold numberOfLines={1} style={{ color: c.kind === 'busy' ? C.accent : C.muted }}>{c.label}</Txt> : null}
                 </View>
               );

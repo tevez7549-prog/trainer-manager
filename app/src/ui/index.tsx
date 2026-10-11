@@ -257,7 +257,7 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
         <Txt bold size={16}>{label}</Txt>
         {hint ? <Txt muted size={13}>{hint}</Txt> : null}
       </View>
-      <View style={{ width: 48, height: 28, borderRadius: 14, padding: 3, borderWidth: 1, borderColor: value ? C.brand : C.line,
+      <View style={{ width: 48, height: 28, borderRadius: 14, padding: 3, borderWidth: 1.5, borderColor: value ? C.accent : C.line,
         backgroundColor: value ? C.brand : C.surface2, alignItems: value ? 'flex-end' : 'flex-start', justifyContent: 'center' }}>
         <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: value ? C.brandInk : C.muted }} />
       </View>

@@ -45,7 +45,7 @@ export default function Consent() {
       {err ? <Notice text={err} /> : null}
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: ok }} onPress={() => setOk(!ok)}
         style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 4 }}>
-        <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: ok ? C.brand : C.line, backgroundColor: ok ? C.brand : C.surface2, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: ok ? C.accent : C.line, backgroundColor: ok ? C.brand : C.surface2, alignItems: 'center', justifyContent: 'center' }}>
           {ok ? <Icon name="check" size={18} color={C.brandInk} /> : null}
         </View>
         <Txt style={{ flex: 1 }}>ฉันอ่านแล้ว และยินยอมให้ใช้ข้อมูลตามที่ระบุ</Txt>

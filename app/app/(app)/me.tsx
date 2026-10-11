@@ -66,7 +66,7 @@ export default function Me() {
       </Card>
       <Card>
         <H size={17}>หน้าตาแอป</H>
-        <Chips options={[{ v: 'system', t: 'ตามเครื่อง' }, { v: 'dark', t: 'มืด' }, { v: 'light', t: 'สว่าง' }]} value={mode} onChange={v => setMode(v as ThemeMode)} />
+        <Chips options={[{ v: 'dark', t: 'มืด' }, { v: 'light', t: 'สว่าง' }, { v: 'system', t: 'ตามเครื่อง' }]} value={mode} onChange={v => setMode(v as ThemeMode)} />
       </Card>
       {tabs && (places ?? []).some(p => p.role !== 'trainer' || from !== 'trainer') ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>
