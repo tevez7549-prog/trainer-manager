@@ -4,13 +4,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../src/lib/supabase';
 import { DAYS_SHORT, gymCountry, isManager, useGym } from '../../../../src/lib/gym';
 import { COUNTRIES } from '../../../../src/lib/phone';
-import { Btn, Card, Field, Header, Notice, Screen, Txt } from '../../../../src/ui';
+import { Btn, Card, ConfirmBtn, Field, Header, Notice, Screen, Txt } from '../../../../src/ui';
+import { useAuth } from '../../../../src/lib/auth';
 import { C, R } from '../../../../src/lib/theme';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 
 export default function GymSettings() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { gym, role, reload } = useGym(id);
+  const { profile } = useAuth();
   const [f, setF] = useState({ name: '', branch: '', phone: '', address: '', walkin: '', cc: '66', closed: [] as number[] });
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
@@ -35,6 +37,14 @@ export default function GymSettings() {
     setBusy(false);
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
     setMsg({ t: 'บันทึกแล้ว', ok: true }); reload();
+  }
+
+  async function delGym() {
+    setBusy(true);
+    const { error } = await supabase.from('gyms').delete().eq('id', id);
+    setBusy(false);
+    if (error) { setMsg({ t: thError(error), ok: false }); return; }
+    router.replace('/admin' as any);
   }
 
   return (
@@ -87,6 +97,13 @@ export default function GymSettings() {
         </View>
         {isManager(role) ? <Btn label="บันทึก" onPress={save} loading={busy} /> : null}
       </Card>
+      {profile?.is_super_admin ? (
+        <Card>
+          <Txt bold>ลบยิมนี้ (Super Admin)</Txt>
+          <Txt muted size={13}>ลบยิม สมาชิก แพ็กเกจ เช็กอิน ขาจร และทีมงานของยิมนี้ทั้งหมด กู้คืนไม่ได้ · บัญชีผู้ใช้ของทุกคนยังอยู่</Txt>
+          <ConfirmBtn label="ลบยิมนี้" confirmLabel={`กดอีกครั้ง: ลบ ${gym?.name ?? 'ยิมนี้'} ถาวร`} onConfirm={delGym} loading={busy} />
+        </Card>
+      ) : null}
     </GymFrame>
   );
 }

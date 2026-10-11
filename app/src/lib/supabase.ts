@@ -44,7 +44,7 @@ export function thError(e: unknown): string {
   if (/members_gym_phone_uq/.test(m)) return 'เบอร์นี้มีสมาชิกในยิมแล้ว ค้นหาด้วยเบอร์นี้ดูก่อน';
   if (/plan not found/i.test(m)) return 'ไม่พบแพ็กเกจนี้ อาจถูกลบไปแล้ว';
   if (/only the gym owner|not allowed|row-level security|permission denied/i.test(m)) return 'คุณไม่มีสิทธิ์ทำรายการนี้';
-  if (/violates foreign key/i.test(m)) return 'ลบไม่ได้ เพราะมีข้อมูลอื่นใช้อยู่';
+  if (/violates foreign key|Database error deleting user/i.test(m)) return 'ลบไม่ได้ เพราะยังมีข้อมูลอื่นผูกกับรายการนี้อยู่';
   if (/cannot invite yourself/i.test(m)) return 'เชิญตัวเองไม่ได้';
   if (/already your trainee|trainer_clients_active_uq/i.test(m)) return 'คนนี้เป็นลูกเทรนของเทรนเนอร์คนนี้อยู่แล้ว';
   if (/invite expired/i.test(m)) return 'คำเชิญหมดอายุแล้ว ให้เทรนเนอร์ส่งใหม่';

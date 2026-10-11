@@ -129,6 +129,7 @@ export default function Admin() {
 
       {tab === 'gyms' ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <Txt muted size={12.5} style={{ paddingVertical: 6 }}>กดยิมเพื่อเข้าไปดู · ลบยิมได้ที่เมนู ตั้งค่ายิม</Txt>
           {!gyms.length ? <Txt muted style={{ padding: 12 }}>ยังไม่มียิม</Txt> : null}
           {gyms.map(g => {
             const owner = g.gym_staff.find(s => s.role === 'owner')?.profile;
