@@ -14,16 +14,11 @@ $$;
 
 alter table public.gyms add column if not exists country_code text not null default '66';  -- dialing code, no plus
 
--- profiles: rebuild the normalised column
-drop index if exists public.profiles_phone_uq;
-alter table public.profiles drop column phone_norm;
-alter table public.profiles add column phone_norm text generated always as (public.norm_phone(phone)) stored;
-create unique index profiles_phone_uq on public.profiles(phone_norm) where phone_norm is not null;
+-- profiles: same column, new formula (Postgres 17: set expression keeps the column and its unique index)
+alter table public.profiles alter column phone_norm set expression as (public.norm_phone(phone));
 
--- members: normalised with the gym's country, so it is set by a trigger
-drop index if exists public.members_gym_phone_uq;
-alter table public.members drop column phone_norm;
-alter table public.members add column phone_norm text;
+-- members: becomes a normal column filled by a trigger, using the gym's country
+alter table public.members alter column phone_norm drop expression;
 create or replace function public.members_set_phone() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -33,7 +28,6 @@ end $$;
 create trigger members_phone before insert or update of phone, gym_id on public.members
   for each row execute function public.members_set_phone();
 update public.members set phone = phone;
-create unique index members_gym_phone_uq on public.members(gym_id, phone_norm) where phone_norm is not null;
 revoke execute on function public.members_set_phone() from public, anon, authenticated;
 
 -- the profile trigger re-runs member linking when the phone changes (phone_norm is generated, so watch phone)
