@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/lib/auth';
@@ -8,8 +8,9 @@ import {
   APPT_COLS, apptRange, dayLabel, DURATIONS, gymChoice, inLeave, useMyGyms, overlaps, TC_COLS, tcName, tcPhone, toTs,
   type Appt, type Leave, type Pkg, type TC,
 } from '../../../../src/lib/trainer';
-import { Btn, Card, Chips, ConfirmBtn, DateField, Field, H, Header, Notice, Pill, Screen, TimeField, Txt } from '../../../../src/ui';
+import { Btn, Card, Chips, ConfirmBtn, DateField, Field, H, Header, Notice, Pill, Screen, TimeField, Toggle, Txt } from '../../../../src/ui';
 import { ApptCard } from '../../../../src/ui/Appt';
+import { WeekGrid } from '../../../../src/ui/WeekGrid';
 import { C } from '../../../../src/lib/theme';
 
 type Ledger = { id: string; package_id: string; delta: number; kind: string; reason: string | null; extend_days: number | null; at: string };
@@ -63,6 +64,14 @@ export default function ClientPage() {
   const done = (t: string, ok: boolean) => { setMsg({ t, ok }); load(); };
   const back = () => (router.canGoBack() ? router.back() : router.replace('/trainer' as any));
 
+  async function cancelAll() {
+    const ids = upcoming.filter(a => new Date(a.starts_at).getTime() > Date.now()).map(a => a.id);
+    if (!ids.length) return;
+    const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).in('id', ids).eq('status', 'scheduled');
+    if (error) { setMsg({ t: thError(error), ok: false }); return; }
+    done(`ยกเลิก ${ids.length} นัดแล้ว · ไม่หักครั้ง`, true);
+  }
+
   async function remove() {
     const { error } = await supabase.from('trainer_clients').update({ status: 'removed', removed_at: new Date().toISOString() }).eq('id', tcid);
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
@@ -97,7 +106,7 @@ export default function ClientPage() {
           {tc.gym_id ? <Txt muted size={13}>ซื้อ PT เพิ่ม: ขายที่หน้าสมาชิกของยิม (ขาย / ต่ออายุ › PT)</Txt> : null}
         </View>
       ) : null}
-      {panel === 'book' ? <BookForm tc={tc} leaves={leaves} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
+      {panel === 'book' ? <BookForm tc={tc} leaves={leaves} left={Math.max(0, totalLeft - upcoming.length)} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
       {panel === 'sell' ? <SellPkgForm tc={tc} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
       {panel === 'move' ? <MoveForm tc={tc} onClose={(t, id) => { setPanel(''); if (t) { done(t, true); if (id && id !== tc.id) router.replace(`/trainer/client/${id}` as any); } }} /> : null}
       {panel === 'goal' ? <GoalForm tc={tc} onClose={(t) => { setPanel(''); if (t) done(t, true); }} /> : null}
@@ -106,6 +115,9 @@ export default function ClientPage() {
         <H size={17}>นัดที่จะถึง ({upcoming.length})</H>
         {!upcoming.length ? <Txt muted>ยังไม่มีนัด</Txt> : null}
         {upcoming.map(a => <ApptCard key={a.id} a={a} showName={false} showDay canManage={canManage} onLeave={inLeave(a.starts_at, leaves)} onDone={done} />)}
+        {canManage && upcoming.length > 1 ? (
+          <ConfirmBtn label={`ยกเลิกนัดที่จะถึงทั้งหมด (${upcoming.length})`} confirmLabel={`กดอีกครั้ง: ยกเลิก ${upcoming.length} นัด (ไม่หักครั้ง)`} onConfirm={cancelAll} />
+        ) : null}
       </Card>
 
       <Card style={{ gap: 6 }}>
@@ -133,52 +145,132 @@ export default function ClientPage() {
   );
 }
 
-function BookForm({ tc, leaves, onClose }: { tc: TC; leaves: Leave[]; onClose: (msg?: string) => void }) {
+const WD_TH = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+const WD_ORDER = [1, 2, 3, 4, 5, 6, 0];
+type Until = 'left' | 4 | 8 | 12;
+
+/** Book one session, or a weekly routine (e.g. Mon/Wed/Fri) where each day can have its own time */
+function BookForm({ tc, leaves, left, onClose }: { tc: TC; leaves: Leave[]; left: number; onClose: (msg?: string) => void }) {
+  const [mode, setMode] = useState<'once' | 'weekly'>('once');
   const [date, setDate] = useState(todayISO());
   const [time, setTime] = useState('18:00');
+  const [days, setDays] = useState<Record<number, string>>({});   // weekday -> "HH:MM"
+  const [until, setUntil] = useState<Until>(left > 0 ? 'left' : 4);
   const [dur, setDur] = useState<number>(60);
   const [note, setNote] = useState('');
-  const [repeat, setRepeat] = useState<number>(1);
-  const [warn, setWarn] = useState('');
+  const [taken, setTaken] = useState<{ starts_at: string; duration_min: number }[]>([]);
+  const [keepClash, setKeepClash] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function save(force = false) {
-    if (!/^\d{2}:\d{2}$/.test(time)) { setErr('เวลาไม่ถูกต้อง'); return; }
-    const starts = Array.from({ length: repeat }, (_, i) => toTs(addDays(date, i * 7), time));
-    if (!force) {
-      // clashes with the trainer's other appointments, or with leave
-      const from = starts[0], to = new Date(new Date(starts[starts.length - 1]).getTime() + 86400000).toISOString();
-      const { data } = await supabase.from('appointments').select('starts_at,duration_min,status').eq('trainer_id', tc.trainer_id).neq('status', 'cancelled').gte('starts_at', new Date(new Date(from).getTime() - 3 * 3600000).toISOString()).lt('starts_at', to);
-      const clash = starts.filter(s => ((data as any[]) ?? []).some(o => overlaps(s, dur, o.starts_at, o.duration_min)));
-      const leave = starts.filter(s => inLeave(s, leaves));
-      if (clash.length || leave.length) {
-        setWarn([clash.length ? `ชนกับนัดอื่น ${clash.length} ครั้ง (${clash.map(s => dayLabel(s)).join(', ')})` : '', leave.length ? `ตรงกับวันลา ${leave.length} ครั้ง` : ''].filter(Boolean).join(' · '));
-        return;
-      }
+  // the trainer's other sessions for the next 6 months, to flag clashes as the plan is built
+  useEffect(() => {
+    const to = new Date(Date.now() + 186 * 86400000).toISOString();
+    supabase.from('appointments').select('starts_at,duration_min').eq('trainer_id', tc.trainer_id).neq('status', 'cancelled')
+      .gte('starts_at', new Date(Date.now() - 3 * 3600000).toISOString()).lt('starts_at', to)
+      .then(({ data }) => setTaken((data as any[]) ?? []));
+  }, [tc.trainer_id]);
+
+  const toggleDay = (d: number) => setDays(x => {
+    const n = { ...x };
+    if (d in n) delete n[d]; else n[d] = Object.values(x).slice(-1)[0] ?? time;
+    return n;
+  });
+
+  // the sessions this form would create
+  const plan = (() => {
+    const out: string[] = [];
+    if (mode === 'once') { if (/^\d{2}:\d{2}$/.test(time)) out.push(toTs(date, time)); return out; }
+    const picked = Object.keys(days).map(Number);
+    if (!picked.length) return out;
+    const max = until === 'left' ? Math.max(left, 0) : until * picked.length;
+    const now = Date.now();
+    for (let i = 0; i < 26 * 7 && out.length < Math.min(max, 60); i++) {
+      const d = addDays(date, i);
+      const wd = new Date(d + 'T00:00:00').getDay();
+      const t = days[wd];
+      if (t === undefined || !/^\d{2}:\d{2}$/.test(t)) continue;
+      const ts = toTs(d, t);
+      if (new Date(ts).getTime() > now) out.push(ts);
     }
+    return out;
+  })();
+  const clashOf = (s: string) => taken.some(o => overlaps(s, dur, o.starts_at, o.duration_min)) ? 'ชนนัดอื่น' : inLeave(s, leaves) ? 'วันลา' : '';
+  const rows = plan.map(s => ({ s, clash: clashOf(s) }));
+  const clashes = rows.filter(r => r.clash).length;
+  const toBook = rows.filter(r => keepClash || !r.clash).map(r => r.s);
+
+  async function save() {
+    if (!toBook.length) { setErr(mode === 'weekly' && !Object.keys(days).length ? 'เลือกวันในสัปดาห์' : 'ไม่มีนัดให้บันทึก'); return; }
     setBusy(true); setErr('');
-    const { error } = await supabase.from('appointments').insert(starts.map(s => ({
+    const { error } = await supabase.from('appointments').insert(toBook.map(s => ({
       trainer_id: tc.trainer_id, trainer_client_id: tc.id, gym_id: tc.gym_id, starts_at: s, duration_min: dur, note: note.trim() || null,
     })));
     setBusy(false);
     if (error) { setErr(thError(error)); return; }
-    onClose(repeat > 1 ? `นัด ${repeat} ครั้งแล้ว (ทุกสัปดาห์ เริ่ม ${dayLabel(starts[0])} ${time})` : `นัดแล้ว ${dayLabel(starts[0])} ${time} · ${dur} นาที`);
+    onClose(toBook.length > 1
+      ? `นัด ${toBook.length} ครั้งแล้ว · ${dayLabel(toBook[0])} ถึง ${dayLabel(toBook[toBook.length - 1])}${clashes && !keepClash ? ` · ข้าม ${clashes} ครั้งที่ชน` : ''}`
+      : `นัดแล้ว ${dayLabel(toBook[0])} ${apptRange({ starts_at: toBook[0], duration_min: dur })}`);
   }
 
+  const hhmm = (s: string) => apptRange({ starts_at: s, duration_min: dur }).split('–')[0];
   return (
     <Card>
       <H size={17}>นัดเทรน</H>
       {err ? <Notice text={err} /> : null}
-      <DateField label="วันที่" value={date} onChange={v => { setDate(v); setWarn(''); }} min={todayISO()} />
-      <TimeField label="เวลาเริ่ม" value={time} onChange={v => { setTime(v); setWarn(''); }} />
-      <Chips label="ระยะเวลา" options={DURATIONS.map(d => ({ v: d as number, t: `${d} นาที` }))} value={dur} onChange={v => { setDur(v); setWarn(''); }} />
-      <Chips label="นัดซ้ำทุกสัปดาห์" options={[1, 4, 8, 12].map(n => ({ v: n, t: n === 1 ? 'ครั้งเดียว' : `${n} สัปดาห์` }))} value={repeat} onChange={v => { setRepeat(v); setWarn(''); }} />
+      <Chips options={[{ v: 'once', t: 'ครั้งเดียว' }, { v: 'weekly', t: 'ประจำทุกสัปดาห์' }]} value={mode} onChange={v => { setMode(v); setErr(''); }} />
+
+      {mode === 'once' ? <>
+        <Btn kind="ghost" icon="calendar" label={showGrid ? 'ซ่อนตารางว่าง' : 'เลือกจากตารางว่าง'} onPress={() => setShowGrid(!showGrid)} />
+        {showGrid ? <WeekGrid trainerId={tc.trainer_id} onPick={(d, t) => { setDate(d); setTime(t); }} /> : null}
+        <DateField label="วันที่" value={date} onChange={setDate} min={todayISO()} />
+        <TimeField label="เวลาเริ่ม" value={time} onChange={setTime} />
+      </> : <>
+        <View style={{ gap: 8 }}>
+          <Txt bold size={14}>วันไหนบ้าง</Txt>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {WD_ORDER.map(d => {
+              const on = d in days;
+              return (
+                <Pressable key={d} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={WD_TH[d]} onPress={() => toggleDay(d)}
+                  style={{ flex: 1, minHeight: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
+                    borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accentSoft : C.surface2 }}>
+                  <Txt bold style={{ color: on ? C.accent : C.fg }}>{WD_TH[d]}</Txt>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        {WD_ORDER.filter(d => d in days).map(d => (
+          <View key={d} style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+            <Txt bold style={{ width: 36, paddingBottom: 12 }}>{WD_TH[d]}.</Txt>
+            <View style={{ flex: 1, minWidth: 0 }}><TimeField label={`เวลาวัน${WD_TH[d]}`} value={days[d]} onChange={v => setDays(x => ({ ...x, [d]: v }))} /></View>
+          </View>
+        ))}
+        <DateField label="เริ่มตั้งแต่" value={date} onChange={setDate} min={todayISO()} />
+        <Chips label="นัดไปจนถึง" value={until} onChange={setUntil}
+          options={[...(left > 0 ? [{ v: 'left' as Until, t: `ครั้งที่เหลือหมด (${left})` }] : []), { v: 4 as Until, t: '4 สัปดาห์' }, { v: 8 as Until, t: '8 สัปดาห์' }, { v: 12 as Until, t: '12 สัปดาห์' }]} />
+      </>}
+
+      <Chips label="ระยะเวลา" options={DURATIONS.map(d => ({ v: d as number, t: `${d} นาที` }))} value={dur} onChange={setDur} />
       <Field label="หมายเหตุ (ไม่บังคับ)" value={note} onChangeText={setNote} placeholder="เช่น ขา / อก-หลัง" />
-      {warn ? <>
-        <Notice kind="info" text={warn} />
-        <Btn label="นัดอยู่ดี" onPress={() => save(true)} loading={busy} />
-      </> : <Btn label="บันทึกนัด" onPress={() => save()} loading={busy} />}
+
+      {mode === 'weekly' && rows.length ? (
+        <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: C.surface2 }}>
+          <Txt bold>จะนัด {toBook.length} ครั้ง{clashes ? ` · ชน ${clashes}` : ''}</Txt>
+          {rows.slice(0, 12).map(r => (
+            <Txt key={r.s} size={14} style={{ color: r.clash ? C.warnFg : C.fg }}>
+              {dayLabel(r.s)} {hhmm(r.s)}{r.clash ? ` · ${r.clash}${keepClash ? '' : ' (ข้าม)'}` : ''}
+            </Txt>
+          ))}
+          {rows.length > 12 ? <Txt muted size={13}>และอีก {rows.length - 12} ครั้ง</Txt> : null}
+        </View>
+      ) : null}
+      {mode === 'once' && rows[0]?.clash ? <Notice kind="warn" text={`เวลานี้${rows[0].clash === 'วันลา' ? 'ตรงกับวันลา' : 'ชนกับนัดอื่น'}`} /> : null}
+      {clashes ? <Toggle label="นัดตัวที่ชนด้วย" value={keepClash} onChange={setKeepClash} /> : null}
+
+      <Btn label={toBook.length > 1 ? `บันทึก ${toBook.length} นัด` : 'บันทึกนัด'} onPress={save} loading={busy} />
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onClose()} />
     </Card>
   );

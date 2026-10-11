@@ -8,6 +8,7 @@ import { APPT_COLS, sessionsLeft, TC_COLS, tcName, type Appt, type TC } from '..
 import { Card, Chips, Empty, Field, Header, Label, Notice, Pill, Row, Txt } from '../../../../src/ui';
 import { ApptCard } from '../../../../src/ui/Appt';
 import { GymFrame } from '../../../../src/ui/GymFrame';
+import { WeekGrid } from '../../../../src/ui/WeekGrid';
 
 type Staff = { user_id: string; role: Role; profile: { display_name: string; uid: number } | null };
 type Range = 'today' | 'week';
@@ -79,6 +80,11 @@ export default function GymPT() {
       {tcs && !trainers.length ? (
         <Card><Empty ic="dumbbell" title="ยังไม่มี PT" text="ขาย PT ได้ที่หน้าสมาชิก: กด ขาย / ต่ออายุ แล้วเลือก PT · เพิ่มเทรนเนอร์ได้ที่ เพิ่มเติม › ทีมงาน" /></Card>
       ) : null}
+
+      {who !== 'all' ? <>
+        <Label>ตารางว่างของ {nameOf(who)}</Label>
+        <Card><WeekGrid trainerId={who} closedDays={gym?.closed_weekdays ?? []} reloadKey={appts.length} /></Card>
+      </> : trainers.length ? <Txt muted size={13}>แตะชื่อเทรนเนอร์ด้านบนเพื่อดูตารางว่างทั้งสัปดาห์</Txt> : null}
 
       {tcs?.length ? <>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

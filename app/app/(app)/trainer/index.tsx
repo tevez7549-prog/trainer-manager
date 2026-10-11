@@ -8,9 +8,10 @@ import { APPT_COLS, apptRange, dayLabel, inLeave, leaveText, markAppt, markMsg, 
 import { Btn, Card, Chips, H, Header, Label, Notice, Screen, Txt } from '../../../src/ui';
 import { ApptCard } from '../../../src/ui/Appt';
 import { TabBar } from '../../../src/ui/TabBar';
+import { WeekGrid } from '../../../src/ui/WeekGrid';
 import { C, R } from '../../../src/lib/theme';
 
-type Range = 'today' | 'week';
+type Range = 'today' | 'week' | 'grid';
 
 /** Trainer home: the next session big, one tap to mark it, the rest of the day below */
 export default function TrainerAppts() {
@@ -77,17 +78,18 @@ export default function TrainerAppts() {
       ) : appts && live ? <Card><Txt>เช็กชื่อครบทุกนัดแล้ว</Txt></Card> : null}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Label style={{ flex: 1 }}>{range === 'today' ? 'ทั้งวัน' : '7 วันนี้'}</Label>
-        <Chips options={[{ v: 'today', t: 'วันนี้' }, { v: 'week', t: '7 วัน' }]} value={range} onChange={setRange} />
+        <Label style={{ flex: 1 }}>{range === 'today' ? 'ทั้งวัน' : range === 'week' ? '7 วันนี้' : 'ตารางว่าง'}</Label>
+        <Chips options={[{ v: 'today', t: 'วันนี้' }, { v: 'week', t: '7 วัน' }, { v: 'grid', t: 'ตาราง' }]} value={range} onChange={setRange} />
       </View>
-      <Card style={{ gap: 0, paddingVertical: 4 }}>
+      {range === 'grid' && profile ? <Card><WeekGrid trainerId={profile.id} reloadKey={appts?.length} /></Card> : null}
+      {range !== 'grid' ? <Card style={{ gap: 0, paddingVertical: 4 }}>
         {appts === null ? <Txt muted style={{ paddingVertical: 14 }}>กำลังโหลด…</Txt>
           : !appts.length ? <Txt muted style={{ paddingVertical: 14 }}>{range === 'today' ? 'วันนี้ไม่มีนัด' : 'ไม่มีนัดใน 7 วันนี้'} · นัดใหม่ได้ที่แท็บ ลูกเทรน</Txt> : null}
         {(appts ?? []).map(a => (
           <ApptCard key={a.id} a={a} showDay={range === 'week'} canManage onLeave={inLeave(a.starts_at, leaves)}
             onDone={(t, ok) => { setMsg({ t, ok }); load(); }} />
         ))}
-      </Card>
+      </Card> : null}
       <Txt muted size={13}>ไม่มา = ไม่หักครั้ง · ถ้าต้องการหัก กดที่นัดนั้นแล้วเลือก</Txt>
       <Btn kind="ghost" icon="calendar-off" label={`วันลา${leaves.length ? ` (${leaves.length})` : ''}`} onPress={() => router.push('/trainer/leave' as any)} />
     </Screen>
