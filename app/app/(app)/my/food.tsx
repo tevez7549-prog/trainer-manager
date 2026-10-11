@@ -9,7 +9,7 @@ import {
   ACTIVITY, addItem, calcTarget, fmt1, latestTarget, loadDay, MEAL_NAMES, totals,
   type Food, type Meal, type MealItem, type Target,
 } from '../../../src/lib/me';
-import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Label, Notice, Row, Screen, Toggle, Txt } from '../../../src/ui';
+import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Label, Notice, Row, Screen, Select, Toggle, Txt } from '../../../src/ui';
 import { DayTotals } from '../../../src/ui/Macro';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
@@ -354,8 +354,8 @@ function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean 
 
     <Txt bold size={14}>ตามฉลาก</Txt>
     <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
-      <View style={{ width: 110 }}><Field label="ค่าต่อ" value={per} onChangeText={v => setPer(num(v))} keyboardType="decimal-pad" /></View>
-      <View style={{ flex: 1 }}><Chips options={UNITS.map(u => ({ v: u, t: u }))} value={unit} onChange={setUnit} /></View>
+      <View style={{ flex: 1 }}><Field label="ค่าต่อ" value={per} onChangeText={v => setPer(num(v))} keyboardType="decimal-pad" /></View>
+      <View style={{ flex: 1 }}><Select label="หน่วย" value={unit} options={UNITS.map(u => ({ v: u, t: u }))} onChange={setUnit} /></View>
     </View>
     <View style={{ flexDirection: 'row', gap: 8 }}>
       <View style={{ flex: 1 }}><Field label="โปรตีน g" value={p} onChangeText={v => setP(num(v))} keyboardType="decimal-pad" /></View>

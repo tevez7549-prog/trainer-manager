@@ -298,3 +298,35 @@ export function Empty({ ic = 'inbox', title, text, action, onAction }: { ic?: Ic
 export function Loading() {
   return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}><ActivityIndicator color={C.accent} size="large" /></View>;
 }
+
+/** Dropdown: the browser's own list on web (opens the phone's native picker on iPhone), a simple list elsewhere */
+export function Select<T extends string>({ label, value, options, onChange }: { label?: string; value: T; options: { v: T; t: string }[]; onChange: (v: T) => void }) {
+  const [open, setOpen] = React.useState(false);
+  const cur = options.find(o => o.v === value)?.t ?? value;
+  return (
+    <View style={{ gap: 8, minWidth: 0 }}>
+      {label ? <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text> : null}
+      {Platform.OS === 'web' ? (
+        <View style={{ position: 'relative' }}>
+          {React.createElement('select', {
+            value, 'aria-label': label ?? 'เลือก', onChange: (e: any) => onChange(e.target.value),
+            style: { ...webInput(label ?? ''), appearance: 'none', WebkitAppearance: 'none', paddingRight: 40, cursor: 'pointer' },
+          }, options.map(o => React.createElement('option', { key: o.v, value: o.v }, o.t)))}
+          <View pointerEvents="none" style={{ position: 'absolute', right: 14, top: 14 }}><Icon name="chevron-down" size={20} color={C.muted} /></View>
+        </View>
+      ) : <>
+        <Pressable accessibilityRole="button" onPress={() => setOpen(!open)}
+          style={{ minHeight: 48, borderWidth: 1, borderColor: C.line, borderRadius: R.field, backgroundColor: C.surface2, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' }}>
+          <Txt style={{ flex: 1 }}>{cur}</Txt><Icon name="chevron-down" size={20} color={C.muted} />
+        </Pressable>
+        {open ? <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: R.field, backgroundColor: C.surface }}>
+          {options.map(o => (
+            <Pressable key={o.v} accessibilityRole="button" onPress={() => { onChange(o.v); setOpen(false); }} style={{ minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' }}>
+              <Txt bold={o.v === value} style={o.v === value ? { color: C.accent } : undefined}>{o.t}</Txt>
+            </Pressable>
+          ))}
+        </View> : null}
+      </>}
+    </View>
+  );
+}
