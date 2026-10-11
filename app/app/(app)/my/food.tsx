@@ -34,7 +34,9 @@ export default function FoodPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [target, setTarget] = useState<Target | null | undefined>(undefined);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [mode, setMode] = useState<Mode | null>(add ? 'search' : null);
+  const [sheet, setSheet] = useState<{ mode: Mode; meal: string; at: 'top' | 'slot' } | null>(add ? { mode: 'search', meal: mealNow(), at: 'top' } : null);
+  const mode = sheet?.at === 'top' ? sheet.mode : null;
+  const setMode = (m: Mode | null) => setSheet(m ? { mode: m, meal: mealNow(), at: 'top' } : null);
   const [setting, setSetting] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
@@ -57,7 +59,7 @@ export default function FoodPage() {
     if (error) done(thError(error), false); else done(`ลบ ${i.name} แล้ว`);
   }
   const today = day === todayISO();
-  const eaten = MEAL_NAMES.map(n => meals.find(m => m.name === n)).filter((m): m is Meal => !!m && m.items.length > 0);
+
 
   return (
     <Screen footer={<TabBar tabs={MEMBER_TABS} active="food" />}>
@@ -81,37 +83,35 @@ export default function FoodPage() {
       </Pressable>
       {setting ? <TargetForm current={target ?? null} onDone={(t) => { setSetting(false); if (t) done(t); }} /> : null}
 
-      <Label>เพิ่มมื้อ</Label>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Tile icon="camera" label="ถ่ายรูป (AI)" primary on={mode === 'photo'} onPress={() => setMode(mode === 'photo' ? null : 'photo')} />
-        <Tile icon="search" label="ค้นหา" on={mode === 'search'} onPress={() => setMode(mode === 'search' ? null : 'search')} />
-        <Tile icon="star" label="เมนูโปรด" on={mode === 'fav'} onPress={() => setMode(mode === 'fav' ? null : 'fav')} />
-      </View>
-      <Card style={{ gap: 0, paddingVertical: 4 }}>
-        <Row ic="repeat" title="กินล่าสุด" sub="กดซ้ำได้ ไม่ต้องค้นใหม่" onPress={() => setMode(mode === 'recent' ? null : 'recent')} />
-        <Row ic="pencil" title="สร้างเมนูเอง" sub="กรอกโปรตีน คาร์บ ไขมัน แล้วคำนวณแคลให้" onPress={() => setMode(mode === 'custom' ? null : 'custom')} />
-      </Card>
-      {mode ? <AddSheet mode={mode} day={day} onDone={(t) => { setMode(null); if (t) done(t); }} /> : null}
-
       <Label>{today ? 'มื้อวันนี้' : `มื้อวันที่ ${thDate(day)}`}</Label>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
-        {!eaten.length ? <Txt muted style={{ paddingVertical: 14 }}>ยังไม่ได้บันทึก · เลือกวิธีเพิ่มด้านบน</Txt> : null}
-        {eaten.map(m => {
-          const t = totals(m.items), cs = comments.filter(c => c.meal_id === m.id), on = open === m.id;
+        {MEAL_NAMES.map(name => {
+          const m = meals.find(x => x.name === name);
+          const items = m?.items ?? [];
+          const t = totals(items), cs = comments.filter(c => c.meal_id === m?.id), on = !!m && open === m.id;
+          const adding = sheet?.at === 'slot' && sheet.meal === name;
           return (
-            <View key={m.id} style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
-              <Pressable accessibilityRole="button" onPress={() => setOpen(on ? null : m.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68, paddingVertical: 8 }}>
-                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt bold size={13} style={{ color: C.accent }}>{SHORT[m.name] ?? m.name}</Txt>
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Txt bold numberOfLines={1}>{m.items.map(i => i.name).join(', ')}</Txt>
-                  <Txt muted size={13}>{macroLine({ kcal: t.kcal, protein_g: t.p, carb_g: t.c, fat_g: t.f })}{cs.length ? ` · ${cs.length} ข้อความ` : ''}</Txt>
-                </View>
-                <Icon name={on ? 'chevron-down' : 'chevron-right'} size={18} color={C.muted} />
-              </Pressable>
+            <View key={name} style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68, paddingVertical: 8 }}>
+                <Pressable accessibilityRole="button" disabled={!items.length} onPress={() => setOpen(on ? null : m!.id)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: items.length ? C.accentSoft : C.surface2, alignItems: 'center', justifyContent: 'center' }}>
+                    <Txt bold size={13} style={{ color: items.length ? C.accent : C.muted }}>{SHORT[name] ?? name}</Txt>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    {items.length ? <>
+                      <Txt bold numberOfLines={1}>{items.map(i => i.name).join(', ')}</Txt>
+                      <Txt muted size={13}>{macroLine({ kcal: t.kcal, protein_g: t.p, carb_g: t.c, fat_g: t.f })}{cs.length ? ` · ${cs.length} ข้อความ` : ''}</Txt>
+                    </> : <Txt muted>{name}</Txt>}
+                  </View>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel={`เพิ่มอาหาร${name}`} onPress={() => setSheet(adding ? null : { mode: 'search', meal: name, at: 'slot' })}
+                  style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: adding ? C.accentSoft : C.surface2, opacity: pressed ? 0.7 : 1 })}>
+                  <Icon name={adding ? 'x' : 'plus'} size={20} color={C.accent} />
+                </Pressable>
+              </View>
+              {adding ? <View style={{ paddingBottom: 12 }}><AddSheet bare mode={sheet!.mode} meal={name} day={day} onDone={(tt) => { setSheet(null); if (tt) done(tt); }} /></View> : null}
               {on ? <View style={{ paddingBottom: 10, gap: 6 }}>
-                {m.items.map(i => <ItemRow key={i.id} i={i} onDelete={() => del(i)} />)}
+                {items.map(i => <ItemRow key={i.id} i={i} onDelete={() => del(i)} />)}
                 {cs.map(c => (
                   <View key={c.id} style={{ flexDirection: 'row', gap: 8, padding: 10, borderRadius: R.field, backgroundColor: C.infoBg }}>
                     <Icon name="message" size={18} color={C.infoFg} />
@@ -123,6 +123,18 @@ export default function FoodPage() {
           );
         })}
       </Card>
+      <Label>เพิ่มเร็ว</Label>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Tile icon="camera" label="ถ่ายรูป (AI)" primary on={mode === 'photo'} onPress={() => setMode(mode === 'photo' ? null : 'photo')} />
+        <Tile icon="search" label="ค้นหา" on={mode === 'search'} onPress={() => setMode(mode === 'search' ? null : 'search')} />
+        <Tile icon="star" label="เมนูโปรด" on={mode === 'fav'} onPress={() => setMode(mode === 'fav' ? null : 'fav')} />
+      </View>
+      <Card style={{ gap: 0, paddingVertical: 4 }}>
+        <Row ic="repeat" title="กินล่าสุด" sub="กดซ้ำได้ ไม่ต้องค้นใหม่" onPress={() => setMode(mode === 'recent' ? null : 'recent')} />
+        <Row ic="pencil" title="สร้างเมนูเอง" sub="กรอกโปรตีน คาร์บ ไขมัน แล้วคำนวณแคลให้" onPress={() => setMode(mode === 'custom' ? null : 'custom')} />
+      </Card>
+      {sheet?.at === 'top' ? <AddSheet key={sheet.mode} mode={sheet.mode} meal={sheet.meal} day={day} onDone={(t) => { setSheet(null); if (t) done(t); }} /> : null}
+
     </Screen>
   );
 }
@@ -155,9 +167,10 @@ function ItemRow({ i, onDelete }: { i: MealItem; onDelete: () => void }) {
 }
 
 /** One sheet for every way of adding: pick the meal, then the food */
-function AddSheet({ mode, day, onDone }: { mode: Mode; day: string; onDone: (msg?: string) => void }) {
+function AddSheet({ mode: mode0, meal: meal0, day, bare, onDone }: { mode: Mode; meal: string; day: string; bare?: boolean; onDone: (msg?: string) => void }) {
   const { profile } = useAuth();
-  const [meal, setMeal] = useState(mealNow());
+  const [meal, setMeal] = useState(meal0);
+  const [mode, setMode] = useState<Mode>(mode0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -170,21 +183,21 @@ function AddSheet({ mode, day, onDone }: { mode: Mode; day: string; onDone: (msg
   }
   const title = { photo: 'ถ่ายรูปอาหาร', search: 'ค้นหาอาหาร', fav: 'เมนูโปรด', recent: 'กินล่าสุด', custom: 'สร้างเมนูเอง' }[mode];
 
-  return (
-    <Card>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  const body = <>
+      {!bare ? <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <H size={17} style={{ flex: 1 }}>{title}</H>
         <Pressable accessibilityRole="button" accessibilityLabel="ปิด" onPress={() => onDone()} hitSlop={8}><Icon name="x" size={20} color={C.muted} /></Pressable>
-      </View>
-      <Chips options={MEAL_NAMES.map(n => ({ v: n, t: SHORT[n] ?? n }))} value={meal} onChange={setMeal} />
+      </View> : null}
+      {bare ? <Chips options={[{ v: 'search', t: 'ค้นหา' }, { v: 'fav', t: 'โปรด' }, { v: 'recent', t: 'ล่าสุด' }, { v: 'custom', t: 'สร้างเอง' }, { v: 'photo', t: 'ถ่ายรูป' }] as { v: Mode; t: string }[]} value={mode} onChange={setMode} />
+        : <Chips options={MEAL_NAMES.map(n => ({ v: n, t: SHORT[n] ?? n }))} value={meal} onChange={setMeal} />}
       {err ? <Notice text={err} /> : null}
       {mode === 'search' ? <SearchFoods onPick={(f, x) => save(scaled(f, x))} busy={busy} /> : null}
       {mode === 'fav' ? <Favorites onPick={(f, x) => save(scaled(f, x))} busy={busy} /> : null}
       {mode === 'recent' ? <Recent onPick={save} /> : null}
       {mode === 'custom' ? <Custom onSave={save} busy={busy} /> : null}
       {mode === 'photo' ? <Photo onPick={(f) => save(scaled(f, 1, true))} busy={busy} /> : null}
-    </Card>
-  );
+  </>;
+  return bare ? <View style={{ gap: 12 }}>{body}</View> : <Card>{body}</Card>;
 }
 
 function useFoods() {
@@ -241,12 +254,15 @@ function SearchFoods({ onPick, busy }: { onPick: (f: Food, x: number) => void; b
   const foods = useFoods(), fav = useFavIds();
   const [q, setQ] = useState('');
   const [pick, setPick] = useState<Food | null>(null);
-  const found = useMemo(() => { const s = q.trim(); return (s ? foods.filter(f => f.name_th.includes(s)) : foods).slice(0, 30); }, [foods, q]);
+  const term = q.trim();
+  // nothing listed until the user types; then the closest matches first (name starts with the word, then contains it)
+  const found = useMemo(() => !term ? [] : foods.filter(f => f.name_th.includes(term))
+    .sort((a, b) => Number(!a.name_th.startsWith(term)) - Number(!b.name_th.startsWith(term))).slice(0, 8), [foods, term]);
   if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
   return <>
-    <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="เช่น กะเพรา อกไก่ ส้มตำ" icon="search" />
-    <FoodList foods={found} onPick={setPick} fav={fav} />
-    {!found.length ? <Txt muted>ไม่เจอ ลอง "สร้างเมนูเอง"</Txt> : null}
+    <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="พิมพ์ชื่ออาหาร เช่น กะเพรา อกไก่" icon="search" autoFocus />
+    {term ? <FoodList foods={found} onPick={setPick} fav={fav} /> : null}
+    {term && !found.length ? <Txt muted>ไม่เจอ "{term}" · ลองคำอื่น หรือเลือก "สร้างเอง"</Txt> : null}
     <Txt muted size={12.5}>ฐานข้อมูลอาหารตัวอย่าง ค่าโดยประมาณ · แตะดาวเพื่อเก็บเป็นเมนูโปรด</Txt>
   </>;
 }
