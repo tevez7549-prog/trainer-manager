@@ -21,15 +21,16 @@ export const operatorTabs = (g: string): Tab[] => [
   { k: 'me', t: 'ฉัน', icon: 'user', href: `/me?from=desk&g=${g}` },
 ];
 export const TRAINER_TABS: Tab[] = [
-  { k: 'appts', t: 'นัด', icon: 'calendar', href: '/trainer' },
+  { k: 'today', t: 'วันนี้', icon: 'calendar', href: '/trainer' },
+  { k: 'calendar', t: 'ปฏิทิน', icon: 'calendar-days', href: '/trainer/calendar' },
   { k: 'clients', t: 'ลูกเทรน', icon: 'users', href: '/trainer/clients' },
+  { k: 'library', t: 'คลังท่า', icon: 'dumbbell', href: '/trainer/library' },
   { k: 'me', t: 'ฉัน', icon: 'user', href: '/me?from=trainer' },
 ];
 export const MEMBER_TABS: Tab[] = [
   { k: 'home', t: 'หน้าแรก', icon: 'house', href: '/?me=1' },
-  { k: 'food', t: 'อาหาร', icon: 'utensils', href: '/my/food' },
-  { k: 'body', t: 'ร่างกาย', icon: 'scale', href: '/my/body' },
   { k: 'train', t: 'ออกกำลัง', icon: 'dumbbell', href: '/my/train' },
+  { k: 'food', t: 'อาหาร', icon: 'utensils', href: '/my/food' },
   { k: 'me', t: 'ฉัน', icon: 'user', href: '/me?from=member' },
 ];
 

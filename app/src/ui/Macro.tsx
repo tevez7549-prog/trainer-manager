@@ -14,31 +14,39 @@ function Bar({ value, max, color, over }: { value: number; max?: number | null; 
   );
 }
 
-/** "กินไปแล้ว 1,240 / 1,800 kcal" with one bar per macro */
+/** Calories against the target, then protein / carb / fat side by side with what is left (or over) */
 export function DayTotals({ t, target, compact }: { t: Totals; target: Target | null; compact?: boolean }) {
   const kcalOver = !!target && t.kcal > target.kcal;
   const left = target ? Math.round(target.kcal - t.kcal) : null;
-  const rows: [string, number, number | null | undefined, string][] = [
+  const cols: [string, number, number | null | undefined, string][] = [
     ['โปรตีน', t.p, target?.protein_g, C.protein], ['คาร์บ', t.c, target?.carb_g, C.carb], ['ไขมัน', t.f, target?.fat_g, C.fat],
   ];
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-        <H size={compact ? 32 : 40} style={{ fontVariant: ['tabular-nums'] }}>{Math.round(t.kcal).toLocaleString('en-US')}</H>
+        <Txt bold style={{ flex: 1 }}>แคลอรี</Txt>
+        <H size={compact ? 28 : 32} style={{ fontVariant: ['tabular-nums'] }}>{Math.round(t.kcal).toLocaleString('en-US')}</H>
         <Txt muted size={14}>{target ? `/ ${target.kcal.toLocaleString('en-US')} kcal` : 'kcal'}</Txt>
-        <View style={{ flex: 1 }} />
-        {left !== null ? <Txt size={14} bold style={{ color: kcalOver ? C.over : C.accent }}>{kcalOver ? `เกิน ${-left}` : `เหลือ ${left}`}</Txt> : null}
       </View>
-      {target ? <Bar value={t.kcal} max={target.kcal} color={C.brand} over={kcalOver} /> : null}
-      {rows.map(([name, v, max, color]) => (
-        <View key={name} style={{ gap: 4 }}>
-          <View style={{ flexDirection: 'row' }}>
-            <Txt size={13} style={{ flex: 1 }}>{name}</Txt>
-            <Txt muted size={13} style={{ fontVariant: ['tabular-nums'] }}>{Math.round(v)}{max ? ` / ${max}` : ''} g</Txt>
-          </View>
-          <Bar value={v} max={max ?? Math.max(v, 1)} color={color} over={!!max && v > max * 1.1} />
-        </View>
-      ))}
+      {target ? <>
+        <Bar value={t.kcal} max={target.kcal} color={C.brand} over={kcalOver} />
+        <Txt size={13} style={{ color: kcalOver ? C.over : C.muted, marginTop: -6 }}>{kcalOver ? `เกิน ${-left!} kcal` : `เหลือ ${left} kcal`}</Txt>
+      </> : null}
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        {cols.map(([name, v, max, color]) => {
+          const over = !!max && v > max;
+          return (
+            <View key={name} style={{ flex: 1, gap: 6, minWidth: 0 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                <Txt bold size={14} style={{ flex: 1 }}>{name}</Txt>
+                <Txt muted size={12.5} style={{ fontVariant: ['tabular-nums'] }}>{Math.round(v)}{max ? `/${max}` : ' g'}</Txt>
+              </View>
+              <Bar value={v} max={max ?? Math.max(v, 1)} color={color} over={over} />
+              {max ? <Txt size={12.5} bold={over} style={{ color: over ? C.over : C.muted }}>{over ? `เกิน ${Math.round(v - max)} ก.` : `เหลือ ${Math.round(max - v)} ก.`}</Txt> : null}
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }

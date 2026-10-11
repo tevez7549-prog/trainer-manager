@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { supabase, thError } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { addDays, thDate, thDateTs, todayISO } from '../lib/gym';
-import { fmt1, latestTarget, loadDay, PART_TH, totals, type Exercise, type Meal, type Target } from '../lib/me';
+import { thDate, thDateTs, todayISO } from '../lib/gym';
+import { fmt1, latestTarget, loadDay, totals, type Meal, type Target } from '../lib/me';
 import { C, R } from '../lib/theme';
-import { Btn, Card, Chips, DateField, Field, H, Notice, Txt } from './index';
+import { Btn, Card, Chips, Field, H, Notice, Txt } from './index';
 import { DayTotals } from './Macro';
-import { Icon } from './Icon';
+import { ProgramEditor } from './ProgramEditor';
 
 /**
  * What a trainer sees of a trainee who uses the app: weight trend, today's food against the target,
@@ -64,7 +64,7 @@ export function TraineeHealth({ clientId, tcId, name }: { clientId: string | nul
       </View>
     </Card>
     {panel === 'target' ? <TargetFor clientId={clientId} current={target} onDone={done} /> : null}
-    {panel === 'program' ? <ProgramBuilder tcId={tcId} onDone={done} /> : null}
+    {panel === 'program' ? <ProgramEditor title="จัดโปรแกรมให้ลูกเทรน" tcId={tcId} onDone={done} /> : null}
     {meals.length ? <MealsWithComments clientId={clientId} meals={meals} /> : null}
   </>;
 }
@@ -98,70 +98,6 @@ function TargetFor({ clientId, current, onDone }: { clientId: string; current: T
         <View style={{ flex: 1 }}><Field label="ไขมัน g" value={f} onChangeText={v => setF(num(v))} keyboardType="number-pad" /></View>
       </View>
       <Btn label="บันทึกเป้า" onPress={save} />
-      <Btn kind="ghost" label="ยกเลิก" onPress={() => onDone()} />
-    </Card>
-  );
-}
-
-type Row = { ex: Exercise; sets: string; reps: string; kg: string };
-
-/** A short workout plan for the trainee; it shows up on their "ออกกำลัง" tab */
-function ProgramBuilder({ tcId, onDone }: { tcId: string; onDone: (msg?: string) => void }) {
-  const { profile } = useAuth();
-  const [name, setName] = useState('');
-  const [day, setDay] = useState(addDays(todayISO(), 1));
-  const [rows, setRows] = useState<Row[]>([]);
-  const [lib, setLib] = useState<Exercise[]>([]);
-  const [part, setPart] = useState('chest');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { supabase.from('exercises').select('id,name_th,name_en,body_part,kind').order('name_th').then(({ data }) => setLib((data as Exercise[]) ?? [])); }, []);
-  const shown = useMemo(() => lib.filter(e => e.body_part === part), [lib, part]);
-  const set = (i: number, k: 'sets' | 'reps' | 'kg', v: string) => setRows(rows.map((r, a) => a === i ? { ...r, [k]: v.replace(/[^\d.]/g, '') } : r));
-
-  async function save() {
-    if (!rows.length) { setErr('เพิ่มอย่างน้อย 1 ท่า'); return; }
-    setBusy(true);
-    const title = name.trim() || [...new Set(rows.map(r => PART_TH[r.ex.body_part]))].join(' + ');
-    const p = await supabase.from('programs').insert({ owner_id: profile!.id, name: title, trainer_client_id: tcId, planned_for: day || null }).select('id').single();
-    if (p.error) { setBusy(false); setErr(thError(p.error)); return; }
-    const { error } = await supabase.from('program_exercises').insert(rows.map((r, i) => ({
-      program_id: p.data!.id, position: i + 1, exercise_id: r.ex.id, sets: r.sets ? Number(r.sets) : null, reps: r.reps ? Number(r.reps) : null, weight_kg: r.kg ? Number(r.kg) : null,
-    })));
-    setBusy(false);
-    if (error) { setErr(thError(error)); return; }
-    onDone(`ส่งโปรแกรม "${title}" ให้แล้ว · ลูกเทรนเห็นที่แท็บ ออกกำลัง`);
-  }
-
-  return (
-    <Card>
-      <H size={17}>จัดโปรแกรม</H>
-      {err ? <Notice text={err} /> : null}
-      <Field label="ชื่อโปรแกรม (ไม่บังคับ)" value={name} onChangeText={setName} placeholder="เช่น วันขา" />
-      <DateField label="สำหรับวันที่" value={day} onChange={setDay} min={todayISO()} />
-      {rows.map((r, i) => (
-        <View key={r.ex.id + i} style={{ gap: 6, padding: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Txt bold style={{ flex: 1 }}>{i + 1}. {r.ex.name_th}</Txt>
-            <Pressable accessibilityRole="button" accessibilityLabel={`เอา ${r.ex.name_th} ออก`} onPress={() => setRows(rows.filter((_, a) => a !== i))} hitSlop={8}><Icon name="x" size={18} color={C.muted} /></Pressable>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1 }}><Field label="เซต" value={r.sets} onChangeText={v => set(i, 'sets', v)} keyboardType="number-pad" /></View>
-            <View style={{ flex: 1 }}><Field label="ครั้ง" value={r.reps} onChangeText={v => set(i, 'reps', v)} keyboardType="number-pad" /></View>
-            <View style={{ flex: 1 }}><Field label="kg" value={r.kg} onChangeText={v => set(i, 'kg', v)} keyboardType="decimal-pad" /></View>
-          </View>
-        </View>
-      ))}
-      <Chips options={Object.keys(PART_TH).map(k => ({ v: k, t: PART_TH[k] }))} value={part} onChange={setPart} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {shown.map(x => (
-          <Pressable key={x.id} accessibilityRole="button" onPress={() => setRows([...rows, { ex: x, sets: '3', reps: x.kind === 'strength' ? '10' : '', kg: '' }])}
-            style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 14, borderRadius: R.pill, backgroundColor: C.surface2, justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
-            <Txt size={15}>+ {x.name_th}</Txt>
-          </Pressable>
-        ))}
-      </View>
-      <Btn label="ส่งโปรแกรม" onPress={save} loading={busy} />
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onDone()} />
     </Card>
   );

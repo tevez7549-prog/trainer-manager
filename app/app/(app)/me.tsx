@@ -48,6 +48,11 @@ export default function Me() {
         <H size={40} style={{ color: C.brandInk, letterSpacing: 2 }}>{profile.uid}</H>
         <Txt size={14} style={{ color: C.brandInk, textAlign: 'center' }}>บอก UID นี้ให้ยิมหรือเทรนเนอร์ เพื่อเพิ่มคุณเข้าระบบ</Txt>
       </View>
+      {from === 'member' ? (
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <Row ic="scale" title="ร่างกาย" sub="น้ำหนัก สัดส่วน รูปความคืบหน้า" onPress={() => router.push('/my/body' as any)} />
+        </Card>
+      ) : null}
       <Card>
         <H size={17}>ข้อมูลส่วนตัว</H>
         {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}

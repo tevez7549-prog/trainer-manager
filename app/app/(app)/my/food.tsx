@@ -9,14 +9,23 @@ import {
   ACTIVITY, addItem, calcTarget, fmt1, latestTarget, loadDay, MEAL_NAMES, totals,
   type Food, type Meal, type MealItem, type Target,
 } from '../../../src/lib/me';
-import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Notice, Screen, Txt } from '../../../src/ui';
+import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Label, Notice, Row, Screen, Toggle, Txt } from '../../../src/ui';
 import { DayTotals } from '../../../src/ui/Macro';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
 import { C, R } from '../../../src/lib/theme';
 
 type Comment = { id: string; meal_id: string; body: string; created_at: string; author: { display_name: string } | null };
+type Mode = 'photo' | 'search' | 'fav' | 'recent' | 'custom';
+type NewItem = Omit<MealItem, 'id' | 'meal_id'>;
+const SHORT: Record<string, string> = { 'มื้อเช้า': 'เช้า', 'มื้อกลางวัน': 'เที่ยง', 'มื้อเย็น': 'เย็น', 'ของว่าง': 'ว่าง' };
 const mealNow = () => { const h = new Date().getHours(); return h < 10 ? 'มื้อเช้า' : h < 15 ? 'มื้อกลางวัน' : h < 21 ? 'มื้อเย็น' : 'ของว่าง'; };
+const scaled = (f: Food, x: number, ai = false): NewItem => ({
+  name: f.name_th, grams: Math.round(f.serving_g * x), kcal: Math.round(f.kcal * x), protein_g: +(f.protein_g * x).toFixed(1),
+  carb_g: +(f.carb_g * x).toFixed(1), fat_g: +(f.fat_g * x).toFixed(1), from_ai: ai, food_id: f.id,
+});
+const macroLine = (i: { kcal: number; protein_g: number; carb_g: number; fat_g: number }) =>
+  `${Math.round(i.kcal)} kcal · P ${Math.round(i.protein_g)} C ${Math.round(i.carb_g)} F ${Math.round(i.fat_g)}`;
 
 export default function FoodPage() {
   const { profile } = useAuth();
@@ -25,8 +34,9 @@ export default function FoodPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [target, setTarget] = useState<Target | null | undefined>(undefined);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [adding, setAdding] = useState<string | null>(add ? mealNow() : null);
+  const [mode, setMode] = useState<Mode | null>(add ? 'search' : null);
   const [setting, setSetting] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
 
   const load = useCallback(async () => {
@@ -41,167 +51,300 @@ export default function FoodPage() {
   }, [profile, day]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const all = meals.flatMap(m => m.items);
   const done = (t: string, ok = true) => { setMsg({ t, ok }); load(); };
   async function del(i: MealItem) {
     const { error } = await supabase.from('meal_items').delete().eq('id', i.id);
     if (error) done(thError(error), false); else done(`ลบ ${i.name} แล้ว`);
   }
+  const today = day === todayISO();
+  const eaten = MEAL_NAMES.map(n => meals.find(m => m.name === n)).filter((m): m is Meal => !!m && m.items.length > 0);
 
   return (
     <Screen footer={<TabBar tabs={MEMBER_TABS} active="food" />}>
       <Header title="อาหาร" right={
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Pressable accessibilityRole="button" accessibilityLabel="วันก่อน" onPress={() => setDay(addDays(day, -1))} style={{ padding: 10 }}><Icon name="chevron-left" size={20} /></Pressable>
-          <Txt bold size={14}>{day === todayISO() ? 'วันนี้' : thDate(day)}</Txt>
-          <Pressable accessibilityRole="button" accessibilityLabel="วันถัดไป" disabled={day >= todayISO()} onPress={() => setDay(addDays(day, 1))} style={{ padding: 10, opacity: day >= todayISO() ? 0.3 : 1 }}><Icon name="chevron-right" size={20} /></Pressable>
+          <Txt bold size={14}>{today ? 'วันนี้' : thDate(day)}</Txt>
+          <Pressable accessibilityRole="button" accessibilityLabel="วันถัดไป" disabled={today} onPress={() => setDay(addDays(day, 1))} style={{ padding: 10, opacity: today ? 0.3 : 1 }}><Icon name="chevron-right" size={20} /></Pressable>
         </View>} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
-      <Card>
-        <DayTotals t={totals(all)} target={target ?? null} />
-        {target && target.set_by && target.set_by !== profile?.id ? <Txt muted size={13}>เป้านี้ตั้งโดยเทรนเนอร์</Txt> : null}
-        {target === null && !setting ? <Btn kind="ghost" icon="flame" label="ตั้งเป้าแคลอรี" onPress={() => setSetting(true)} /> : null}
-        {target && !setting ? <Txt size={14} style={{ color: C.accent }} onPress={() => setSetting(true)}>เปลี่ยนเป้า</Txt> : null}
-      </Card>
-      {setting ? <TargetForm onDone={(t) => { setSetting(false); if (t) done(t); }} /> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="ดูหรือเปลี่ยนเป้า" onPress={() => setSetting(!setting)}>
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <H size={17} style={{ flex: 1 }}>{today ? 'วันนี้กินไปแล้ว' : `กินไปแล้ว ${thDate(day)}`}</H>
+            <Txt muted size={13}>{target ? 'แตะเพื่อดูเป้า' : 'แตะเพื่อตั้งเป้า'}</Txt>
+          </View>
+          <DayTotals t={totals(meals.flatMap(m => m.items))} target={target ?? null} />
+          {target && target.set_by && target.set_by !== profile?.id ? <Txt muted size={13}>เป้านี้ตั้งโดยเทรนเนอร์</Txt> : null}
+        </Card>
+      </Pressable>
+      {setting ? <TargetForm current={target ?? null} onDone={(t) => { setSetting(false); if (t) done(t); }} /> : null}
 
-      {MEAL_NAMES.map(name => {
-        const m = meals.find(x => x.name === name);
-        const items = m?.items ?? [];
-        const kcal = Math.round(totals(items).kcal);
-        const cs = comments.filter(c => c.meal_id === m?.id);
-        return (
-          <Card key={name} style={{ gap: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <H size={17} style={{ flex: 1 }}>{name}</H>
-              {kcal ? <Txt muted size={14}>{kcal} kcal</Txt> : null}
+      <Label>เพิ่มมื้อ</Label>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Tile icon="camera" label="ถ่ายรูป (AI)" primary on={mode === 'photo'} onPress={() => setMode(mode === 'photo' ? null : 'photo')} />
+        <Tile icon="search" label="ค้นหา" on={mode === 'search'} onPress={() => setMode(mode === 'search' ? null : 'search')} />
+        <Tile icon="star" label="เมนูโปรด" on={mode === 'fav'} onPress={() => setMode(mode === 'fav' ? null : 'fav')} />
+      </View>
+      <Card style={{ gap: 0, paddingVertical: 4 }}>
+        <Row ic="repeat" title="กินล่าสุด" sub="กดซ้ำได้ ไม่ต้องค้นใหม่" onPress={() => setMode(mode === 'recent' ? null : 'recent')} />
+        <Row ic="pencil" title="สร้างเมนูเอง" sub="กรอกโปรตีน คาร์บ ไขมัน แล้วคำนวณแคลให้" onPress={() => setMode(mode === 'custom' ? null : 'custom')} />
+      </Card>
+      {mode ? <AddSheet mode={mode} day={day} onDone={(t) => { setMode(null); if (t) done(t); }} /> : null}
+
+      <Label>{today ? 'มื้อวันนี้' : `มื้อวันที่ ${thDate(day)}`}</Label>
+      <Card style={{ gap: 0, paddingVertical: 4 }}>
+        {!eaten.length ? <Txt muted style={{ paddingVertical: 14 }}>ยังไม่ได้บันทึก · เลือกวิธีเพิ่มด้านบน</Txt> : null}
+        {eaten.map(m => {
+          const t = totals(m.items), cs = comments.filter(c => c.meal_id === m.id), on = open === m.id;
+          return (
+            <View key={m.id} style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
+              <Pressable accessibilityRole="button" onPress={() => setOpen(on ? null : m.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68, paddingVertical: 8 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <Txt bold size={13} style={{ color: C.accent }}>{SHORT[m.name] ?? m.name}</Txt>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Txt bold numberOfLines={1}>{m.items.map(i => i.name).join(', ')}</Txt>
+                  <Txt muted size={13}>{macroLine({ kcal: t.kcal, protein_g: t.p, carb_g: t.c, fat_g: t.f })}{cs.length ? ` · ${cs.length} ข้อความ` : ''}</Txt>
+                </View>
+                <Icon name={on ? 'chevron-down' : 'chevron-right'} size={18} color={C.muted} />
+              </Pressable>
+              {on ? <View style={{ paddingBottom: 10, gap: 6 }}>
+                {m.items.map(i => <ItemRow key={i.id} i={i} onDelete={() => del(i)} />)}
+                {cs.map(c => (
+                  <View key={c.id} style={{ flexDirection: 'row', gap: 8, padding: 10, borderRadius: R.field, backgroundColor: C.infoBg }}>
+                    <Icon name="message" size={18} color={C.infoFg} />
+                    <Txt size={14} style={{ color: C.infoFg, flex: 1 }}><Txt bold size={14} style={{ color: C.infoFg }}>{c.author?.display_name ?? 'เทรนเนอร์'}: </Txt>{c.body}</Txt>
+                  </View>
+                ))}
+              </View> : null}
             </View>
-            {items.map(i => <ItemRow key={i.id} i={i} onDelete={() => del(i)} />)}
-            {cs.map(c => (
-              <View key={c.id} style={{ flexDirection: 'row', gap: 8, padding: 10, borderRadius: R.field, backgroundColor: C.infoBg }}>
-                <Icon name="message" size={18} color={C.infoFg} />
-                <Txt size={14} style={{ color: C.infoFg, flex: 1 }}><Txt bold style={{ color: C.infoFg }}>{c.author?.display_name ?? 'เทรนเนอร์'}: </Txt>{c.body}</Txt>
-              </View>
-            ))}
-            {adding === name
-              ? <AddFood meal={name} day={day} onDone={(t) => { setAdding(null); if (t) done(t); }} />
-              : <Btn kind="ghost" icon="plus" label="เพิ่ม" onPress={() => setAdding(name)} style={{ minHeight: 44 }} />}
-          </Card>
-        );
-      })}
+          );
+        })}
+      </Card>
     </Screen>
+  );
+}
+
+function Tile({ icon, label, onPress, primary, on }: { icon: string; label: string; onPress: () => void; primary?: boolean; on?: boolean }) {
+  const bg = primary ? C.brand : on ? C.accentSoft : C.surface, fg = primary ? C.brandInk : on ? C.accent : C.fg;
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!on }} onPress={onPress}
+      style={({ pressed }) => ({ flex: 1, minHeight: 92, borderRadius: R.card, backgroundColor: bg, padding: 14, justifyContent: 'space-between',
+        borderWidth: on && !primary ? 1.5 : 0, borderColor: C.accent, opacity: pressed ? 0.85 : 1 })}>
+      <Icon name={icon} size={24} color={fg} />
+      <Txt bold size={15} style={{ color: fg }}>{label}</Txt>
+    </Pressable>
   );
 }
 
 function ItemRow({ i, onDelete }: { i: MealItem; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 8, gap: 6 }}>
+    <View style={{ gap: 6, paddingLeft: 56 }}>
       <Pressable accessibilityRole="button" onPress={() => setOpen(!open)} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
-          <Txt bold size={15}>{i.name}{i.from_ai ? '  ·  ผลจำลอง' : ''}</Txt>
-          <Txt muted size={13}>{i.grams ? `${fmt1(i.grams)} g · ` : ''}P {fmt1(i.protein_g)} · C {fmt1(i.carb_g)} · F {fmt1(i.fat_g)}</Txt>
+          <Txt size={15}>{i.name}{i.grams ? ` · ${fmt1(i.grams)} g` : ''}{i.from_ai ? ' · ผลจำลอง' : ''}</Txt>
+          <Txt muted size={12.5}>{macroLine(i)}</Txt>
         </View>
-        <Txt bold>{Math.round(i.kcal)}</Txt>
       </Pressable>
       {open ? <ConfirmBtn label="ลบรายการนี้" onConfirm={onDelete} /> : null}
     </View>
   );
 }
 
-type Mode = 'search' | 'manual' | 'photo';
-
-/** Add food: search the food list, type it in, or (simulated) snap a photo */
-function AddFood({ meal, day, onDone }: { meal: string; day: string; onDone: (msg?: string) => void }) {
+/** One sheet for every way of adding: pick the meal, then the food */
+function AddSheet({ mode, day, onDone }: { mode: Mode; day: string; onDone: (msg?: string) => void }) {
   const { profile } = useAuth();
-  const [mode, setMode] = useState<Mode>('search');
-  const [foods, setFoods] = useState<Food[]>([]);
-  const [q, setQ] = useState('');
-  const [pick, setPick] = useState<Food | null>(null);
-  const [mult, setMult] = useState(1);
-  const [m, setM] = useState({ name: '', kcal: '', p: '', c: '', f: '' });
-  const [aiGuess, setAiGuess] = useState<Food | null>(null);
-  const [err, setErr] = useState('');
+  const [meal, setMeal] = useState(mealNow());
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
 
-  useEffect(() => { supabase.from('foods').select('*').order('name_th').then(({ data }) => setFoods((data as Food[]) ?? [])); }, []);
-  const found = useMemo(() => { const s = q.trim(); return (s ? foods.filter(f => f.name_th.includes(s)) : foods).slice(0, 30); }, [foods, q]);
-
-  async function save(item: Omit<MealItem, 'id' | 'meal_id'>, label: string) {
+  async function save(item: NewItem) {
     setBusy(true); setErr('');
     const { error } = await addItem(profile!.id, day, meal, item);
     setBusy(false);
     if (error) { setErr(thError(error)); return; }
-    onDone(`เพิ่ม ${label} ใน${meal}แล้ว`);
+    onDone(`เพิ่ม ${item.name} ใน${meal}แล้ว`);
   }
-  const fromFood = (f: Food, x: number, ai = false) => save({
-    name: f.name_th, grams: Math.round(f.serving_g * x), kcal: Math.round(f.kcal * x), protein_g: +(f.protein_g * x).toFixed(1),
-    carb_g: +(f.carb_g * x).toFixed(1), fat_g: +(f.fat_g * x).toFixed(1), from_ai: ai, food_id: f.id,
-  }, f.name_th);
-
-  async function manual() {
-    const kcal = Number(m.kcal);
-    if (!m.name.trim()) { setErr('ใส่ชื่ออาหาร'); return; }
-    if (!(kcal >= 0) || m.kcal === '') { setErr('ใส่แคลอรีเป็นตัวเลข'); return; }
-    await save({ name: m.name.trim(), grams: null, kcal, protein_g: Number(m.p || 0), carb_g: Number(m.c || 0), fat_g: Number(m.f || 0), from_ai: false, food_id: null }, m.name.trim());
-  }
+  const title = { photo: 'ถ่ายรูปอาหาร', search: 'ค้นหาอาหาร', fav: 'เมนูโปรด', recent: 'กินล่าสุด', custom: 'สร้างเมนูเอง' }[mode];
 
   return (
-    <View style={{ gap: 10, paddingTop: 6 }}>
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <H size={17} style={{ flex: 1 }}>{title}</H>
+        <Pressable accessibilityRole="button" accessibilityLabel="ปิด" onPress={() => onDone()} hitSlop={8}><Icon name="x" size={20} color={C.muted} /></Pressable>
+      </View>
+      <Chips options={MEAL_NAMES.map(n => ({ v: n, t: SHORT[n] ?? n }))} value={meal} onChange={setMeal} />
       {err ? <Notice text={err} /> : null}
-      <Chips options={[{ v: 'search', t: 'ค้นหา' }, { v: 'manual', t: 'กรอกเอง' }, { v: 'photo', t: 'ถ่ายรูป' }]} value={mode} onChange={v => { setMode(v); setErr(''); }} />
+      {mode === 'search' ? <SearchFoods onPick={(f, x) => save(scaled(f, x))} busy={busy} /> : null}
+      {mode === 'fav' ? <Favorites onPick={(f, x) => save(scaled(f, x))} busy={busy} /> : null}
+      {mode === 'recent' ? <Recent onPick={save} /> : null}
+      {mode === 'custom' ? <Custom onSave={save} busy={busy} /> : null}
+      {mode === 'photo' ? <Photo onPick={(f) => save(scaled(f, 1, true))} busy={busy} /> : null}
+    </Card>
+  );
+}
 
-      {mode === 'search' ? (pick ? <>
-        <Txt bold>{pick.name_th}</Txt>
-        <Chips label="ปริมาณ" options={[0.5, 1, 1.5, 2].map(x => ({ v: x, t: x === 1 ? '1 ที่' : `×${x}` }))} value={mult} onChange={setMult} />
-        <Txt muted size={14}>{Math.round(pick.kcal * mult)} kcal · P {fmt1(pick.protein_g * mult)} · C {fmt1(pick.carb_g * mult)} · F {fmt1(pick.fat_g * mult)} g</Txt>
-        <Btn label="เพิ่ม" onPress={() => fromFood(pick, mult)} loading={busy} />
-        <Btn kind="ghost" label="เลือกอย่างอื่น" onPress={() => { setPick(null); setMult(1); }} />
-      </> : <>
-        <Field label="ค้นหาอาหาร" value={q} onChangeText={setQ} placeholder="เช่น กะเพรา อกไก่ ส้มตำ" icon="search" />
-        <View style={{ maxHeight: 320 }}>
-          {found.map(f => (
-            <Pressable key={f.id} accessibilityRole="button" onPress={() => setPick(f)}
-              style={({ pressed }) => ({ flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line, opacity: pressed ? 0.6 : 1 })}>
-              <Txt style={{ flex: 1 }}>{f.name_th}</Txt><Txt muted>{Math.round(f.kcal)} kcal</Txt>
-            </Pressable>
-          ))}
-          {!found.length ? <Txt muted>ไม่เจอ ลองกรอกเอง</Txt> : null}
+function useFoods() {
+  const [foods, setFoods] = useState<Food[]>([]);
+  useEffect(() => { supabase.from('foods').select('*').order('name_th').then(({ data }) => setFoods((data as Food[]) ?? [])); }, []);
+  return foods;
+}
+function useFavIds() {
+  const { profile } = useAuth();
+  const [ids, setIds] = useState<Set<string>>(new Set());
+  const load = useCallback(() => {
+    if (profile) supabase.from('food_favorites').select('food_id').eq('user_id', profile.id).then(({ data }) => setIds(new Set(((data as any[]) ?? []).map(x => x.food_id))));
+  }, [profile]);
+  useEffect(() => { load(); }, [load]);
+  async function toggle(id: string) {
+    if (ids.has(id)) await supabase.from('food_favorites').delete().eq('user_id', profile!.id).eq('food_id', id);
+    else await supabase.from('food_favorites').insert({ user_id: profile!.id, food_id: id });
+    load();
+  }
+  return { ids, toggle };
+}
+
+/** Pick a food, then how much */
+function Portion({ f, onAdd, onBack, busy }: { f: Food; onAdd: (x: number) => void; onBack: () => void; busy: boolean }) {
+  const [x, setX] = useState(1);
+  return <>
+    <Txt bold>{f.name_th}</Txt>
+    <Chips label="ปริมาณ" options={[0.5, 1, 1.5, 2].map(v => ({ v, t: v === 1 ? '1 ที่' : `×${v}` }))} value={x} onChange={setX} />
+    <Txt muted size={14}>{macroLine(scaled(f, x))}</Txt>
+    <Btn label="เพิ่ม" onPress={() => onAdd(x)} loading={busy} />
+    <Btn kind="ghost" label="เลือกอย่างอื่น" onPress={onBack} />
+  </>;
+}
+
+function FoodList({ foods, onPick, fav }: { foods: Food[]; onPick: (f: Food) => void; fav: ReturnType<typeof useFavIds> }) {
+  return (
+    <View>
+      {foods.map(f => (
+        <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: C.line }}>
+          <Pressable accessibilityRole="button" onPress={() => onPick(f)} style={({ pressed }) => ({ flex: 1, flexDirection: 'row', paddingVertical: 12, opacity: pressed ? 0.6 : 1 })}>
+            <Txt style={{ flex: 1 }}>{f.name_th}</Txt><Txt muted>{Math.round(f.kcal)} kcal</Txt>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={fav.ids.has(f.id) ? `เอา ${f.name_th} ออกจากเมนูโปรด` : `เพิ่ม ${f.name_th} เป็นเมนูโปรด`}
+            onPress={() => fav.toggle(f.id)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="star" size={20} color={fav.ids.has(f.id) ? C.cautionFg : C.muted} />
+          </Pressable>
         </View>
-        <Txt muted size={12.5}>ฐานข้อมูลอาหารตัวอย่าง {foods.length} รายการ ค่าโดยประมาณ</Txt>
-      </>) : null}
-
-      {mode === 'manual' ? <>
-        <Field label="ชื่ออาหาร" value={m.name} onChangeText={v => setM({ ...m, name: v })} />
-        <Field label="แคลอรี (kcal)" value={m.kcal} onChangeText={v => setM({ ...m, kcal: v.replace(/[^\d.]/g, '') })} keyboardType="decimal-pad" />
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {([['p', 'โปรตีน g'], ['c', 'คาร์บ g'], ['f', 'ไขมัน g']] as const).map(([k, l]) => (
-            <View key={k} style={{ flex: 1 }}><Field label={l} value={m[k]} onChangeText={v => setM({ ...m, [k]: v.replace(/[^\d.]/g, '') })} keyboardType="decimal-pad" /></View>
-          ))}
-        </View>
-        <Btn label="เพิ่ม" onPress={manual} loading={busy} />
-      </> : null}
-
-      {mode === 'photo' ? <>
-        <Notice kind="info" text="ระบบจำลอง: ยังไม่ได้ต่อ AI จริง ผลด้านล่างสุ่มจากรายการอาหารตัวอย่าง เพื่อให้เห็นขั้นตอน" />
-        {!aiGuess ? <Btn icon="camera" label="ถ่ายรูป / เลือกรูปอาหาร" onPress={() => foods.length && setAiGuess(foods[Math.floor(Math.random() * foods.length)])} /> : <>
-          <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface2, gap: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="sparkles" size={18} color={C.accent} /><Txt bold>น่าจะเป็น: {aiGuess.name_th}</Txt></View>
-            <Txt muted size={14}>{Math.round(aiGuess.kcal)} kcal · P {fmt1(aiGuess.protein_g)} · C {fmt1(aiGuess.carb_g)} · F {fmt1(aiGuess.fat_g)} g</Txt>
-          </View>
-          <Btn label="ใช่ เพิ่มเลย" onPress={() => fromFood(aiGuess, 1, true)} loading={busy} />
-          <Btn kind="ghost" label="ไม่ใช่ ค้นหาเอง" onPress={() => { setAiGuess(null); setMode('search'); }} />
-        </>}
-      </> : null}
-
-      <Btn kind="ghost" label="ปิด" onPress={() => onDone()} />
+      ))}
     </View>
   );
 }
 
+function SearchFoods({ onPick, busy }: { onPick: (f: Food, x: number) => void; busy: boolean }) {
+  const foods = useFoods(), fav = useFavIds();
+  const [q, setQ] = useState('');
+  const [pick, setPick] = useState<Food | null>(null);
+  const found = useMemo(() => { const s = q.trim(); return (s ? foods.filter(f => f.name_th.includes(s)) : foods).slice(0, 30); }, [foods, q]);
+  if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
+  return <>
+    <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="เช่น กะเพรา อกไก่ ส้มตำ" icon="search" />
+    <FoodList foods={found} onPick={setPick} fav={fav} />
+    {!found.length ? <Txt muted>ไม่เจอ ลอง "สร้างเมนูเอง"</Txt> : null}
+    <Txt muted size={12.5}>ฐานข้อมูลอาหารตัวอย่าง ค่าโดยประมาณ · แตะดาวเพื่อเก็บเป็นเมนูโปรด</Txt>
+  </>;
+}
+
+function Favorites({ onPick, busy }: { onPick: (f: Food, x: number) => void; busy: boolean }) {
+  const foods = useFoods(), fav = useFavIds();
+  const [pick, setPick] = useState<Food | null>(null);
+  const list = foods.filter(f => fav.ids.has(f.id));
+  if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
+  return list.length ? <FoodList foods={list} onPick={setPick} fav={fav} />
+    : <Txt muted>ยังไม่มีเมนูโปรด · ตอนค้นหาแตะรูปดาวข้างอาหาร หรือสร้างเมนูเองแล้วเลือก "เก็บเป็นเมนูโปรด"</Txt>;
+}
+
+/** Things eaten in the last 30 days, newest first, one row per name: tap to add again */
+function Recent({ onPick }: { onPick: (i: NewItem) => void }) {
+  const { profile } = useAuth();
+  const [list, setList] = useState<NewItem[] | null>(null);
+  useEffect(() => {
+    if (!profile) return;
+    supabase.from('meal_items').select('name,grams,kcal,protein_g,carb_g,fat_g,food_id,created_at').eq('user_id', profile.id)
+      .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(200)
+      .then(({ data }) => {
+        const seen = new Set<string>(), out: NewItem[] = [];
+        ((data as any[]) ?? []).forEach(r => { if (!seen.has(r.name)) { seen.add(r.name); out.push({ ...r, from_ai: false, created_at: undefined } as any); } });
+        setList(out.slice(0, 20));
+      });
+  }, [profile]);
+  if (list === null) return <Txt muted>กำลังโหลด…</Txt>;
+  if (!list.length) return <Txt muted>ยังไม่มีประวัติ 30 วันล่าสุด</Txt>;
+  return (
+    <View>
+      {list.map(i => (
+        <Pressable key={i.name} accessibilityRole="button" onPress={() => onPick({ ...i })} style={({ pressed }) => ({ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.line, opacity: pressed ? 0.6 : 1 })}>
+          <Txt>{i.name}</Txt>
+          <Txt muted size={13}>{macroLine(i)}</Txt>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/** Type the macros; calories follow (4 / 4 / 9). Optionally keep it as my own menu. */
+function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean }) {
+  const { profile } = useAuth();
+  const [name, setName] = useState('');
+  const [g, setG] = useState('');
+  const [p, setP] = useState(''); const [c, setC_] = useState(''); const [f, setF] = useState('');
+  const [keep, setKeep] = useState(true);
+  const [err, setErr] = useState('');
+  const kcal = Math.round(Number(p || 0) * 4 + Number(c || 0) * 4 + Number(f || 0) * 9);
+  const num = (v: string) => v.replace(/[^\d.]/g, '');
+  async function go() {
+    if (!name.trim()) { setErr('ใส่ชื่อเมนู'); return; }
+    if (!kcal) { setErr('ใส่โปรตีน คาร์บ หรือไขมันอย่างน้อย 1 ช่อง'); return; }
+    let foodId: string | null = null;
+    if (keep) {
+      const r = await supabase.from('foods').insert({ name_th: name.trim(), serving_g: Number(g || 100), kcal, protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0), created_by: profile!.id }).select('id').single();
+      if (!r.error) { foodId = r.data.id; await supabase.from('food_favorites').insert({ user_id: profile!.id, food_id: foodId }); }
+    }
+    onSave({ name: name.trim(), grams: g ? Number(g) : null, kcal, protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0), from_ai: false, food_id: foodId });
+  }
+  return <>
+    {err ? <Notice text={err} /> : null}
+    <Field label="ชื่อเมนู" value={name} onChangeText={setName} placeholder="เช่น ข้าวกล่องอกไก่ของแม่" />
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flex: 1 }}><Field label="โปรตีน g" value={p} onChangeText={v => setP(num(v))} keyboardType="decimal-pad" /></View>
+      <View style={{ flex: 1 }}><Field label="คาร์บ g" value={c} onChangeText={v => setC_(num(v))} keyboardType="decimal-pad" /></View>
+      <View style={{ flex: 1 }}><Field label="ไขมัน g" value={f} onChangeText={v => setF(num(v))} keyboardType="decimal-pad" /></View>
+    </View>
+    <Field label="น้ำหนักอาหาร g (ไม่บังคับ)" value={g} onChangeText={v => setG(num(v))} keyboardType="decimal-pad" />
+    <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
+      <Txt bold>{kcal.toLocaleString('en-US')} kcal</Txt>
+      <Txt muted size={13}>คำนวณจาก โปรตีน×4 + คาร์บ×4 + ไขมัน×9</Txt>
+    </View>
+    <Toggle label="เก็บเป็นเมนูโปรด" value={keep} onChange={setKeep} hint="ครั้งหน้ากดจาก เมนูโปรด ได้เลย" />
+    <Btn label="เพิ่ม" onPress={go} loading={busy} />
+  </>;
+}
+
+/** Simulated: no real AI yet, the "result" is a random sample food so the flow can be tried */
+function Photo({ onPick, busy }: { onPick: (f: Food) => void; busy: boolean }) {
+  const foods = useFoods();
+  const [guess, setGuess] = useState<Food | null>(null);
+  return <>
+    <Notice kind="info" text="ระบบจำลอง: ยังไม่ได้ต่อ AI จริง ผลด้านล่างสุ่มจากรายการอาหารตัวอย่าง เพื่อให้เห็นขั้นตอน" />
+    {!guess ? <Btn icon="camera" label="ถ่ายรูป / เลือกรูปอาหาร" onPress={() => foods.length && setGuess(foods[Math.floor(Math.random() * foods.length)])} /> : <>
+      <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface2, gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="sparkles" size={18} color={C.accent} /><Txt bold>น่าจะเป็น: {guess.name_th}</Txt></View>
+        <Txt muted size={14}>{macroLine(guess)}</Txt>
+      </View>
+      <Btn label="ใช่ เพิ่มเลย" onPress={() => onPick(guess)} loading={busy} />
+      <Btn kind="ghost" label="ไม่ใช่ ลองใหม่" onPress={() => setGuess(null)} />
+    </>}
+  </>;
+}
+
 /** Daily calorie target from body stats (Mifflin–St Jeor), or typed in */
-function TargetForm({ onDone }: { onDone: (msg?: string) => void }) {
+function TargetForm({ onDone }: { current?: Target | null; onDone: (msg?: string) => void }) {
   const { profile } = useAuth();
   const [sex, setSex] = useState<'m' | 'f'>('m');
   const [age, setAge] = useState('30');

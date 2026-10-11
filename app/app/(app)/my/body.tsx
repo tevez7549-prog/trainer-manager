@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Image, Platform, Pressable, View } from 'react-native';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../src/lib/supabase';
 import { useAuth } from '../../../src/lib/auth';
 import { thDate, todayISO } from '../../../src/lib/gym';
@@ -55,8 +55,8 @@ export default function BodyPage() {
   }
 
   return (
-    <Screen footer={<TabBar tabs={MEMBER_TABS} active="body" />}>
-      <Header title="ร่างกาย" />
+    <Screen footer={<TabBar tabs={MEMBER_TABS} active="me" />}>
+      <Header title="ร่างกาย" back={() => router.replace('/me?from=member' as any)} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
       {adding ? <AddBody last={rows?.[0] ?? null} onDone={(t) => { setAdding(false); if (t) done(t); }} />
