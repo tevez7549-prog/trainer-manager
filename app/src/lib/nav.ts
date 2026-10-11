@@ -26,7 +26,7 @@ export const TRAINER_TABS: Tab[] = [
   { k: 'me', t: 'ฉัน', icon: 'user', href: '/me?from=trainer' },
 ];
 export const MEMBER_TABS: Tab[] = [
-  { k: 'home', t: 'หน้าแรก', icon: 'house', href: '/' },
+  { k: 'home', t: 'หน้าแรก', icon: 'house', href: '/?me=1' },
   { k: 'food', t: 'อาหาร', icon: 'utensils', href: '/my/food' },
   { k: 'body', t: 'ร่างกาย', icon: 'scale', href: '/my/body' },
   { k: 'train', t: 'ออกกำลัง', icon: 'dumbbell', href: '/my/train' },

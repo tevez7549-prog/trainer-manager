@@ -41,6 +41,7 @@ export default function More() {
 
       <Label>บัญชีของฉัน</Label>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
+        <Row ic="activity" title="ของฉัน" sub="อาหาร น้ำหนัก การเล่น บัตรสมาชิกของตัวเอง" onPress={() => router.replace('/?me=1' as any)} />
         <Row ic="user" title="ฉัน" sub={`UID ${profile?.uid ?? ''} · ชื่อ เบอร์ โหมดสี`} onPress={() => router.push('/me' as any)} />
         {profile?.is_super_admin ? <Row ic="shield" title="หลังบ้าน (Super Admin)" onPress={() => router.push('/admin' as any)} /> : null}
         <Row ic="log-out" title="ออกจากระบบ" danger onPress={signOut} />

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth';
 import { addDays, thDate, todayISO } from '../../src/lib/gym';
@@ -18,16 +18,18 @@ import { C, R } from '../../src/lib/theme';
 /** Opening the app: staff go straight to their job; everyone else gets their own home */
 export default function Home() {
   const { profile } = useAuth();
+  const { me } = useLocalSearchParams<{ me?: string }>();
   const [ready, setReady] = useState(false);
   useFocusEffect(useCallback(() => {
     if (!profile) return;
+    if (me === '1') { setReady(true); return; }   // staff opening their personal side
     let alive = true;
     landing(profile.id).then(r => {
       if (!alive) return;
       if ('to' in r) router.replace(r.to as any); else setReady(true);
     });
     return () => { alive = false; };
-  }, [profile]));
+  }, [profile, me]));
   return ready ? <MemberHome /> : <Loading />;
 }
 
@@ -48,6 +50,7 @@ function MemberHome() {
   const [weight, setWeight] = useState<{ now: number; diff: number | null; on: string } | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [ask, setAsk] = useState(false);
+  const [showOld, setShowOld] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -105,6 +108,11 @@ function MemberHome() {
   const trainerOf = (tcId: string) => tcs.find(t => t.id === tcId)?.trainer?.display_name ?? 'เทรนเนอร์';
   const ptLeft = (memberId?: string) => tcs.filter(t => !memberId || t.member_id === memberId).reduce((s, t) => s + (left[t.id] ?? 0), 0);
   const go = (p: string) => router.replace(p as any);
+  // a card is "old" when it ran out more than 30 days ago (or never had a plan) and has no PT left: moved gyms, quit …
+  const cutoff = addDays(todayISO(), -30);
+  const isOld = (m: Card_) => (m.status === 'expired' || m.status === 'none') && (!m.end_date || m.end_date < cutoff) && ptLeft(m.id) === 0;
+  const current = (cards ?? []).filter(m => !isOld(m));
+  const old = (cards ?? []).filter(isOld);
 
   return (
     <Screen footer={<TabBar tabs={MEMBER_TABS} active="home" />}>
@@ -165,8 +173,8 @@ function MemberHome() {
         </Card>
       </Pressable>
 
-      {cards?.length ? <Label>บัตรสมาชิก</Label> : null}
-      {(cards ?? []).map(m => {
+      {current.length ? <Label>บัตรสมาชิก</Label> : null}
+      {current.map(m => {
         const st = STATUS_TH[m.status];
         return (
           <Card key={m.id} style={{ gap: 12 }}>
@@ -185,7 +193,21 @@ function MemberHome() {
           </Card>
         );
       })}
-      {cards && !cards.length ? (
+      {old.length ? (
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <Pressable accessibilityRole="button" onPress={() => setShowOld(!showOld)} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 48 }}>
+            <Txt bold style={{ flex: 1 }}>บัตรยิมเก่า ({old.length})</Txt>
+            <Icon name={showOld ? 'chevron-down' : 'chevron-right'} size={18} color={C.muted} />
+          </Pressable>
+          {showOld ? old.map(m => (
+            <View key={m.id} style={{ flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, borderTopColor: C.line }}>
+              <Txt style={{ flex: 1 }}>{m.gym?.name ?? 'ยิม'} · {m.code}</Txt>
+              <Txt muted size={14}>{m.end_date ? `หมด ${thDate(m.end_date)}` : 'ไม่มีแพ็กเกจ'}</Txt>
+            </View>
+          )) : null}
+        </Card>
+      ) : null}
+      {cards && !current.length ? (
         <Card>
           <H size={17}>บัตรสมาชิกยิม</H>
           <Txt muted size={14}>ถ้ายิมของคุณใช้ Trainer Manager บัตร วันหมดอายุ และนัด PT จะขึ้นที่นี่เอง เมื่อยิมบันทึกเบอร์ <Txt bold>{prettyPhone(profile?.phone ?? '')}</Txt> ของคุณ · ไม่มียิมก็ใช้บันทึกอาหาร น้ำหนัก และการเล่นได้ตามปกติ</Txt>
