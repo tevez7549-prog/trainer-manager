@@ -39,7 +39,7 @@ export function thError(e: unknown): string {
   if (/provider is not enabled|Unsupported provider/i.test(m)) return 'ช่องทางนี้ยังไม่เปิดใช้ ลองใช้อีเมลไปก่อน';
   if (/banned/i.test(m)) return 'บัญชีนี้ถูกระงับ ติดต่อผู้ดูแลระบบ';
   if (/uid not found/i.test(m)) return 'ไม่พบ UID นี้ ให้อีกฝ่ายเปิดหน้า "ฉัน" ในแอปแล้วบอก UID อีกครั้ง';
-  if (/already the owner/i.test(m)) return 'คนนี้เป็นเจ้าของยิมอยู่แล้ว';
+  if (/already the owner/i.test(m)) return 'คนนี้เป็นเจ้าของยิมอยู่แล้ว · เจ้าของรับลูกเทรนเองได้เลย ไม่ต้องเพิ่มเป็นเทรนเนอร์';
   if (/account suspended/i.test(m)) return 'บัญชีนี้ถูกระงับอยู่';
   if (/members_gym_phone_uq/.test(m)) return 'เบอร์นี้มีสมาชิกในยิมแล้ว ค้นหาด้วยเบอร์นี้ดูก่อน';
   if (/plan not found/i.test(m)) return 'ไม่พบแพ็กเกจนี้ อาจถูกลบไปแล้ว';

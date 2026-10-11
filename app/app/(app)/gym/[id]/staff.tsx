@@ -12,7 +12,7 @@ const ADDABLE: { v: Role; t: string }[] = [{ v: 'admin', t: 'Admin' }, { v: 'ope
 const ROLE_HINT: Record<string, string> = {
   admin: 'ทำได้ทุกอย่างที่เคาน์เตอร์ + ตั้งแพ็กเกจ นำเข้า Excel แก้/ลบรายการ',
   operator: 'เช็กอิน เพิ่มสมาชิก ขายแพ็กเกจ ขาจร (แก้หรือลบรายการเก่าไม่ได้)',
-  trainer: 'เทรนเนอร์ของยิม · ดูได้เฉพาะลูกเทรนของตัวเอง',
+  trainer: 'เทรนเนอร์ของยิม · ดูได้เฉพาะลูกเทรนของตัวเอง (เจ้าของกับ Admin เทรนเองได้อยู่แล้ว ไม่ต้องเพิ่ม)',
 };
 
 export default function StaffPage() {

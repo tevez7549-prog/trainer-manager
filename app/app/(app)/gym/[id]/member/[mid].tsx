@@ -190,7 +190,7 @@ function EditMember({ m, country, onDone }: { m: Member; country: Country; onDon
 }
 
 type PtLink = { id: string; trainer_id: string; trainer: { display_name: string } | null };
-type GymTrainer = { user_id: string; profile: { display_name: string } | null };
+type GymTrainer = { user_id: string; role: string; profile: { display_name: string } | null };
 
 /** Trainers this member trains with at this gym; owner/admin can assign one */
 function MemberPT({ gymId, m, manager }: { gymId: string; m: Member; manager: boolean }) {
@@ -204,7 +204,8 @@ function MemberPT({ gymId, m, manager }: { gymId: string; m: Member; manager: bo
   const load = useCallback(async () => {
     const [l, t] = await Promise.all([
       supabase.from('trainer_clients').select('id,trainer_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)').eq('member_id', m.id).eq('status', 'active'),
-      supabase.from('gym_staff').select('user_id,profile:profiles(display_name)').eq('gym_id', gymId).eq('role', 'trainer').eq('active', true),
+      // owner and admin can coach too
+      supabase.from('gym_staff').select('user_id,role,profile:profiles(display_name)').eq('gym_id', gymId).in('role', ['trainer', 'owner', 'admin']).eq('active', true),
     ]);
     const ls = ((l.data as any) ?? []) as PtLink[];
     setLinks(ls); setTrainers(((t.data as any) ?? []) as GymTrainer[]);
@@ -234,7 +235,7 @@ function MemberPT({ gymId, m, manager }: { gymId: string; m: Member; manager: bo
       {manager && open ? (
         <View style={{ gap: 10 }}>
           {free.length
-            ? <Chips label="เทรนเนอร์ของยิม" options={free.map(t => ({ v: t.user_id, t: t.profile?.display_name ?? 'เทรนเนอร์' }))} value={pick} onChange={setPick} />
+            ? <Chips label="เทรนเนอร์ของยิม" options={free.map(t => ({ v: t.user_id, t: (t.profile?.display_name ?? 'เทรนเนอร์') + (t.role === 'owner' ? ' (เจ้าของ)' : t.role === 'admin' ? ' (Admin)' : '') }))} value={pick} onChange={setPick} />
             : <Txt muted size={13}>ยังไม่มีเทรนเนอร์ในทีม เพิ่มได้ที่เมนู ทีมงาน (ตำแหน่ง เทรนเนอร์)</Txt>}
           {free.length ? <Btn label="มอบหมาย" onPress={assign} /> : null}
           <Btn kind="ghost" label="ยกเลิก" onPress={() => setOpen(false)} />
