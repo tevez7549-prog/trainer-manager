@@ -84,7 +84,7 @@ reset role;
 select 'client1 profile still exists =', count(*) from profiles where id='00000000-0000-0000-0000-000000000006';
 
 -- no-app member links when they sign up with the same phone
-insert into auth.users(id,email,phone) values ('00000000-0000-0000-0000-000000000010','new@t.test','0897770000');
+insert into auth.users(id,email,phone) values ('00000000-0000-0000-0000-000000000010','new@t.test','66897770000');
 select 'noapp member linked =', profile_id is not null from members where name='noapp';
 
 -- member status view as operator
@@ -98,3 +98,7 @@ insert into gym_holidays(id,gym_id,name,start_date,end_date) values ('eeeeeeee-0
 select 'holiday applied to memberships =', apply_holiday('eeeeeeee-0000-0000-0000-000000000001');
 select 'new end date =', end_date from memberships;
 reset role;
+
+-- phone normalisation
+select norm_phone('081-234-5678') a, norm_phone('+66 81 234 5678') b, norm_phone('0044 20 7946 0000') c, norm_phone('020 7946 0000','44') d, norm_phone('') e;
+select name, phone, phone_norm from members order by name;

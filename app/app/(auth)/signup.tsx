@@ -3,13 +3,15 @@ import { Platform, View } from 'react-native';
 import { Link } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
 import { Btn, Card, Field, H, Notice, Screen, Txt } from '../../src/ui';
+import { PhoneField } from '../../src/ui/PhoneField';
+import { DEFAULT_COUNTRY, phoneError, toE164, type Country } from '../../src/lib/phone';
 
-const digits = (s: string) => s.replace(/\D/g, '');
 
 export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [pw, setPw] = useState('');
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [err, setErr] = useState('');
@@ -20,7 +22,7 @@ export default function Signup() {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'ใส่ชื่อ';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) e.email = 'รูปแบบอีเมลไม่ถูก';
-    if (phone && (digits(phone).length < 9 || digits(phone).length > 10)) e.phone = 'เบอร์ต้องมี 9–10 หลัก';
+    const pe = phoneError(phone, country); if (pe) e.phone = pe;
     if (pw.length < 8) e.pw = 'อย่างน้อย 8 ตัว';
     setErrs(e); setErr('');
     if (Object.keys(e).length) return;
@@ -29,7 +31,7 @@ export default function Signup() {
       email: email.trim().toLowerCase(),
       password: pw,
       options: {
-        data: { display_name: name.trim(), phone: phone.trim() || null },
+        data: { display_name: name.trim(), phone: toE164(phone, country) },
         emailRedirectTo: Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : undefined,
       },
     });
@@ -60,7 +62,7 @@ export default function Signup() {
         {err ? <Notice text={err} /> : null}
         <Field label="ชื่อที่แสดง" value={name} onChangeText={setName} error={errs.name} placeholder="เช่น สมชาย ใจดี" autoComplete="name" />
         <Field label="อีเมล" value={email} onChangeText={setEmail} error={errs.email} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-        <Field label="เบอร์โทร (ไม่บังคับ)" value={phone} onChangeText={setPhone} error={errs.phone} keyboardType="phone-pad" autoComplete="tel"
+        <PhoneField label="เบอร์โทร" country={country} onCountry={setCountry} value={phone} onChangeText={setPhone} error={errs.phone}
           hint="ถ้ายิมเคยลงทะเบียนคุณด้วยเบอร์นี้ ประวัติจะเชื่อมให้อัตโนมัติ" />
         <Field label="ตั้งรหัสผ่าน" value={pw} onChangeText={setPw} error={errs.pw} secureTextEntry autoComplete="new-password" hint="อย่างน้อย 8 ตัว" />
         <Btn label="สมัครใช้งาน" onPress={go} loading={busy} />

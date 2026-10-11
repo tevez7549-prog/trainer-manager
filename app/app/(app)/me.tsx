@@ -5,22 +5,25 @@ import { supabase, thError } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth';
 import { Btn, Card, Field, H, Notice, Screen, Txt } from '../../src/ui';
 import { C } from '../../src/lib/theme';
+import { phoneError, splitE164, toE164 } from '../../src/lib/phone';
+import { PhoneField } from '../../src/ui/PhoneField';
 
-const digits = (s: string) => s.replace(/\D/g, '');
 
 export default function Me() {
   const { profile, refresh, signOut } = useAuth();
   const [name, setName] = useState(profile?.display_name ?? '');
-  const [phone, setPhone] = useState(profile?.phone ?? '');
+  const init = splitE164(profile?.phone);
+  const [country, setCountry] = useState(init.country);
+  const [phone, setPhone] = useState(init.local);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   if (!profile) return null;
 
   async function save() {
     if (!name.trim()) { setMsg({ t: 'ใส่ชื่อ', ok: false }); return; }
-    if (phone && (digits(phone).length < 9 || digits(phone).length > 10)) { setMsg({ t: 'เบอร์ต้องมี 9–10 หลัก', ok: false }); return; }
+    const pe = phoneError(phone, country); if (pe) { setMsg({ t: pe, ok: false }); return; }
     setBusy(true);
-    const { error } = await supabase.from('profiles').update({ display_name: name.trim(), phone: phone.trim() || null }).eq('id', profile!.id);
+    const { error } = await supabase.from('profiles').update({ display_name: name.trim(), phone: toE164(phone, country) }).eq('id', profile!.id);
     setBusy(false);
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
     await refresh();
@@ -39,7 +42,7 @@ export default function Me() {
         <H size={17}>ข้อมูลส่วนตัว</H>
         {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
         <Field label="ชื่อที่แสดง" value={name} onChangeText={setName} />
-        <Field label="เบอร์โทร" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <PhoneField label="เบอร์โทร" country={country} onCountry={setCountry} value={phone} onChangeText={setPhone} />
         <View style={{ gap: 4 }}>
           <Txt bold size={13.5}>อีเมล</Txt>
           <Txt muted>{profile.email}</Txt>

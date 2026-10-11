@@ -14,8 +14,17 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web',
+    flowType: 'pkce',
   },
 });
+
+/** Sign in with Google or LINE. On web the page goes to the provider and comes back signed in. */
+export async function signInWith(provider: 'google' | 'line') {
+  const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : undefined;
+  // LINE is set up in Supabase as a custom provider called "custom:line"
+  const p = (provider === 'line' ? 'custom:line' : 'google') as any;
+  return supabase.auth.signInWithOAuth({ provider: p, options: { redirectTo } });
+}
 
 /** Thai message for common Supabase errors */
 export function thError(e: unknown): string {
@@ -27,6 +36,7 @@ export function thError(e: unknown): string {
   if (/profiles_phone_uq/.test(m)) return 'เบอร์นี้ใช้กับบัญชีอื่นแล้ว';
   if (/rate limit/i.test(m)) return 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่';
   if (/Failed to fetch|Network request failed|NetworkError/i.test(m)) return 'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+  if (/provider is not enabled|Unsupported provider/i.test(m)) return 'ช่องทางนี้ยังไม่เปิดใช้ ลองใช้อีเมลไปก่อน';
   if (/banned/i.test(m)) return 'บัญชีนี้ถูกระงับ ติดต่อผู้ดูแลระบบ';
   return m || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง';
 }

@@ -17,5 +17,6 @@ export default function AppLayout() {
     </Card></Screen>
   );
   if (!hasConsent) return <Redirect href="/consent" />;
+  if (!profile.phone || !profile.display_name) return <Redirect href="/onboard" />;
   return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />;
 }
