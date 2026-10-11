@@ -9,6 +9,7 @@ import { fmt1, PART_TH, type Exercise, type Workout } from '../../../src/lib/me'
 import { Btn, Card, Chips, ConfirmBtn, Empty, Field, H, Header, Label, Notice, Screen, Stat, Txt } from '../../../src/ui';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
+import { loadTemplates, ProgramEditor, rowsOf, type Template } from '../../../src/ui/ProgramEditor';
 import { C, R } from '../../../src/lib/theme';
 
 type ProgEx = { position: number; sets: number | null; reps: number | null; weight_kg: number | null; note: string | null; exercise: Exercise | null };
@@ -18,6 +19,8 @@ type Draft = { title: string; trainerId: string | null; ex: { ex: Exercise; sets
 export default function TrainPage() {
   const { profile } = useAuth();
   const [programs, setPrograms] = useState<Program[] | null>(null);
+  const [mine, setMine] = useState<Template[]>([]);
+  const [editing, setEditing] = useState<Template | 'new' | null>(null);
   const [history, setHistory] = useState<Workout[]>([]);
   const [ptDone, setPtDone] = useState(0);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -25,6 +28,7 @@ export default function TrainPage() {
 
   const load = useCallback(async () => {
     if (!profile) return;
+    loadTemplates(profile.id).then(setMine);
     const [m, w] = await Promise.all([
       supabase.from('members').select('id').eq('profile_id', profile.id),
       supabase.from('workouts').select('id,title,started_at,ended_at,note,trainer_id,sets:workout_sets(exercise_id,exercise_name,set_no,reps,weight_kg,duration_sec)')
@@ -66,9 +70,33 @@ export default function TrainPage() {
       {draft ? <Editor draft={draft} setDraft={setDraft} onDone={(t, ok) => { setDraft(null); if (t) { setMsg({ t, ok: ok ?? true }); load(); } }} />
         : <Btn icon="plus" label="เริ่มบันทึกการเล่น" onPress={() => setDraft({ title: '', trainerId: null, ex: [] })} />}
 
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Label style={{ flex: 1 }}>โปรแกรมของฉัน</Label>
+      </View>
+      {editing ? <ProgramEditor title={editing === 'new' ? 'สร้างโปรแกรมออกกำลังกาย' : 'แก้โปรแกรม'} editId={editing === 'new' ? undefined : editing.id}
+        initial={editing === 'new' ? undefined : { name: editing.name, rows: rowsOf(editing) }}
+        onDone={(t) => { setEditing(null); if (t) { setMsg({ t, ok: true }); load(); } }} />
+        : <Btn kind="ghost" icon="plus" label="สร้างโปรแกรมออกกำลังกาย" onPress={() => setEditing('new')} />}
+      {mine.map(t => {
+        const rows = rowsOf(t);
+        return (
+          <Card key={t.id} style={{ gap: 6 }}>
+            <H size={17}>{t.name}</H>
+            {rows.map((r, k) => (
+              <Txt key={k} size={14}>{k + 1}. {r.ex.name_th}  <Txt muted size={14}>{[r.sets && `${r.sets} เซต`, r.reps && `${r.reps} ครั้ง`, r.kg && `${r.kg} kg`].filter(Boolean).join(' × ')}</Txt></Txt>
+            ))}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+              {!draft ? <Btn icon="dumbbell" label="เริ่มเล่น" onPress={() => fromProgram(t as any)} style={{ flex: 1 }} /> : null}
+              <Btn kind="ghost" icon="pencil" label="แก้" onPress={() => setEditing(t)} />
+            </View>
+            <ConfirmBtn label="ลบโปรแกรมนี้" onConfirm={async () => { await supabase.from('programs').delete().eq('id', t.id); setMsg({ t: `ลบ "${t.name}" แล้ว`, ok: true }); load(); }} />
+          </Card>
+        );
+      })}
+
       <Label>โปรแกรมจากเทรนเนอร์</Label>
       {programs === null ? <Txt muted>กำลังโหลด…</Txt> : !programs.length ? (
-        <Card><Empty ic="list" title="ยังไม่มีโปรแกรม" text="เมื่อเทรนเนอร์จัดโปรแกรมให้ จะขึ้นที่นี่ กดเริ่มแล้วบันทึกน้ำหนักที่เล่นได้เลย" /></Card>
+        <Card><Empty ic="list" title="ยังไม่มีโปรแกรม" text="ถ้ามีเทรนเนอร์ โปรแกรมที่เขาจัดให้จะขึ้นที่นี่ · ไม่มีเทรนเนอร์ก็สร้างโปรแกรมของตัวเองด้านบนได้" /></Card>
       ) : programs.map(p => (
         <Card key={p.id} style={{ gap: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
