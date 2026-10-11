@@ -13,6 +13,7 @@ import { Btn, Card, DateField, Field, H, Label, Loading, Notice, Pill, Screen, T
 import { DayTotals } from '../../src/ui/Macro';
 import { Icon } from '../../src/ui/Icon';
 import { TabBar } from '../../src/ui/TabBar';
+import { TodayWorkout } from '../../src/ui/TodayWorkout';
 import { C, R } from '../../src/lib/theme';
 
 /** Opening the app: staff go straight to their job; everyone else gets their own home */
@@ -42,6 +43,7 @@ function MemberHome() {
   const { profile } = useAuth();
   const [cards, setCards] = useState<Card_[] | null>(null);
   const [tcs, setTcs] = useState<Tc[]>([]);
+  const [tcsLoaded, setTcsLoaded] = useState(false);
   const [left, setLeft] = useState<Record<string, number>>({});
   const [next, setNext] = useState<Next | null>(null);
   const [pending, setPending] = useState(false);
@@ -81,7 +83,7 @@ function MemberHome() {
     const t = await supabase.from('trainer_clients').select('id,member_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)')
       .eq('status', 'active').or(ids.length ? `client_id.eq.${profile.id},member_id.in.(${ids.join(',')})` : `client_id.eq.${profile.id}`);
     const list = ((t.data as any) ?? []) as Tc[];
-    setTcs(list);
+    setTcs(list); setTcsLoaded(true);
     if (list.length) {
       const [l, a] = await Promise.all([
         sessionsLeft(list.map(x => x.id)),
@@ -108,6 +110,7 @@ function MemberHome() {
   const trainerOf = (tcId: string) => tcs.find(t => t.id === tcId)?.trainer?.display_name ?? 'เทรนเนอร์';
   const ptLeft = (memberId?: string) => tcs.filter(t => !memberId || t.member_id === memberId).reduce((s, t) => s + (left[t.id] ?? 0), 0);
   const go = (p: string) => router.replace(p as any);
+  const ptToday = !!next && next.starts_at.slice(0, 10) <= todayISO() && new Date(next.starts_at).toDateString() === new Date().toDateString();
   // a card is "old" when it ran out more than 30 days ago (or never had a plan) and has no PT left: moved gyms, quit …
   const cutoff = addDays(todayISO(), -30);
   const isOld = (m: Card_) => (m.status === 'expired' || m.status === 'none') && (!m.end_date || m.end_date < cutoff) && ptLeft(m.id) === 0;
@@ -132,15 +135,21 @@ function MemberHome() {
         </Card>
       ))}
 
-      {next ? (
-        <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 6 }}>
-          <Txt bold size={14} style={{ color: C.brandInk }}>นัด PT ถัดไป</Txt>
-          <H size={28} style={{ color: C.brandInk }}>{dayLabel(next.starts_at)} {apptRange(next).split('–')[0]}</H>
-          <Txt size={14} style={{ color: C.brandInk }}>กับ {trainerOf(next.trainer_client_id)} · เหลือ {left[next.trainer_client_id] ?? 0} ครั้ง</Txt>
-          {pending ? <Txt bold size={14} style={{ color: C.brandInk }}>ส่งคำขอเลื่อนแล้ว · รอเทรนเนอร์ตอบ</Txt>
-            : !ask ? <Btn kind="ghost" label="ขอเลื่อนนัด" onPress={() => setAsk(true)} style={{ borderColor: C.brandInk, marginTop: 4 }} textColor={C.brandInk} /> : null}
-        </View>
-      ) : null}
+      {!ptToday && tcsLoaded ? <TodayWorkout tcIds={tcs.map(t => t.id)} /> : null}
+
+      {next ? (() => {
+        // PT today = the day's plan (filled card); a later PT = a plain card so today's workout stays the focus
+        const bg = ptToday ? C.brand : C.surface, fg = ptToday ? C.brandInk : C.fg;
+        return (
+          <View style={{ backgroundColor: bg, borderRadius: R.card, padding: 20, gap: 6 }}>
+            <Txt bold size={14} style={{ color: ptToday ? C.brandInk : C.muted }}>{ptToday ? 'วันนี้: เทรน PT' : 'นัด PT ถัดไป'}</Txt>
+            <H size={ptToday ? 28 : 22} style={{ color: fg }}>{dayLabel(next.starts_at)} {apptRange(next).split('–')[0]}</H>
+            <Txt size={14} style={{ color: fg }}>กับ {trainerOf(next.trainer_client_id)} · เหลือ {left[next.trainer_client_id] ?? 0} ครั้ง</Txt>
+            {pending ? <Txt bold size={14} style={{ color: fg }}>ส่งคำขอเลื่อนแล้ว · รอเทรนเนอร์ตอบ</Txt>
+              : !ask ? <Btn kind="ghost" label="ขอเลื่อนนัด" onPress={() => setAsk(true)} style={{ borderColor: ptToday ? C.brandInk : C.line, marginTop: 4 }} textColor={fg} /> : null}
+          </View>
+        );
+      })() : null}
       {next && ask ? <AskMove appt={next} onDone={(t) => { setAsk(false); if (t) { setMsg({ t, ok: true }); load(); } }} /> : null}
 
       <Pressable accessibilityRole="button" onPress={() => go('/my/food')}>

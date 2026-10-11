@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../src/lib/supabase';
 import { useAuth } from '../../../src/lib/auth';
 import { addDays, thDate, thDateTs, todayISO } from '../../../src/lib/gym';
@@ -9,7 +9,8 @@ import { fmt1, PART_TH, type Exercise, type Workout } from '../../../src/lib/me'
 import { Btn, Card, Chips, ConfirmBtn, Empty, Field, H, Header, Label, Notice, Screen, Stat, Txt } from '../../../src/ui';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
-import { loadTemplates, ProgramEditor, rowsOf, type Template } from '../../../src/ui/ProgramEditor';
+import { loadTemplates, ProgramEditor, rowsOf, TEMPLATE_COLS, type Template } from '../../../src/ui/ProgramEditor';
+import { SPLITS, type SplitKey } from '../../../src/lib/plan';
 import { C, R } from '../../../src/lib/theme';
 
 type ProgEx = { position: number; sets: number | null; reps: number | null; weight_kg: number | null; note: string | null; exercise: Exercise | null };
@@ -56,6 +57,27 @@ export default function TrainPage() {
     title: p.name, trainerId: null,
     ex: p.items.filter(i => i.exercise).map(i => ({ ex: i.exercise!, sets: Array.from({ length: i.sets || 3 }, () => ({ reps: i.reps ? String(i.reps) : '', kg: i.weight_kg ? String(i.weight_kg) : '' })) })),
   });
+
+  // opened from "today's workout" on the home page: start that program / suggested split right away
+  const params = useLocalSearchParams<{ program?: string; split?: string; new?: string }>();
+  const [opened, setOpened] = useState('');
+  useEffect(() => {
+    const k = `${params.program ?? ''}|${params.split ?? ''}|${params.new ?? ''}`;
+    if (k === '||' || k === opened) return;
+    setOpened(k);
+    if (params.new) { setEditing('new'); return; }
+    if (params.program) {
+      supabase.from('programs').select(TEMPLATE_COLS).eq('id', params.program).maybeSingle().then(({ data }) => {
+        if (data) fromProgram({ ...(data as any), items: [...(data as any).items].sort((a: any, b: any) => a.position - b.position) });
+      });
+    } else if (params.split && params.split in SPLITS) {
+      const sp = SPLITS[params.split as SplitKey];
+      supabase.from('exercises').select('id,name_th,name_en,body_part,kind').in('name_en', sp.moves).is('created_by', null).then(({ data }) => {
+        const ex = sp.moves.map(n => ((data as Exercise[]) ?? []).find(e => e.name_en === n)).filter(Boolean) as Exercise[];
+        setDraft({ title: sp.name, trainerId: null, ex: ex.map(e => ({ ex: e, sets: Array.from({ length: e.kind === 'strength' ? 3 : 1 }, () => ({ reps: e.kind === 'strength' ? '10' : '', kg: '' })) })) });
+      });
+    }
+  }, [params.program, params.split, params.new]);
 
   return (
     <Screen footer={<TabBar tabs={MEMBER_TABS} active="train" />}>
