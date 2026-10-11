@@ -50,6 +50,10 @@ export function thError(e: unknown): string {
   if (/invite expired/i.test(m)) return 'คำเชิญหมดอายุแล้ว ให้เทรนเนอร์ส่งใหม่';
   if (/invite already answered|invite not found/i.test(m)) return 'คำเชิญนี้ตอบไปแล้ว';
   if (/trainer_clients_check/i.test(m)) return 'ตอนนี้ยังเพิ่มลูกเทรนที่ไม่มีแอปไม่ได้ (รออัปเดตระบบ) · ใช้แบบเชิญด้วย UID ไปก่อน';
+  if (/freeze overlaps/i.test(m)) return 'ช่วงนี้มีการพักสมาชิกอยู่แล้ว';
+  if (/no membership to freeze/i.test(m)) return 'ไม่มีแพ็กเกจที่ยังใช้อยู่ในช่วงนี้ให้พัก';
+  if (/freeze already over/i.test(m)) return 'การพักนี้จบไปแล้ว';
+  if (/freeze end before start/i.test(m)) return 'วันสุดท้ายต้องไม่ก่อนวันแรก';
   if (/appointment not found/i.test(m)) return 'ไม่พบนัดนี้ อาจถูกลบไปแล้ว';
   return m || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง';
 }

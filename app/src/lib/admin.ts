@@ -17,7 +17,7 @@ export const USER_COLS = 'id,uid,display_name,phone,email,status,is_super_admin,
 export const ACT_TH: Record<string, string> = {
   create_user: 'เพิ่มผู้ใช้', delete_user: 'ลบผู้ใช้', suspend_user: 'ระงับบัญชี', unsuspend_user: 'ปลดระงับ', set_email: 'เปลี่ยนอีเมล',
   set_password: 'ตั้งรหัสผ่านใหม่', edit_profile: 'แก้ข้อมูล', edit_plan: 'แก้แผน', apply_holiday: 'ใช้วันหยุดยิม',
-  add_staff: 'เพิ่มทีมงาน', sell_membership: 'ขายแพ็กเกจสมาชิก', import_members: 'นำเข้าสมาชิก',
+  add_staff: 'เพิ่มทีมงาน', freeze_member: 'พักสมาชิก', end_freeze: 'จบการพักสมาชิก', sell_membership: 'ขายแพ็กเกจสมาชิก', import_members: 'นำเข้าสมาชิก',
 };
 
 /** Call the server-side admin function (create / delete / suspend / email / password) */

@@ -6,7 +6,7 @@ import { isDesk, isManager, ROLE_TH, type Gym, type Role } from '../lib/gym';
 import { C, F } from '../lib/theme';
 import { H, Pill, Screen, Txt, useWide } from './index';
 
-export type GymTab = 'home' | 'counter' | 'members' | 'plans' | 'staff' | 'import' | 'settings';
+export type GymTab = 'home' | 'counter' | 'members' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
 
 const NAV: { k: GymTab; t: string; icon: string; show: (r: Role | null) => boolean }[] = [
   { k: 'home', t: 'ภาพรวม', icon: '🏠', show: () => true },
@@ -14,6 +14,7 @@ const NAV: { k: GymTab; t: string; icon: string; show: (r: Role | null) => boole
   { k: 'members', t: 'สมาชิก', icon: '👥', show: isDesk },
   { k: 'plans', t: 'แพ็กเกจสมาชิก', icon: '🏷', show: isDesk },
   { k: 'staff', t: 'ทีมงาน', icon: '🧑‍🤝‍🧑', show: () => true },
+  { k: 'holidays', t: 'วันหยุดยิม', icon: '📅', show: isManager },
   { k: 'import', t: 'นำเข้า Excel', icon: '📥', show: isManager },
   { k: 'settings', t: 'ตั้งค่ายิม', icon: '⚙️', show: isManager },
 ];

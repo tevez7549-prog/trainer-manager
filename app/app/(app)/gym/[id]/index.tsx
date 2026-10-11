@@ -60,6 +60,7 @@ export default function GymHome() {
           {isDesk(role) ? <Row icon="👥" title="สมาชิก" sub="ค้นหา เพิ่ม ต่ออายุ ดูประวัติ" onPress={() => go('members')} /> : null}
           {isDesk(role) ? <Row icon="🏷" title="แพ็กเกจสมาชิก" sub={isManager(role) ? 'ตั้งราคาและระยะเวลา' : 'ดูราคา'} onPress={() => go('plans')} /> : null}
           <Row icon="🧑‍🤝‍🧑" title="ทีมงาน" sub={role === 'owner' ? 'เพิ่ม Admin / Operator / เทรนเนอร์ ด้วย UID' : 'ดูรายชื่อทีม'} onPress={() => go('staff')} />
+          {isManager(role) ? <Row icon="📅" title="วันหยุดยิม" sub="ปิดพิเศษ · เลื่อนวันหมดสมาชิกให้อัตโนมัติ" onPress={() => go('holidays')} /> : null}
           {isManager(role) ? <Row icon="📥" title="นำเข้าสมาชิกจาก Excel" sub="ใช้ไฟล์ตัวอย่างของเรา" onPress={() => go('import')} /> : null}
           {isManager(role) ? <Row icon="⚙️" title="ตั้งค่ายิม" sub="ชื่อ ราคาขาจร วันปิด ประเทศ" onPress={() => go('settings')} /> : null}
         </Card>

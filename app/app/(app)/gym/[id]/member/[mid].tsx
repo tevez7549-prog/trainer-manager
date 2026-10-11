@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../../src/lib/supabase';
 import { useAuth } from '../../../../../src/lib/auth';
-import { baht, gymCountry, isDesk, isManager, PAY_TH, thDate, thDateTs, thTime, type Plan, useGym } from '../../../../../src/lib/gym';
+import { addDays, baht, daysBetween, gymCountry, todayISO, isDesk, isManager, PAY_TH, thDate, thDateTs, thTime, type Plan, useGym } from '../../../../../src/lib/gym';
 import { enqueue, liveStatus, STATUS_TH, type Member } from '../../../../../src/lib/counter';
 import { phoneError, prettyPhone, splitE164, toE164, type Country } from '../../../../../src/lib/phone';
 import { Btn, Card, ConfirmBtn, Field, H, Header, Notice, Pill, Screen, Toggle, Txt } from '../../../../../src/ui';
@@ -12,7 +12,7 @@ import { expiryText } from '../../../../../src/ui/MemberRow';
 import { newSale, saleError, sell, SellForm, type Sale } from '../../../../../src/ui/SellForm';
 import { C } from '../../../../../src/lib/theme';
 import { sessionsLeft } from '../../../../../src/lib/trainer';
-import { Chips, Row } from '../../../../../src/ui';
+import { Chips, DateField, Row } from '../../../../../src/ui';
 import { GymFrame } from '../../../../../src/ui/GymFrame';
 
 type Ms = { id: string; plan_name: string; start_date: string; end_date: string; price: number; pay_method: string | null; created_at: string };
@@ -29,7 +29,7 @@ export default function MemberPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
-  const [mode, setMode] = useState<'' | 'sell' | 'edit'>(sellParam ? 'sell' : '');
+  const [mode, setMode] = useState<'' | 'sell' | 'edit' | 'freeze'>(sellParam ? 'sell' : '');
   const [sale, setSale] = useState<Sale>(newSale());
   const [busy, setBusy] = useState(false);
   const [openMs, setOpenMs] = useState<string | null>(null);
@@ -101,6 +101,7 @@ export default function MemberPage() {
         <View style={{ gap: 10 }}>
           {canCheckIn ? <Btn label="เช็กอินวันนี้" onPress={checkIn} /> : null}
           <Btn kind={canCheckIn ? 'ghost' : 'primary'} label={m.end_date ? 'ต่ออายุ / ขายแพ็กเกจ' : 'ขายแพ็กเกจ'} onPress={() => setMode('sell')} />
+          {m.end_date && m.end_date >= todayISO() && !m.pt_only ? <Btn kind="ghost" label="พักสมาชิก" onPress={() => setMode('freeze')} /> : null}
           <Btn kind="ghost" label="แก้ไขข้อมูล" onPress={() => setMode('edit')} />
         </View>
       ) : null}
@@ -115,6 +116,9 @@ export default function MemberPage() {
       ) : null}
 
       {mode === 'edit' && gym ? <EditMember m={m} country={gymCountry(gym)} onDone={(t) => { setMode(''); if (t) setMsg({ t, ok: true }); load(); }} /> : null}
+
+      {mode === 'freeze' ? <FreezeForm m={m} onDone={(t) => { setMode(''); if (t) setMsg({ t, ok: true }); load(); }} /> : null}
+      {desk ? <Freezes m={m} onDone={(t, ok) => { setMsg({ t, ok }); load(); }} /> : null}
 
       {desk ? <MemberPT gymId={id} m={m} manager={mgr} /> : null}
 
@@ -236,6 +240,68 @@ function MemberPT({ gymId, m, manager }: { gymId: string; m: Member; manager: bo
           <Btn kind="ghost" label="ยกเลิก" onPress={() => setOpen(false)} />
         </View>
       ) : null}
+    </Card>
+  );
+}
+
+/** Put a membership on hold: the end date moves back by the days on hold */
+function FreezeForm({ m, onDone }: { m: Member; onDone: (msg?: string) => void }) {
+  const [from, setFrom] = useState(todayISO());
+  const [to, setTo] = useState(addDays(todayISO(), 29));
+  const [why, setWhy] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const days = daysBetween(from, to) + 1;
+
+  async function save() {
+    if (to < from) { setErr('วันสุดท้ายต้องไม่ก่อนวันแรก'); return; }
+    setBusy(true);
+    const { data, error } = await supabase.rpc('freeze_member', { m: m.id, start_on: from, end_on: to, why: why.trim() || null });
+    setBusy(false);
+    if (error) { setErr(thError(error)); return; }
+    onDone(`พักสมาชิก ${days} วันแล้ว · วันหมดใหม่ ${thDate((data as any)?.new_end)}`);
+  }
+
+  return (
+    <Card>
+      <H size={17}>พักสมาชิก</H>
+      {err ? <Notice text={err} /> : null}
+      <DateField label="เริ่มพัก" value={from} onChange={v => { setFrom(v); if (to < v) setTo(v); }} min={todayISO()} />
+      <DateField label="พักถึง" value={to} onChange={setTo} min={from} />
+      <Field label="เหตุผล (ไม่บังคับ)" value={why} onChangeText={setWhy} placeholder="เช่น บาดเจ็บ / ไปต่างประเทศ" />
+      <Txt muted size={13}>พัก {days} วัน · วันหมดเลื่อนจาก {thDate(m.end_date)} เป็น {m.end_date ? thDate(addDays(m.end_date, days)) : '–'} · ระหว่างพักเช็กอินไม่ได้</Txt>
+      <Btn label="ยืนยันพักสมาชิก" onPress={save} loading={busy} />
+      <Btn kind="ghost" label="ยกเลิก" onPress={() => onDone()} />
+    </Card>
+  );
+}
+
+type Fz = { id: string; start_date: string; end_date: string; reason: string | null };
+function Freezes({ m, onDone }: { m: Member; onDone: (t: string, ok: boolean) => void }) {
+  const [list, setList] = useState<Fz[]>([]);
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('member_freezes').select('id,start_date,end_date,reason').eq('member_id', m.id).order('start_date', { ascending: false }).limit(10);
+    setList((data as Fz[]) ?? []);
+  }, [m.id, m.end_date]);
+  useEffect(() => { load(); }, [load]);
+  if (!list.length) return null;
+  const t = todayISO();
+
+  async function end(f: Fz) {
+    const { data, error } = await supabase.rpc('end_freeze', { f: f.id });
+    if (error) { onDone(thError(error), false); return; }
+    onDone(`${f.start_date > t ? 'ยกเลิกการพัก' : 'จบการพักวันนี้'} · คืน ${(data as any)?.days ?? 0} วัน · วันหมดใหม่ ${thDate((data as any)?.new_end)}`, true);
+  }
+
+  return (
+    <Card style={{ gap: 6 }}>
+      <H size={17}>การพักสมาชิก</H>
+      {list.map(f => (
+        <View key={f.id} style={{ gap: 6, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: C.line }}>
+          <Txt>{thDate(f.start_date)} – {thDate(f.end_date)} ({daysBetween(f.start_date, f.end_date) + 1} วัน){f.reason ? ` · ${f.reason}` : ''}</Txt>
+          {f.end_date >= t ? <ConfirmBtn kind="primary" label={f.start_date > t ? 'ยกเลิกการพักนี้' : 'กลับมาเล่นวันนี้ (จบการพัก)'} onConfirm={() => end(f)} /> : null}
+        </View>
+      ))}
     </Card>
   );
 }
