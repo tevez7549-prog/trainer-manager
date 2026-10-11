@@ -116,192 +116,289 @@ tr.susp td{color:var(--muted)}
   .two{grid-template-columns:minmax(0,1fr)}
 }
 </style>
+<style>
+.login{max-width:400px;margin:8vh auto 0;display:flex;flex-direction:column;gap:14px}
+.login h1{font-family:var(--display);font-size:24px;margin:0}
+.err{background:var(--bad-bg);color:var(--bad-fg);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.okmsg{background:var(--ok-bg);color:var(--ok-fg);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.plan-row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.plan-row:first-of-type{border-top:0}
+.plan-row .sub{grid-column:2;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn[aria-busy="true"]{opacity:.6;pointer-events:none}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.pw{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.03em}
+.me-tag{font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;background:var(--accent-soft);color:var(--accent-ink);margin-left:6px}
+.strip button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;padding:4px 10px;font-size:12.5px}
+@media (max-width:760px){.plan-row{grid-template-columns:minmax(0,1fr)}.plan-row .sub{grid-column:1}}
+</style>
 
 <header class="strip">
   <span class="lg"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 5v14M18 5v14M3 8v8M21 8v8M6 12h12"/></svg></span>
   <b>Trainer Manager</b><span class="tag">SUPER ADMIN</span>
   <span class="sp"></span>
-  <small>นักพัฒนา · ใช้ช่วงทดลอง</small>
+  <small id="who"></small>
+  <button id="logoutBtn" hidden>ออกจากระบบ</button>
 </header>
-<div class="wrap" id="view"></div>
+<div class="wrap" id="view"><p class="muted">กำลังโหลด…</p></div>
 <div id="layer"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
 (function(){
-const KEY='tm-admin-v1';
+const SUPABASE_URL='https://tfuafjdhxzlagclbnmws.supabase.co';
+const SUPABASE_KEY='sb_publishable_Sx2LbG2Z5Ym8B2ECq0z8tw_DMDlOUIC'; // publishable key: safe to be public, data is protected by row level security
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const iso=dt=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const pd=s=>{const [y,m,d]=String(s).slice(0,10).split('-').map(Number);return new Date(y,m-1,d)};
 const thDate=s=>{if(!s)return '–';const d=pd(s);return `${d.getDate()} ${TH_M[d.getMonth()]} ${(d.getFullYear()+543)%100}`};
+const thTime=s=>{const d=new Date(s);return `${d.getDate()} ${TH_M[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
-const addDays=n=>{const d=new Date(TODAY);d.setDate(d.getDate()+n);return iso(d)};
+const addDays=(n,from)=>{const d=from?pd(from):new Date(TODAY);d.setDate(d.getDate()+n);return iso(d)};
 const daysTo=s=>Math.round((pd(s)-TODAY)/86400000);
 const digits=s=>String(s||'').replace(/\D/g,'');
-const nowT=()=>{const d=new Date();return `${d.getDate()} ${TH_M[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
 
-const MODES=[['trainer','เทรนเนอร์'],['gym','เจ้าของยิม']];
-const ROLES=['','Owner','Admin','Operator','เทรนเนอร์','สมาชิก'];
-const PLAN={free:['ฟรี','p-mute'],trial:['ทดลอง','p-info'],paid:['จ่ายแล้ว','p-ok']};
+if(!window.supabase){$('#view').innerHTML='<div class="err">โหลดระบบเชื่อมต่อไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้า</div>';return;}
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-function sample(){return [
- {uid:'100001',name:'คุณเอ',phone:'081-000-0001',email:'a@fitlab.test',modes:['gym'],gym:'FitLab ลาดพร้าว',role:'Owner',plan:'trial',trialEnd:addDays(5),status:'active',created:addDays(-2),note:'ยิมนำร่องแห่งแรก'},
- {uid:'100090',name:'คุณซี',phone:'081-000-0090',email:'',modes:[],gym:'FitLab ลาดพร้าว',role:'Operator',plan:'free',trialEnd:'',status:'active',created:addDays(-2),note:''},
- {uid:'100091',name:'คุณบี',phone:'081-000-0091',email:'b@fitlab.test',modes:[],gym:'FitLab ลาดพร้าว',role:'Admin',plan:'free',trialEnd:'',status:'active',created:addDays(-2),note:''},
- {uid:'100120',name:'เทรนเนอร์ต้น',phone:'089-111-2020',email:'ton@fitlab.test',modes:['trainer'],gym:'FitLab ลาดพร้าว',role:'เทรนเนอร์',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
- {uid:'100121',name:'เทรนเนอร์เจ',phone:'089-111-2021',email:'',modes:['trainer'],gym:'FitLab ลาดพร้าว',role:'เทรนเนอร์',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
- {uid:'100200',name:'โค้ชแนน',phone:'086-222-3030',email:'nan@coach.test',modes:['trainer'],gym:'',role:'',plan:'trial',trialEnd:addDays(1),status:'active',created:addDays(-6),note:'ฟรีแลนซ์ ทดลองใกล้หมด'},
- {uid:'100245',name:'สมชาย ใจดี',phone:'081-234-5678',email:'',modes:[],gym:'FitLab ลาดพร้าว',role:'สมาชิก',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
- {uid:'100518',name:'มิ้นท์ ศิริพร',phone:'082-410-8890',email:'mint@mail.test',modes:[],gym:'FitLab ลาดพร้าว',role:'สมาชิก',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:'ลูกเทรนของต้น'},
- {uid:'100845',name:'โอ๊ต วรพล',phone:'091-302-7781',email:'',modes:[],gym:'FitLab ลาดพร้าว',role:'สมาชิก',plan:'free',trialEnd:'',status:'active',created:addDays(-1),note:''},
- {uid:'100902',name:'นัท ชยพล',phone:'084-990-1515',email:'nat@mail.test',modes:[],gym:'',role:'',plan:'paid',trialEnd:'',status:'active',created:addDays(-9),note:'ผู้ใช้ทั่วไป จ่ายเอง'},
- {uid:'101077',name:'ปอนด์ ภัทร',phone:'081-200-7788',email:'pond@example.com',modes:[],gym:'',role:'',plan:'free',trialEnd:'',status:'suspended',created:addDays(-4),note:'บัญชีทดสอบ สมัครซ้ำ'}
-]}
-let users, log;
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&Array.isArray(s.users)){users=s.users;log=s.log||[];return;}}catch(e){}users=sample();log=[];}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({users,log:log.slice(0,40)}));}catch(e){}}
-function addLog(t){log.unshift({t:nowT(),x:t});}
-load();
+const KINDS=[['user','ผู้ใช้ (ฟีเจอร์เต็ม)'],['trainer','เทรนเนอร์'],['gym','ยิม']];
+const ROLE_TH={owner:'Owner',admin:'Admin',operator:'Operator',trainer:'เทรนเนอร์'};
+const ACT_TH={create_user:'เพิ่มผู้ใช้',delete_user:'ลบผู้ใช้',suspend_user:'ระงับบัญชี',unsuspend_user:'ปลดระงับ',set_email:'เปลี่ยนอีเมล',set_password:'ตั้งรหัสผ่านใหม่',edit_profile:'แก้ข้อมูล',edit_plan:'แก้แผน',apply_holiday:'ใช้วันหยุดยิม'};
 
-let q='', filter='all', drawer=null;
-/* drawer: {mode:'new'|'edit', uid, f:{...}, errs:{}, confirmDel:false} */
+let me=null, users=[], gymCount=0, log=[], q='', filter='all', drawer=null, loginErr='', busy=false;
 
-const planOf=u=>{if(u.plan==='trial'&&u.trialEnd){const d=daysTo(u.trialEnd);return d<0?['ทดลองหมดแล้ว','p-bad']:[`ทดลอง · เหลือ ${d} วัน`,d<=2?'p-warn':'p-info'];}return PLAN[u.plan]||PLAN.free;};
-const modeText=u=>['ผู้ใช้',...MODES.filter(m=>u.modes.includes(m[0])).map(m=>m[1])].join(' · ');
-const match=u=>{const k=q.trim().toLowerCase();if(!k)return true;return u.name.toLowerCase().includes(k)||u.uid.includes(k)||(u.email||'').toLowerCase().includes(k)||(digits(k)&&digits(u.phone).includes(digits(k)))||(u.gym||'').toLowerCase().includes(k);};
-const FILTERS=[['all','ทั้งหมด',()=>true],['trial','ทดลองอยู่',u=>u.plan==='trial'],['trainer','เทรนเนอร์',u=>u.modes.includes('trainer')||u.role==='เทรนเนอร์'],['gym','ยิม',u=>u.modes.includes('gym')||['Owner','Admin','Operator'].includes(u.role)],['susp','ระงับ',u=>u.status==='suspended']];
+function thErr(m){
+  m=String(m||'');
+  if(/Invalid login credentials/i.test(m))return 'อีเมลหรือรหัสผ่านไม่ถูก';
+  if(/already been registered|already exists/i.test(m))return 'อีเมลนี้มีบัญชีอยู่แล้ว';
+  if(/profiles_phone_uq/.test(m))return 'เบอร์นี้ใช้กับบัญชีอื่นแล้ว';
+  if(/profiles_email_uq/.test(m))return 'อีเมลนี้ใช้กับบัญชีอื่นแล้ว';
+  if(/Failed to fetch|NetworkError/i.test(m))return 'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+  if(/Password should be/i.test(m))return 'รหัสผ่านสั้นหรือง่ายเกินไป';
+  return m;
+}
+async function fn(body){
+  const {data,error}=await sb.functions.invoke('admin-users',{body});
+  if(error){let m=error.message;try{const j=await error.context.json();m=j.error||m;}catch(e){}throw new Error(thErr(m));}
+  if(data&&data.error)throw new Error(thErr(data.error));
+  return data;
+}
+async function audit(action,target_id,detail){try{await sb.from('audit_log').insert({actor_id:me.id,action,target:'profiles',target_id,detail});}catch(e){}}
+
+/* ---------- auth ---------- */
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){me=null;return renderLogin();}
+  const {data:p,error}=await sb.from('profiles').select('id,uid,display_name,email,is_super_admin,status').eq('id',session.user.id).single();
+  if(error||!p||!p.is_super_admin||p.status!=='active'){
+    await sb.auth.signOut();me=null;loginErr='บัญชีนี้ไม่มีสิทธิ์ Super Admin';return renderLogin();
+  }
+  me=p;$('#who').textContent=`${p.display_name||p.email} · UID ${p.uid}`;$('#logoutBtn').hidden=false;
+  await loadAll();
+}
+function renderLogin(){
+  $('#who').textContent='';$('#logoutBtn').hidden=true;$('#layer').innerHTML='';
+  $('#view').innerHTML=`<form class="card login" id="loginForm" autocomplete="on">
+    <h1>เข้าสู่ระบบนักพัฒนา</h1>
+    <p class="muted" style="margin:0;font-size:13.5px">เฉพาะบัญชีที่เป็น Super Admin</p>
+    ${loginErr?`<div class="err" role="alert">${esc(loginErr)}</div>`:''}
+    <label class="f"><span>อีเมล</span><input class="in" id="lEmail" type="email" autocomplete="username" required></label>
+    <label class="f"><span>รหัสผ่าน</span><input class="in" id="lPass" type="password" autocomplete="current-password" required></label>
+    <button class="btn p" type="submit" id="lGo">เข้าสู่ระบบ</button>
+  </form>`;
+  $('#lEmail').focus();
+}
+
+/* ---------- data ---------- */
+async function loadAll(){
+  const [u,g,l]=await Promise.all([
+    sb.from('profiles').select('id,uid,display_name,phone,email,status,is_super_admin,dev_note,created_at,subscriptions(id,kind,status,trial_ends_at,current_period_end),gym_staff(role,active,gyms(name,branch))').order('uid',{ascending:false}),
+    sb.from('gyms').select('id',{count:'exact',head:true}),
+    sb.from('audit_log').select('at,action,target_id,detail,actor:profiles(display_name,uid)').order('at',{ascending:false}).limit(15)
+  ]);
+  if(u.error){$('#view').innerHTML=`<div class="err">โหลดรายชื่อไม่สำเร็จ: ${esc(thErr(u.error.message))}</div>`;return;}
+  users=u.data||[];gymCount=g.count||0;log=l.data||[];
+  render();
+}
+
+/* ---------- list ---------- */
+const subOf=(u,k)=>{const l=(u.subscriptions||[]).filter(s=>s.kind===k);return l.find(s=>s.status==='trial'||s.status==='active')||l[0];};
+const hasMode=(u,k)=>{const s=subOf(u,k);return s&&(s.status==='trial'||s.status==='active')};
+const trialSoon=u=>(u.subscriptions||[]).some(s=>s.status==='trial'&&s.trial_ends_at&&daysTo(s.trial_ends_at)<=2);
+function planPills(u){
+  const subs=(u.subscriptions||[]).filter(s=>s.status==='trial'||s.status==='active');
+  if(!subs.length)return '<span class="pill p-mute">ฟรี</span>';
+  return subs.map(s=>{const lb=KINDS.find(k=>k[0]===s.kind)[1].replace(/ \(.+\)/,'');
+    if(s.status==='active')return `<span class="pill p-ok">${lb} · จ่ายแล้ว</span>`;
+    const d=s.trial_ends_at?daysTo(s.trial_ends_at):null;
+    return `<span class="pill ${d!=null&&d<0?'p-bad':d!=null&&d<=2?'p-warn':'p-info'}">${lb} · ${d==null?'ทดลอง':d<0?'ทดลองหมด':'ทดลอง '+d+' วัน'}</span>`}).join(' ');
+}
+const staffText=u=>(u.gym_staff||[]).filter(s=>s.active).map(s=>`${esc(s.gyms?.name||'?')} · ${ROLE_TH[s.role]||s.role}`).join('<br>')||'<span class="muted">–</span>';
+const match=u=>{const k=q.trim().toLowerCase();if(!k)return true;return (u.display_name||'').toLowerCase().includes(k)||String(u.uid).includes(k)||(u.email||'').toLowerCase().includes(k)||(digits(k)&&digits(u.phone).includes(digits(k)))||(u.gym_staff||[]).some(s=>(s.gyms?.name||'').toLowerCase().includes(k));};
+const FILTERS=[['all','ทั้งหมด',()=>true],['trial','ทดลองอยู่',u=>(u.subscriptions||[]).some(s=>s.status==='trial')],['trainer','เทรนเนอร์',u=>hasMode(u,'trainer')||(u.gym_staff||[]).some(s=>s.role==='trainer')],['gym','ยิม',u=>hasMode(u,'gym')||(u.gym_staff||[]).some(s=>s.role!=='trainer')],['susp','ระงับ',u=>u.status==='suspended'],['admin','Super Admin',u=>u.is_super_admin]];
 
 function view(){
   const fl=FILTERS.find(f=>f[0]===filter);
-  const rows=users.filter(u=>fl[2](u)&&match(u)).sort((a,b)=>b.uid.localeCompare(a.uid));
-  const trialSoon=users.filter(u=>u.plan==='trial'&&u.trialEnd&&daysTo(u.trialEnd)<=2).length;
-  const gyms=new Set(users.map(u=>u.gym).filter(Boolean)).size;
+  const rows=users.filter(u=>fl[2](u)&&match(u));
+  const soon=users.filter(trialSoon).length;
   return `
-  <div class="note">ต้นแบบ · ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ยังไม่ได้ต่อฐานข้อมูลจริง · ตอนต่อ Supabase หน้านี้จะใช้รหัสผ่านนักพัฒนา และทุกการแก้ไขถูกบันทึก</div>
   <div class="tiles">
     <button class="tile" data-f="all"><span class="v">${users.length}</span><span class="l">ผู้ใช้ทั้งหมด</span></button>
-    <button class="tile" data-f="trial"><span class="v">${users.filter(u=>u.plan==='trial').length}</span><span class="l">กำลังทดลอง${trialSoon?` · ใกล้หมด ${trialSoon}`:''}</span></button>
-    <button class="tile" data-f="gym"><span class="v">${gyms}</span><span class="l">ยิม</span></button>
+    <button class="tile" data-f="trial"><span class="v">${users.filter(FILTERS[1][2]).length}</span><span class="l">กำลังทดลอง${soon?` · ใกล้หมด ${soon}`:''}</span></button>
+    <button class="tile" data-f="gym"><span class="v">${gymCount}</span><span class="l">ยิม</span></button>
     <button class="tile" data-f="susp"><span class="v">${users.filter(u=>u.status==='suspended').length}</span><span class="l">ถูกระงับ</span></button>
   </div>
   <section class="card">
     <div class="row" style="justify-content:space-between;margin-bottom:12px">
       <label class="search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" value="${esc(q)}" placeholder="ค้นหา ชื่อ UID เบอร์ อีเมล ยิม" aria-label="ค้นหาผู้ใช้"></label>
-      <button class="btn p" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มผู้ใช้</button>
+      <div class="row"><button class="btn" id="reloadBtn" title="โหลดข้อมูลใหม่">รีเฟรช</button><button class="btn p" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>เพิ่มผู้ใช้</button></div>
     </div>
     <div class="chips" style="margin-bottom:12px">${FILTERS.map(f=>`<button class="chip ${filter===f[0]?'on':''}" data-f="${f[0]}">${f[1]} <span class="num">${users.filter(f[2]).length}</span></button>`).join('')}</div>
-    <div class="tbl-wrap"><table><thead><tr><th>UID</th><th>ชื่อ</th><th>เบอร์โทร</th><th>อีเมล</th><th>โหมด</th><th>ยิม · บทบาท</th><th>แผน</th><th>สถานะ</th><th>สมัคร</th></tr></thead>
-    <tbody>${rows.map(u=>{const p=planOf(u);return `<tr data-open="${u.uid}" tabindex="0" class="${u.status==='suspended'?'susp':''}"><td class="num">${u.uid}</td><td><b>${esc(u.name)}</b></td><td class="num">${esc(u.phone)||'–'}</td><td>${esc(u.email)||'<span class="muted">–</span>'}</td><td>${modeText(u)}</td><td>${u.gym?`${esc(u.gym)} · ${esc(u.role||'–')}`:'<span class="muted">–</span>'}</td><td><span class="pill ${p[1]}">${p[0]}</span></td><td>${u.status==='suspended'?'<span class="pill p-bad">ระงับ</span>':'<span class="pill p-ok">ใช้งาน</span>'}</td><td class="num">${thDate(u.created)}</td></tr>`}).join('')||`<tr><td colspan="9" class="muted">ไม่พบผู้ใช้${q?` ที่ตรงกับ "${esc(q)}"`:''}</td></tr>`}</tbody></table></div>
-    <p class="foot" style="margin:10px 0 0">กดแถวเพื่อแก้ไข / ระงับ / ลบ</p>
+    <div class="tbl-wrap"><table><thead><tr><th>UID</th><th>ชื่อ</th><th>เบอร์โทร</th><th>อีเมล</th><th>ยิม · บทบาท</th><th>แผน</th><th>สถานะ</th><th>สมัคร</th></tr></thead>
+    <tbody>${rows.map(u=>`<tr data-open="${u.id}" tabindex="0" class="${u.status==='suspended'?'susp':''}"><td class="num">${u.uid}</td><td><b>${esc(u.display_name)||'<span class="muted">(ไม่มีชื่อ)</span>'}</b>${u.id===me.id?'<span class="me-tag">คุณ</span>':''}${u.is_super_admin?' <span class="pill p-info">Super Admin</span>':''}</td><td class="num">${esc(u.phone)||'–'}</td><td>${esc(u.email)||'<span class="muted">–</span>'}</td><td>${staffText(u)}</td><td>${planPills(u)}</td><td>${u.status==='suspended'?'<span class="pill p-bad">ระงับ</span>':'<span class="pill p-ok">ใช้งาน</span>'}</td><td class="num">${thDate(u.created_at)}</td></tr>`).join('')||`<tr><td colspan="8" class="muted">ไม่พบผู้ใช้${q?` ที่ตรงกับ "${esc(q)}"`:''}</td></tr>`}</tbody></table></div>
+    <p class="foot" style="margin:10px 0 0">กดแถวเพื่อแก้ไข / ระงับ / ลบ · ข้อมูลจริงจากฐานข้อมูล</p>
   </section>
   <section class="card">
-    <div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">บันทึกล่าสุด</h2><button class="btn sm" id="resetBtn">ล้างกลับเป็นข้อมูลตัวอย่าง</button></div>
-    <div class="log">${log.length?log.slice(0,12).map(l=>`<div><span class="t">${esc(l.t)}</span><span>${esc(l.x)}</span></div>`).join(''):'<div><span class="muted">ยังไม่มีการแก้ไข</span></div>'}</div>
+    <h2>บันทึกล่าสุด</h2>
+    <div class="log">${log.length?log.map(l=>{const t=users.find(u=>u.id===l.target_id);const nm=t?t.display_name||t.email:(l.detail&&(l.detail.display_name||l.detail.email))||'';return `<div><span class="t">${thTime(l.at)}</span><span>${esc(l.actor?.display_name||'ระบบ')} · ${ACT_TH[l.action]||esc(l.action)}${nm?` · ${esc(nm)}`:''}</span></div>`}).join(''):'<div><span class="muted">ยังไม่มีการแก้ไข</span></div>'}</div>
   </section>`;
 }
 
-const blank=()=>({name:'',phone:'',email:'',modes:[],gym:'',role:'',plan:'trial',trialEnd:addDays(7),status:'active',note:''});
-function field(id,label,val,o={}){const e=drawer.errs[id];return `<label class="f"><span>${label}</span><input class="in ${e?'err':''}" id="f_${id}" value="${esc(val)}" ${o.ph?`placeholder="${o.ph}"`:''} ${o.type?`type="${o.type}"`:''} ${o.im?`inputmode="${o.im}"`:''}>${e?`<span class="errt">${e}</span>`:o.hint?`<small>${o.hint}</small>`:''}</label>`;}
+/* ---------- drawer ---------- */
+function planState(u){const o={};KINDS.forEach(([k])=>{const s=u&&subOf(u,k);o[k]=s&&(s.status==='trial'||s.status==='active')?{st:s.status,until:(s.status==='trial'?s.trial_ends_at:s.current_period_end)||''}:{st:'none',until:''};});return o;}
+function genPw(){const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';let s='';const a=new Uint32Array(10);crypto.getRandomValues(a);a.forEach(x=>s+=c[x%c.length]);return s;}
+function blank(){return {display_name:'',email:'',phone:'',dev_note:'',password:genPw(),status:'active',plans:planState(null)};}
+function field(id,label,val,o={}){const e=drawer.errs[id];return `<label class="f"><span>${label}</span><input class="in ${e?'err':''} ${o.cls||''}" id="f_${id}" value="${esc(val)}" ${o.ph?`placeholder="${o.ph}"`:''} ${o.type?`type="${o.type}"`:''} ${o.im?`inputmode="${o.im}"`:''} ${o.ac?`autocomplete="${o.ac}"`:''}>${e?`<span class="errt">${e}</span>`:o.hint?`<small>${o.hint}</small>`:''}</label>`;}
 
 function drawerHTML(){
-  if(!drawer) return '';
-  if(drawer.reset) return `<div class="scrim" data-close="1"></div><div class="drawer" role="dialog" aria-modal="true" aria-label="ล้างข้อมูล"><div class="dh"><h2>ล้างกลับเป็นข้อมูลตัวอย่าง</h2><button class="btn sm" data-close="1" aria-label="ปิด">✕</button></div><div class="db"><div class="danger"><b>ผู้ใช้ที่เพิ่ม/แก้ไขไว้ทั้งหมดจะหายไป</b><span>ใช้เมื่ออยากเริ่มทดสอบใหม่ตั้งแต่ต้น</span></div></div><div class="df"><button class="btn" data-close="1">ยกเลิก</button><button class="btn bad" id="resetGo">ล้างข้อมูล</button></div></div>`;
-  const f=drawer.f, isNew=drawer.mode==='new', u=isNew?null:users.find(x=>x.uid===drawer.uid);
+  if(!drawer)return '';
+  const f=drawer.f,isNew=drawer.mode==='new',u=isNew?null:users.find(x=>x.id===drawer.id),self=u&&u.id===me.id;
+  const plans=KINDS.map(([k,lb])=>{const p=f.plans[k];return `<div class="plan-row"><b style="font-size:13.5px">${lb}</b>
+    <div class="seg">${[['none','ไม่มี'],['trial','ทดลอง'],['active','จ่ายแล้ว']].map(([v,t])=>`<button data-plan="${k}" data-v="${v}" class="${p.st===v?'on':''}">${t}</button>`).join('')}</div>
+    ${p.st!=='none'?`<div class="sub"><span class="muted" style="font-size:13px">${p.st==='trial'?'ทดลองถึง':'จ่ายถึง'}</span><input type="date" class="in" data-until="${k}" value="${p.until}" style="max-width:170px"><button class="btn sm" data-ext="${k}" data-n="7">+7 วัน</button><button class="btn sm" data-ext="${k}" data-n="30">+30 วัน</button>${p.until?`<small class="muted">${daysTo(p.until)<0?'หมดแล้ว':'เหลือ '+daysTo(p.until)+' วัน'}</small>`:''}</div>`:''}</div>`}).join('');
   const body=`
-    ${isNew?'':`<dl class="kv"><dt>UID</dt><dd class="num"><b>${u.uid}</b></dd><dt>สมัครเมื่อ</dt><dd>${thDate(u.created)}</dd></dl>`}
-    ${field('name','ชื่อที่แสดง *',f.name,{ph:'เช่น มิ้นท์ ศิริพร'})}
-    <div class="two">${field('phone','เบอร์โทร',f.phone,{ph:'081-234-5678',im:'tel'})}${field('email','อีเมล',f.email,{ph:'name@mail.com',type:'email'})}</div>
-    ${drawer.errs.contact?`<span class="errt" style="margin-top:-8px">${drawer.errs.contact}</span>`:'<small class="muted" style="margin-top:-8px;font-size:12px">ต้องมีเบอร์หรืออีเมลอย่างน้อย 1 อย่าง (ใช้ล็อกอิน)</small>'}
-    <div class="f"><span>โหมดที่เปิด</span><div class="tog"><button disabled class="on">ผู้ใช้ (ทุกคนมี)</button>${MODES.map(m=>`<button data-mode="${m[0]}" class="${f.modes.includes(m[0])?'on':''}" aria-pressed="${f.modes.includes(m[0])}">${m[1]}</button>`).join('')}</div></div>
-    <div class="two">${field('gym','สังกัดยิม',f.gym,{ph:'ว่าง = ไม่สังกัด'})}
-      <label class="f"><span>บทบาทในยิม</span><select class="in" id="f_role" ${f.gym?'':'disabled'}>${ROLES.map(r=>`<option value="${r}" ${f.role===r?'selected':''}>${r||'–'}</option>`).join('')}</select></label></div>
-    <div class="f"><span>แผน</span><div class="seg">${Object.entries(PLAN).map(([k,v])=>`<button data-plan="${k}" class="${f.plan===k?'on':''}">${v[0]}</button>`).join('')}</div></div>
-    ${f.plan==='trial'?`<div class="f"><span>ทดลองถึงวันที่</span><div class="row"><input type="date" class="in" id="f_trialEnd" value="${f.trialEnd}" style="max-width:200px"><button class="btn sm" data-ext="7">+7 วัน</button><button class="btn sm" data-ext="30">+30 วัน</button></div>${f.trialEnd?`<small>${daysTo(f.trialEnd)<0?'หมดแล้ว':`เหลือ ${daysTo(f.trialEnd)} วัน`}</small>`:''}</div>`:''}
-    <div class="f"><span>สถานะบัญชี</span><div class="seg"><button data-st="active" class="${f.status==='active'?'on':''}">ใช้งาน</button><button data-st="suspended" class="${f.status==='suspended'?'on':''}">ระงับ</button></div><small>ระงับ = ล็อกอินไม่ได้ แต่ข้อมูลยังอยู่ · ปลดได้ทุกเมื่อ</small></div>
-    <label class="f"><span>โน้ตนักพัฒนา</span><textarea class="in" id="f_note" rows="2" placeholder="เช่น บัญชีทดสอบ, ยิมนำร่อง">${esc(f.note)}</textarea></label>
-    ${isNew?'':(drawer.confirmDel?`<div class="danger"><b>ลบ ${esc(u.name)} ถาวร?</b><span>ข้อมูลการเทรน อาหาร และรูปของคนนี้จะหายทั้งหมด กู้คืนไม่ได้ · ถ้าแค่อยากปิดชั่วคราว ใช้ "ระงับ" แทน</span><div class="row"><button class="btn sm" id="delNo">ไม่ลบ</button><button class="btn sm bad" id="delYes">ลบถาวร</button></div></div>`:`<button class="btn badline" id="delAsk" style="align-self:flex-start">ลบผู้ใช้นี้</button>`)}`;
+    ${drawer.msg?`<div class="${drawer.msgOk?'okmsg':'err'}" role="alert">${esc(drawer.msg)}</div>`:''}
+    ${isNew?'':`<dl class="kv"><dt>UID</dt><dd class="num"><b>${u.uid}</b>${self?'<span class="me-tag">คุณ</span>':''}</dd><dt>สมัครเมื่อ</dt><dd>${thDate(u.created_at)}</dd><dt>ยิม · บทบาท</dt><dd>${staffText(u)}</dd></dl>`}
+    ${field('display_name','ชื่อที่แสดง *',f.display_name,{ph:'เช่น มิ้นท์ ศิริพร'})}
+    <div class="two">${field('email','อีเมล (ใช้ล็อกอิน) *',f.email,{ph:'name@mail.com',type:'email',ac:'off'})}${field('phone','เบอร์โทร',f.phone,{ph:'081-234-5678',im:'tel'})}</div>
+    ${isNew?field('password','รหัสผ่านเริ่มต้น *',f.password,{cls:'pw',ac:'off',hint:'จดแล้วส่งให้ผู้ใช้ · อย่างน้อย 8 ตัว'}):
+      `<details ${drawer.errs.password?'open':''}><summary style="cursor:pointer;font-size:13.5px;font-weight:600">ตั้งรหัสผ่านใหม่ให้ผู้ใช้</summary><div style="margin-top:8px">${field('password','รหัสผ่านใหม่',f.password||'',{cls:'pw',ac:'off',hint:'เว้นว่าง = ไม่เปลี่ยน'})}<button class="btn sm" data-genpw="1" style="margin-top:6px">สุ่มรหัสใหม่</button></div></details>`}
+    <div class="f"><span>แผน</span><div>${plans}</div></div>
+    ${self?'':`<div class="f"><span>สถานะบัญชี</span><div class="seg"><button data-st="active" class="${f.status==='active'?'on':''}">ใช้งาน</button><button data-st="suspended" class="${f.status==='suspended'?'on':''}">ระงับ</button></div><small>ระงับ = ล็อกอินไม่ได้ แต่ข้อมูลยังอยู่ · ปลดได้ทุกเมื่อ</small></div>`}
+    <label class="f"><span>โน้ตนักพัฒนา</span><textarea class="in" id="f_dev_note" rows="2" placeholder="เช่น บัญชีทดสอบ, ยิมนำร่อง">${esc(f.dev_note)}</textarea></label>
+    ${isNew||self?'':(drawer.confirmDel?`<div class="danger"><b>ลบ ${esc(u.display_name||u.email)} ถาวร?</b><span>บัญชีล็อกอิน ข้อมูลการเทรน อาหาร และรูปของคนนี้จะหายทั้งหมด กู้คืนไม่ได้ · ถ้าแค่อยากปิดชั่วคราว ใช้ "ระงับ" แทน</span><div class="row"><button class="btn sm" id="delNo">ไม่ลบ</button><button class="btn sm bad" id="delYes">ลบถาวร</button></div></div>`:`<button class="btn badline" id="delAsk" style="align-self:flex-start">ลบผู้ใช้นี้</button>`)}`;
   return `<div class="scrim" data-close="1"></div><div class="drawer" role="dialog" aria-modal="true" aria-label="${isNew?'เพิ่มผู้ใช้':'แก้ไขผู้ใช้'}">
-    <div class="dh"><h2>${isNew?'เพิ่มผู้ใช้':'แก้ไข · '+esc(u.name)}</h2><button class="btn sm" data-close="1" aria-label="ปิด">✕</button></div>
+    <div class="dh"><h2>${isNew?'เพิ่มผู้ใช้':'แก้ไข · '+esc(u.display_name||u.email)}</h2><button class="btn sm" data-close="1" aria-label="ปิด">✕</button></div>
     <div class="db">${body}</div>
-    <div class="df"><button class="btn" data-close="1">ยกเลิก</button><button class="btn p" id="saveBtn">${isNew?'เพิ่มผู้ใช้':'บันทึก'}</button></div></div>`;
+    <div class="df"><button class="btn" data-close="1">ยกเลิก</button><button class="btn p" id="saveBtn" ${busy?'aria-busy="true"':''}>${busy?'<span class="spin"></span> กำลังบันทึก':isNew?'เพิ่มผู้ใช้':'บันทึก'}</button></div></div>`;
 }
 
-function render(keepFocus){
+function render(focusId){
+  if(!me)return renderLogin();
   $('#view').innerHTML=view();
-  const sc=drawer?document.querySelector('.db')?.scrollTop:0;
+  const sc=document.querySelector('.db')?.scrollTop||0;
   $('#layer').innerHTML=drawerHTML();
-  if(drawer&&document.querySelector('.db'))document.querySelector('.db').scrollTop=sc||0;
-  if(keepFocus){const el=$('#'+keepFocus);if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(e){}}}
+  const db=document.querySelector('.db');if(db)db.scrollTop=sc;
+  if(focusId){const el=$('#'+focusId);if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(e){}}}
 }
 let toastT;
-function toast(m){clearTimeout(toastT);let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=m;toastT=setTimeout(()=>t.remove(),2400);}
+function toast(m){clearTimeout(toastT);let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=m;toastT=setTimeout(()=>t.remove(),2600);}
 
-function readForm(){
-  if(!drawer||drawer.reset)return;
-  const f=drawer.f;
-  ['name','phone','email','gym','note','trialEnd','role'].forEach(k=>{const el=$('#f_'+k);if(el)f[k]=el.value;});
-  if(!f.gym)f.role='';
-}
+function readForm(){if(!drawer)return;const f=drawer.f;['display_name','email','phone','dev_note','password'].forEach(k=>{const el=$('#f_'+k);if(el)f[k]=el.value;});
+  document.querySelectorAll('[data-until]').forEach(el=>{f.plans[el.dataset.until].until=el.value;});}
 function validate(){
   const f=drawer.f,e={};
-  f.name=f.name.trim();f.phone=f.phone.trim();f.email=f.email.trim();f.gym=f.gym.trim();
-  if(!f.name)e.name='ใส่ชื่อ';
-  if(!f.phone&&!f.email)e.contact='ต้องมีเบอร์โทรหรืออีเมลอย่างน้อย 1 อย่าง';
+  f.display_name=f.display_name.trim();f.email=f.email.trim().toLowerCase();f.phone=f.phone.trim();
+  if(!f.display_name)e.display_name='ใส่ชื่อ';
+  if(!f.email)e.email='ต้องมีอีเมล (ใช้ล็อกอิน)';else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email))e.email='รูปแบบอีเมลไม่ถูก';
   if(f.phone&&(digits(f.phone).length<9||digits(f.phone).length>10))e.phone='เบอร์ต้องมี 9–10 หลัก';
-  if(f.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email))e.email='รูปแบบอีเมลไม่ถูก';
-  const others=users.filter(u=>u.uid!==drawer.uid);
-  if(!e.phone&&f.phone){const d=others.find(u=>digits(u.phone)===digits(f.phone));if(d)e.phone=`ซ้ำกับ ${d.name} (UID ${d.uid})`;}
-  if(!e.email&&f.email){const d=others.find(u=>(u.email||'').toLowerCase()===f.email.toLowerCase());if(d)e.email=`ซ้ำกับ ${d.name} (UID ${d.uid})`;}
-  if(f.plan==='trial'&&!f.trialEnd)f.trialEnd=addDays(7);
-  if(f.plan!=='trial')f.trialEnd='';
-  if(f.gym&&!f.role)f.role='สมาชิก';
+  const others=users.filter(u=>u.id!==drawer.id);
+  if(!e.phone&&f.phone){const d=others.find(u=>digits(u.phone)===digits(f.phone));if(d)e.phone=`ซ้ำกับ ${d.display_name||d.email} (UID ${d.uid})`;}
+  if(!e.email){const d=others.find(u=>(u.email||'').toLowerCase()===f.email);if(d)e.email=`ซ้ำกับ ${d.display_name||d.email} (UID ${d.uid})`;}
+  if(drawer.mode==='new'&&(f.password||'').length<8)e.password='อย่างน้อย 8 ตัว';
+  if(drawer.mode==='edit'&&f.password&&f.password.length<8)e.password='อย่างน้อย 8 ตัว';
+  KINDS.forEach(([k])=>{const p=f.plans[k];if(p.st==='trial'&&!p.until)p.until=addDays(7);});
   drawer.errs=e;return !Object.keys(e).length;
 }
-const nextUid=()=>String(Math.max(100000,...users.map(u=>+u.uid||0))+1);
+async function savePlans(uid,u,plans){
+  const changed=[];
+  for(const [k] of KINDS){
+    const want=plans[k],cur=u?subOf(u,k):null;
+    const row={status:want.st,trial_ends_at:want.st==='trial'?want.until||null:null,current_period_end:want.st==='active'?want.until||null:null};
+    if(want.st==='none'){
+      if(cur&&(cur.status==='trial'||cur.status==='active')){const r=await sb.from('subscriptions').update({status:'cancelled'}).eq('id',cur.id);if(r.error)throw r.error;changed.push(k);}
+    }else if(cur){
+      if(cur.status!==row.status||(cur.trial_ends_at||null)!==row.trial_ends_at||(cur.current_period_end||null)!==row.current_period_end){const r=await sb.from('subscriptions').update(row).eq('id',cur.id);if(r.error)throw r.error;changed.push(k);}
+    }else{const r=await sb.from('subscriptions').insert({user_id:uid,kind:k,...row});if(r.error)throw r.error;changed.push(k);}
+  }
+  return changed;
+}
+async function save(){
+  readForm();if(!validate())return render();
+  busy=true;drawer.msg='';render();
+  const f=drawer.f;
+  try{
+    if(drawer.mode==='new'){
+      const r=await fn({action:'create',email:f.email,password:f.password,display_name:f.display_name,phone:f.phone||null});
+      const upd={display_name:f.display_name,phone:f.phone||null,dev_note:f.dev_note||null};
+      const x=await sb.from('profiles').update(upd).eq('id',r.id);if(x.error)throw x.error;
+      await savePlans(r.id,null,f.plans);
+      toast(`เพิ่ม ${f.display_name} แล้ว · ส่งอีเมลกับรหัสผ่านให้ผู้ใช้ได้เลย`);
+    }else{
+      const u=users.find(x=>x.id===drawer.id),ch=[];
+      const upd={};if((u.display_name||'')!==f.display_name)upd.display_name=f.display_name;if((u.phone||'')!==f.phone)upd.phone=f.phone||null;if((u.dev_note||'')!==f.dev_note)upd.dev_note=f.dev_note||null;
+      if(Object.keys(upd).length){const x=await sb.from('profiles').update(upd).eq('id',u.id);if(x.error)throw x.error;ch.push('ข้อมูล');await audit('edit_profile',u.id,upd);}
+      if((u.email||'')!==f.email){await fn({action:'set_email',id:u.id,email:f.email});ch.push('อีเมล');}
+      if(f.password){await fn({action:'set_password',id:u.id,password:f.password});ch.push('รหัสผ่าน');}
+      if(u.id!==me.id&&u.status!==f.status){await fn({action:'set_status',id:u.id,status:f.status});ch.push(f.status==='suspended'?'ระงับ':'ปลดระงับ');}
+      const pc=await savePlans(u.id,u,f.plans);if(pc.length){ch.push('แผน');await audit('edit_plan',u.id,{kinds:pc});}
+      toast(ch.length?`บันทึกแล้ว · ${ch.join(', ')}`:'ไม่มีอะไรเปลี่ยน');
+    }
+    busy=false;drawer=null;await loadAll();
+  }catch(e){busy=false;drawer.msg=thErr(e.message||e);drawer.msgOk=false;await loadAll();if(drawer)render();}
+}
 
-document.addEventListener('input',e=>{
-  if(e.target.id==='q'){q=e.target.value;render('q');}
-  if(e.target.id==='f_gym'){const had=!!drawer.f.gym;readForm();if(had!==!!drawer.f.gym)render('f_gym');}
+/* ---------- events ---------- */
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='loginForm')return;e.preventDefault();
+  const b=$('#lGo');b.setAttribute('aria-busy','true');b.innerHTML='<span class="spin"></span> กำลังเข้าสู่ระบบ';
+  const {error}=await sb.auth.signInWithPassword({email:$('#lEmail').value.trim(),password:$('#lPass').value});
+  if(error){loginErr=thErr(error.message);return renderLogin();}
+  loginErr='';boot();
 });
-document.addEventListener('change',e=>{if(e.target.id==='f_trialEnd'){readForm();render();}});
+document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;render('q');}});
+document.addEventListener('change',e=>{if(e.target.dataset&&e.target.dataset.until){readForm();render();}});
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&drawer){drawer=null;render();}
-  if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.open){openEdit(e.target.dataset.open);}
+  if(e.key==='Escape'&&drawer&&!busy){drawer=null;render();}
+  if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.open)openEdit(e.target.dataset.open);
 });
-function openEdit(uid){const u=users.find(x=>x.uid===uid);drawer={mode:'edit',uid,f:JSON.parse(JSON.stringify(u)),errs:{},confirmDel:false};render();}
-document.addEventListener('click',e=>{
-  const b=e.target.closest('button,tr[data-open],.scrim');if(!b)return;
+function openEdit(id){const u=users.find(x=>x.id===id);drawer={mode:'edit',id,f:{display_name:u.display_name||'',email:u.email||'',phone:u.phone||'',dev_note:u.dev_note||'',password:'',status:u.status,plans:planState(u)},errs:{},confirmDel:false};render();}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button,tr[data-open],.scrim');if(!b||busy)return;
   const D=b.dataset;
+  if(b.id==='logoutBtn'){await sb.auth.signOut();me=null;users=[];drawer=null;loginErr='';return renderLogin();}
   if(D.close){drawer=null;return render();}
   if(D.f){filter=D.f;return render();}
   if(D.open)return openEdit(D.open);
-  if(b.id==='addBtn'){drawer={mode:'new',uid:null,f:blank(),errs:{}};render();const el=$('#f_name');if(el)el.focus();return;}
-  if(b.id==='resetBtn'){drawer={reset:1};return render();}
-  if(b.id==='resetGo'){users=sample();log=[];addLog('ล้างกลับเป็นข้อมูลตัวอย่าง');save();drawer=null;q='';filter='all';toast('ล้างข้อมูลแล้ว');return render();}
-  if(!drawer||drawer.reset)return;
+  if(b.id==='reloadBtn'){toast('กำลังโหลดใหม่');return loadAll();}
+  if(b.id==='addBtn'){drawer={mode:'new',id:null,f:blank(),errs:{}};render();const el=$('#f_display_name');if(el)el.focus();return;}
+  if(!drawer)return;
   readForm();
-  if(D.mode){const m=drawer.f.modes,i=m.indexOf(D.mode);i<0?m.push(D.mode):m.splice(i,1);return render();}
-  if(D.plan){drawer.f.plan=D.plan;if(D.plan==='trial'&&!drawer.f.trialEnd)drawer.f.trialEnd=addDays(7);return render();}
-  if(D.ext){const base=drawer.f.trialEnd&&daysTo(drawer.f.trialEnd)>=0?pd(drawer.f.trialEnd):new Date(TODAY);base.setDate(base.getDate()+Number(D.ext));drawer.f.trialEnd=iso(base);return render();}
+  if(D.plan){const p=drawer.f.plans[D.plan];p.st=D.v;if(D.v==='trial'&&!p.until)p.until=addDays(7);if(D.v==='none')p.until='';return render();}
+  if(D.ext){const p=drawer.f.plans[D.ext];p.until=addDays(Number(D.n),p.until&&daysTo(p.until)>=0?p.until:null);return render();}
   if(D.st){drawer.f.status=D.st;return render();}
+  if(D.genpw){drawer.f.password=genPw();return render();}
   if(b.id==='delAsk'){drawer.confirmDel=true;return render();}
   if(b.id==='delNo'){drawer.confirmDel=false;return render();}
-  if(b.id==='delYes'){const u=users.find(x=>x.uid===drawer.uid);users=users.filter(x=>x.uid!==drawer.uid);addLog(`ลบ ${u.name} (UID ${u.uid})`);save();drawer=null;toast(`ลบ ${u.name} แล้ว`);return render();}
-  if(b.id==='saveBtn'){
-    if(!validate()){render();const first=document.querySelector('.in.err');if(first)first.focus();return;}
-    const f=drawer.f;
-    if(drawer.mode==='new'){const u=Object.assign({},f,{uid:nextUid(),created:iso(TODAY)});users.push(u);addLog(`เพิ่ม ${u.name} (UID ${u.uid})`);toast(`เพิ่ม ${u.name} แล้ว · UID ${u.uid}`);}
-    else{const i=users.findIndex(x=>x.uid===drawer.uid),old=users[i];const ch=[];
-      if(old.name!==f.name)ch.push('ชื่อ');if(old.phone!==f.phone)ch.push('เบอร์');if((old.email||'')!==f.email)ch.push('อีเมล');if(old.modes.join()!==f.modes.join())ch.push('โหมด');if(old.gym!==f.gym||old.role!==f.role)ch.push('ยิม/บทบาท');if(old.plan!==f.plan||old.trialEnd!==f.trialEnd)ch.push('แผน');if(old.note!==f.note)ch.push('โน้ต');
-      if(old.status!==f.status)ch.push(f.status==='suspended'?'ระงับบัญชี':'ปลดระงับ');
-      users[i]=Object.assign({},old,f);
-      if(ch.length)addLog(`แก้ ${f.name} (UID ${old.uid}): ${ch.join(', ')}`);
-      toast(ch.length?`บันทึกแล้ว · ${ch.join(', ')}`:'ไม่มีอะไรเปลี่ยน');}
-    save();drawer=null;return render();
-  }
+  if(b.id==='delYes'){const u=users.find(x=>x.id===drawer.id);busy=true;render();
+    try{await fn({action:'delete',id:u.id});busy=false;drawer=null;toast(`ลบ ${u.display_name||u.email} แล้ว`);await loadAll();}
+    catch(err){busy=false;drawer.msg=thErr(err.message);drawer.msgOk=false;render();}return;}
+  if(b.id==='saveBtn')return save();
 });
-render();
+sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&me){me=null;renderLogin();}});
+boot();
 })();
 </script>
 
