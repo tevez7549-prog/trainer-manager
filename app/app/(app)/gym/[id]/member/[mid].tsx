@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../../src/lib/supabase';
 import { useAuth } from '../../../../../src/lib/auth';
-import { baht, gymCountry, isDesk, isManager, PAY_TH, thDate, thTime, type Plan, useGym } from '../../../../../src/lib/gym';
+import { baht, gymCountry, isDesk, isManager, PAY_TH, thDate, thDateTs, thTime, type Plan, useGym } from '../../../../../src/lib/gym';
 import { enqueue, liveStatus, STATUS_TH, type Member } from '../../../../../src/lib/counter';
 import { phoneError, prettyPhone, splitE164, toE164, type Country } from '../../../../../src/lib/phone';
 import { Btn, Card, ConfirmBtn, Field, H, Header, Notice, Pill, Screen, Toggle, Txt } from '../../../../../src/ui';
@@ -11,6 +11,8 @@ import { PhoneField } from '../../../../../src/ui/PhoneField';
 import { expiryText } from '../../../../../src/ui/MemberRow';
 import { newSale, saleError, sell, SellForm, type Sale } from '../../../../../src/ui/SellForm';
 import { C } from '../../../../../src/lib/theme';
+import { sessionsLeft } from '../../../../../src/lib/trainer';
+import { Chips, Row } from '../../../../../src/ui';
 
 type Ms = { id: string; plan_name: string; start_date: string; end_date: string; price: number; pay_method: string | null; created_at: string };
 type Ci = { id: string; checked_at: string; kind: string };
@@ -113,6 +115,8 @@ export default function MemberPage() {
 
       {mode === 'edit' && gym ? <EditMember m={m} country={gymCountry(gym)} onDone={(t) => { setMode(''); if (t) setMsg({ t, ok: true }); load(); }} /> : null}
 
+      {desk ? <MemberPT gymId={id} m={m} manager={mgr} /> : null}
+
       <Card style={{ gap: 4 }}>
         <H size={17}>ประวัติแพ็กเกจ ({ms.length})</H>
         {!ms.length ? <Txt muted>ยังไม่มี</Txt> : null}
@@ -137,7 +141,7 @@ export default function MemberPage() {
       <Card style={{ gap: 4 }}>
         <H size={17}>เช็กอินล่าสุด</H>
         {!ci.length ? <Txt muted>ยังไม่เคยเช็กอิน</Txt> : null}
-        {ci.map(x => <Txt key={x.id} size={14}>{thDate(x.checked_at.slice(0, 10))} · {thTime(x.checked_at)}{x.kind === 'pt' ? ' · PT' : ''}</Txt>)}
+        {ci.map(x => <Txt key={x.id} size={14}>{thDateTs(x.checked_at)} · {thTime(x.checked_at)}{x.kind === 'pt' ? ' · PT' : ''}</Txt>)}
       </Card>
 
       {mgr ? <ConfirmBtn label="ลบสมาชิกนี้" confirmLabel="กดอีกครั้ง: ลบสมาชิกและประวัติทั้งหมด" onConfirm={delMember} /> : null}
@@ -176,6 +180,61 @@ function EditMember({ m, country, onDone }: { m: Member; country: Country; onDon
       <Toggle label="เทรน PT อย่างเดียว" value={pt} onChange={setPt} />
       <Btn label="บันทึก" onPress={save} loading={busy} />
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onDone()} />
+    </Card>
+  );
+}
+
+type PtLink = { id: string; trainer_id: string; trainer: { display_name: string } | null };
+type GymTrainer = { user_id: string; profile: { display_name: string } | null };
+
+/** Trainers this member trains with at this gym; owner/admin can assign one */
+function MemberPT({ gymId, m, manager }: { gymId: string; m: Member; manager: boolean }) {
+  const [links, setLinks] = useState<PtLink[]>([]);
+  const [left, setLeft] = useState<Record<string, number>>({});
+  const [trainers, setTrainers] = useState<GymTrainer[]>([]);
+  const [pick, setPick] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    const [l, t] = await Promise.all([
+      supabase.from('trainer_clients').select('id,trainer_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)').eq('member_id', m.id).eq('status', 'active'),
+      supabase.from('gym_staff').select('user_id,profile:profiles(display_name)').eq('gym_id', gymId).eq('role', 'trainer').eq('active', true),
+    ]);
+    const ls = ((l.data as any) ?? []) as PtLink[];
+    setLinks(ls); setTrainers(((t.data as any) ?? []) as GymTrainer[]);
+    setLeft(await sessionsLeft(ls.map(x => x.id)));
+  }, [gymId, m.id]);
+  useEffect(() => { load(); }, [load]);
+
+  async function assign() {
+    if (!pick) { setErr('เลือกเทรนเนอร์'); return; }
+    const { error } = await supabase.from('trainer_clients').insert({ trainer_id: pick, member_id: m.id, client_id: m.profile_id, gym_id: gymId });
+    if (error) { setErr(thError(error)); return; }
+    setOpen(false); setPick(null); setErr(''); load();
+  }
+
+  const free = trainers.filter(t => !links.some(l => l.trainer_id === t.user_id));
+  return (
+    <Card style={{ gap: 4 }}>
+      <H size={17}>เทรน PT</H>
+      {err ? <Notice text={err} /> : null}
+      {!links.length ? <Txt muted>ยังไม่มีเทรนเนอร์</Txt> : null}
+      {links.map(l => (
+        <Row key={l.id} title={l.trainer?.display_name ?? 'เทรนเนอร์'} sub="ดูนัดและแพ็กเกจ PT"
+          right={<Pill text={`เหลือ ${left[l.id] ?? 0} ครั้ง`} kind={(left[l.id] ?? 0) === 0 ? 'bad' : 'ok'} />}
+          onPress={() => router.push(`/trainer/client/${l.id}` as any)} />
+      ))}
+      {manager && !open ? <Btn kind="ghost" label="+ มอบหมายเทรนเนอร์" onPress={() => setOpen(true)} /> : null}
+      {manager && open ? (
+        <View style={{ gap: 10 }}>
+          {free.length
+            ? <Chips label="เทรนเนอร์ของยิม" options={free.map(t => ({ v: t.user_id, t: t.profile?.display_name ?? 'เทรนเนอร์' }))} value={pick} onChange={setPick} />
+            : <Txt muted size={13}>ยังไม่มีเทรนเนอร์ในทีม เพิ่มได้ที่เมนู ทีมงาน (ตำแหน่ง เทรนเนอร์)</Txt>}
+          {free.length ? <Btn label="มอบหมาย" onPress={assign} /> : null}
+          <Btn kind="ghost" label="ยกเลิก" onPress={() => setOpen(false)} />
+        </View>
+      ) : null}
     </Card>
   );
 }

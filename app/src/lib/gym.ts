@@ -70,6 +70,8 @@ export function thDate(iso?: string | null, longYear = false) {
   const by = y + 543;
   return `${d} ${MONTHS[m - 1]} ${longYear ? by : String(by).slice(2)}`;
 }
+/** timestamp -> local date, e.g. "11 ต.ค. 69" */
+export const thDateTs = (ts: string) => thDate(isoDate(new Date(ts)));
 /** timestamp -> "14:05" */
 export function thTime(ts: string) {
   const d = new Date(ts);

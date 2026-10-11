@@ -137,6 +137,23 @@ export function DateField({ label, value, onChange, hint, min, max }: { label: s
   );
 }
 
+/** Time picker: the browser's own control on web, typed HH:MM on phones */
+export function TimeField({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Txt bold size={13.5}>{label}</Txt>
+      {Platform.OS === 'web'
+        ? React.createElement('input', {
+            type: 'time', value, step: 300, 'aria-label': label,
+            onChange: (e: any) => e.target.value && onChange(e.target.value),
+            style: { border: `1px solid ${C.line}`, borderRadius: R.field, padding: '10px 12px', fontSize: 16, fontFamily: F.body, color: C.fg, background: C.surface, minHeight: 46, boxSizing: 'border-box', width: '100%' },
+          })
+        : <TextInput value={value} onChangeText={onChange} placeholder="18:00" accessibilityLabel={label} style={s.input} />}
+      {hint ? <Txt size={12} muted>{hint}</Txt> : null}
+    </View>
+  );
+}
+
 /** Big number with a caption */
 export function Stat({ n, t, kind }: { n: string | number; t: string; kind?: 'warn' | 'bad' }) {
   const fg = kind === 'warn' ? C.warnFg : kind === 'bad' ? C.badFg : C.fg;
