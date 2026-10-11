@@ -21,7 +21,7 @@ export default function AddTrainee() {
 
   async function invite() {
     const n = Number(uid.replace(/\D/g, ''));
-    if (!n) { setMsg({ t: 'ใส่ UID (ตัวเลข 6 หลัก)', ok: false }); return; }
+    if (!n) { setMsg({ t: 'ใส่ UID (ตัวเลข)', ok: false }); return; }
     setBusy(true); setMsg(null);
     const { data, error } = await supabase.rpc('invite_client', { client_uid: n });
     setBusy(false);
@@ -49,7 +49,7 @@ export default function AddTrainee() {
       <Chips options={[{ v: 'app', t: 'มีแอปแล้ว (เชิญด้วย UID)' }, { v: 'noapp', t: 'ยังไม่มีแอป' }]} value={mode} onChange={v => { setMode(v); setMsg(null); }} />
       {mode === 'app' ? (
         <Card>
-          <Txt muted size={13.5}>ให้ลูกเทรนเปิดหน้า "ฉัน" ในแอป แล้วบอก UID 6 หลัก · ลูกเทรนต้องกดรับก่อน คุณถึงจะเห็นข้อมูลของเขา</Txt>
+          <Txt muted size={13.5}>ให้ลูกเทรนเปิดหน้า "ฉัน" ในแอป แล้วบอก UID (ตัวเลข) · ลูกเทรนต้องกดรับก่อน คุณถึงจะเห็นข้อมูลของเขา</Txt>
           <Field label="UID ของลูกเทรน" value={uid} onChangeText={setUid} keyboardType="number-pad" placeholder="เช่น 100002" />
           <Btn label="ส่งคำเชิญ" onPress={invite} loading={busy} />
         </Card>

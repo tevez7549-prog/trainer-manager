@@ -35,7 +35,7 @@ export default function StaffPage() {
 
   async function add() {
     const n = Number(uid.replace(/\D/g, ''));
-    if (!n) { setMsg({ t: 'ใส่ UID (ตัวเลข 6 หลัก)', ok: false }); return; }
+    if (!n) { setMsg({ t: 'ใส่ UID (ตัวเลข)', ok: false }); return; }
     setBusy(true); setMsg(null);
     const { data, error } = await supabase.rpc('gym_add_staff', { g: id, staff_uid: n, staff_role: newRole });
     setBusy(false);
@@ -61,7 +61,7 @@ export default function StaffPage() {
       {owner ? (
         <Card>
           <H size={17}>เพิ่มคนเข้าทีม</H>
-          <Txt muted size={13.5}>ให้อีกฝ่ายสมัครแอปก่อน แล้วเปิดหน้า "ฉัน" จะเห็น UID 6 หลัก</Txt>
+          <Txt muted size={13.5}>ให้อีกฝ่ายสมัครแอปก่อน แล้วเปิดหน้า "ฉัน" จะเห็น UID (ตัวเลข)</Txt>
           <Field label="UID" value={uid} onChangeText={setUid} keyboardType="number-pad" placeholder="เช่น 100002" />
           <Chips label="ตำแหน่ง" options={ADDABLE} value={newRole} onChange={setNewRole} />
           <Txt muted size={12.5}>{ROLE_HINT[newRole]}</Txt>
