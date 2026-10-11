@@ -52,13 +52,18 @@ function MemberHome() {
     if (!profile) return;
     const today = todayISO();
     const [m, inv, meals, target, w] = await Promise.all([
-      supabase.from('member_status').select('*, gym:gyms(name)').eq('profile_id', profile.id),
+      supabase.from('member_status').select('*').eq('profile_id', profile.id),
       supabase.rpc('my_invites'),
       loadDay(profile.id, today),
       latestTarget(profile.id),
       supabase.from('body_measurements').select('measured_on,weight_kg').eq('user_id', profile.id).not('weight_kg', 'is', null).order('measured_on', { ascending: false }).limit(40),
     ]);
     const rows = ((m.data as any) ?? []) as Card_[];
+    if (rows.length) {
+      const g = await supabase.from('gyms').select('id,name').in('id', [...new Set(rows.map(r => r.gym_id))]);
+      const names = Object.fromEntries(((g.data as { id: string; name: string }[]) ?? []).map(x => [x.id, x.name]));
+      rows.forEach(r => { r.gym = names[r.gym_id] ? { name: names[r.gym_id] } : null; });
+    }
     setCards(rows);
     setInvites((inv.data as Invite[]) ?? []);
     setFood({ t: totals(meals.flatMap(x => x.items)), target });
