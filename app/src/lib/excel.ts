@@ -82,7 +82,10 @@ function toIso(v: unknown, SSF: any): string | null {
 /** Read the first sheet. The header row is the first row that has a "ชื่อ" column. */
 export async function parseFile(file: File): Promise<{ rows: ParsedRow[]; missing: string[] }> {
   const XLSX = await lib();
-  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+  // CSV: read as UTF-8 text and keep every value as typed (leading 0 in phones, day/month order in dates)
+  const wb = /\.csv$/i.test(file.name) || file.type === 'text/csv'
+    ? XLSX.read((await file.text()).replace(/^﻿/, ''), { type: 'string', raw: true })
+    : XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: '' });
   const hi = grid.findIndex(r => r.some(c => ALIASES.name.includes(norm(c))));
