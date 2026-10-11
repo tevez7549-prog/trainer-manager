@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Trainer Manager",
+    "slug": "trainer-manager",
+    "scheme": "trainermanager",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "web": { "bundler": "metro", "output": "single", "name": "Trainer Manager", "shortName": "Trainer", "themeColor": "#0b6b4d", "backgroundColor": "#f2f4f1" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": false }
+  }
+}

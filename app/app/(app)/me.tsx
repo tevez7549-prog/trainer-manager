@@ -1,0 +1,52 @@
+import { useState } from 'react';
+import { View } from 'react-native';
+import { router } from 'expo-router';
+import { supabase, thError } from '../../src/lib/supabase';
+import { useAuth } from '../../src/lib/auth';
+import { Btn, Card, Field, H, Notice, Screen, Txt } from '../../src/ui';
+import { C } from '../../src/lib/theme';
+
+const digits = (s: string) => s.replace(/\D/g, '');
+
+export default function Me() {
+  const { profile, refresh, signOut } = useAuth();
+  const [name, setName] = useState(profile?.display_name ?? '');
+  const [phone, setPhone] = useState(profile?.phone ?? '');
+  const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (!profile) return null;
+
+  async function save() {
+    if (!name.trim()) { setMsg({ t: 'ใส่ชื่อ', ok: false }); return; }
+    if (phone && (digits(phone).length < 9 || digits(phone).length > 10)) { setMsg({ t: 'เบอร์ต้องมี 9–10 หลัก', ok: false }); return; }
+    setBusy(true);
+    const { error } = await supabase.from('profiles').update({ display_name: name.trim(), phone: phone.trim() || null }).eq('id', profile!.id);
+    setBusy(false);
+    if (error) { setMsg({ t: thError(error), ok: false }); return; }
+    await refresh();
+    setMsg({ t: 'บันทึกแล้ว', ok: true });
+  }
+
+  return (
+    <Screen>
+      <Btn kind="ghost" label="‹ กลับ" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={{ alignSelf: 'flex-start', minHeight: 40 }} />
+      <Card style={{ alignItems: 'center', backgroundColor: C.accent }}>
+        <Txt size={13} style={{ color: '#d6efe4' }}>UID ของฉัน</Txt>
+        <H size={40} style={{ color: '#fff', letterSpacing: 2 }}>{profile.uid}</H>
+        <Txt size={13} style={{ color: '#d6efe4', textAlign: 'center' }}>บอก UID นี้ให้ยิมหรือเทรนเนอร์ เพื่อเพิ่มคุณเข้าระบบ</Txt>
+      </Card>
+      <Card>
+        <H size={17}>ข้อมูลส่วนตัว</H>
+        {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
+        <Field label="ชื่อที่แสดง" value={name} onChangeText={setName} />
+        <Field label="เบอร์โทร" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <View style={{ gap: 4 }}>
+          <Txt bold size={13.5}>อีเมล</Txt>
+          <Txt muted>{profile.email}</Txt>
+        </View>
+        <Btn label="บันทึก" onPress={save} loading={busy} />
+      </Card>
+      <Btn kind="ghost" label="ออกจากระบบ" onPress={signOut} />
+    </Screen>
+  );
+}
