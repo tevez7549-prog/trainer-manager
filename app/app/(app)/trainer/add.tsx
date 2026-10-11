@@ -5,6 +5,7 @@ import { useAuth } from '../../../src/lib/auth';
 import { DEFAULT_COUNTRY, phoneError, toE164, type Country } from '../../../src/lib/phone';
 import { Btn, Card, Chips, Field, Header, Notice, Screen, Txt } from '../../../src/ui';
 import { PhoneField } from '../../../src/ui/PhoneField';
+import { gymChoice, useMyGyms } from '../../../src/lib/trainer';
 
 type Mode = 'app' | 'noapp';
 
@@ -16,6 +17,8 @@ export default function AddTrainee() {
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [goal, setGoal] = useState('');
+  const gyms = useMyGyms(profile?.id);
+  const [gym, setGym] = useState('');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -35,7 +38,7 @@ export default function AddTrainee() {
     if (phone.trim()) { const pe = phoneError(phone, country); if (pe) { setMsg({ t: pe, ok: false }); return; } }
     setBusy(true); setMsg(null);
     const { data, error } = await supabase.from('trainer_clients')
-      .insert({ trainer_id: profile!.id, client_name: name.trim(), client_phone: phone.trim() ? toE164(phone, country) : null, goal: goal.trim() || null })
+      .insert({ trainer_id: profile!.id, client_name: name.trim(), client_phone: phone.trim() ? toE164(phone, country) : null, goal: goal.trim() || null, gym_id: gym || null })
       .select('id').single();
     setBusy(false);
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
@@ -59,6 +62,10 @@ export default function AddTrainee() {
           <Field label="ชื่อ" value={name} onChangeText={setName} />
           <PhoneField label="เบอร์โทร (ไม่บังคับ)" country={country} onCountry={setCountry} value={phone} onChangeText={setPhone} />
           <Field label="เป้าหมาย (ไม่บังคับ)" value={goal} onChangeText={setGoal} placeholder="เช่น ลดไขมัน 5 กก. ใน 3 เดือน" />
+          {gyms.length ? <>
+            <Chips label="ลูกเทรนของ" options={gymChoice(gyms)} value={gym} onChange={setGym} />
+            <Txt muted size={12.5}>เลือกยิม = เจ้าของและ Admin ของยิมนั้นเห็นลูกเทรนคนนี้ · ส่วนตัว = เห็นแค่คุณ</Txt>
+          </> : null}
           <Btn label="เพิ่มลูกเทรน" onPress={addNoApp} loading={busy} />
         </Card>
       )}

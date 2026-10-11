@@ -52,12 +52,16 @@ export default function GymHome() {
       </> : null}
 
       {gym && role === 'trainer' ? (
-        <Notice kind="info" text="คุณอยู่ในทีมยิมนี้ในฐานะเทรนเนอร์ · หน้าลูกเทรน นัดหมาย และแพ็กเกจ PT กำลังทำ จะเปิดในเวอร์ชันถัดไป" />
+        <Card>
+          <Txt muted size={13.5}>คุณอยู่ในทีมยิมนี้ในฐานะเทรนเนอร์ · ลูกเทรน นัด และแพ็กเกจ PT อยู่ที่หน้าเทรนเนอร์</Txt>
+          <Btn icon="dumbbell" label="เปิดหน้าเทรนเนอร์" onPress={() => router.push('/trainer' as any)} />
+        </Card>
       ) : null}
 
       {gym ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>
           {isDesk(role) ? <Row ic="users" title="สมาชิก" sub="ค้นหา เพิ่ม ต่ออายุ ดูประวัติ" onPress={() => go('members')} /> : null}
+          {isDesk(role) ? <Row ic="dumbbell" title="เทรนเนอร์ & PT" sub="ลูกเทรนของเทรนเนอร์แต่ละคน นัด และครั้งที่เหลือ" onPress={() => go('pt')} /> : null}
           {isDesk(role) ? <Row ic="tag" title="แพ็กเกจสมาชิก" sub={isManager(role) ? 'ตั้งราคาและระยะเวลา' : 'ดูราคา'} onPress={() => go('plans')} /> : null}
           <Row ic="id-card" title="ทีมงาน" sub={role === 'owner' ? 'เพิ่ม Admin / Operator / เทรนเนอร์ ด้วย UID' : 'ดูรายชื่อทีม'} onPress={() => go('staff')} />
           {isManager(role) ? <Row ic="calendar-off" title="วันหยุดยิม" sub="ปิดพิเศษ · เลื่อนวันหมดสมาชิกให้อัตโนมัติ" onPress={() => go('holidays')} /> : null}

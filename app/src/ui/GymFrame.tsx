@@ -8,12 +8,13 @@ import { H, Pill, Screen, Txt, useWide } from './index';
 import { Icon, type IconName } from './Icon';
 import { Lockup } from './Logo';
 
-export type GymTab = 'home' | 'counter' | 'members' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
+export type GymTab = 'home' | 'counter' | 'members' | 'pt' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
 
 const NAV: { k: GymTab; t: string; icon: IconName; show: (r: Role | null) => boolean }[] = [
   { k: 'home', t: 'ภาพรวม', icon: 'house', show: () => true },
   { k: 'counter', t: 'เคาน์เตอร์', icon: 'circle-check', show: isDesk },
   { k: 'members', t: 'สมาชิก', icon: 'users', show: isDesk },
+  { k: 'pt', t: 'เทรนเนอร์ & PT', icon: 'dumbbell', show: isDesk },
   { k: 'plans', t: 'แพ็กเกจสมาชิก', icon: 'tag', show: isDesk },
   { k: 'staff', t: 'ทีมงาน', icon: 'id-card', show: () => true },
   { k: 'holidays', t: 'วันหยุดยิม', icon: 'calendar-off', show: isManager },

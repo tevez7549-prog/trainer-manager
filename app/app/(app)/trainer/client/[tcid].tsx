@@ -5,7 +5,7 @@ import { supabase, thError } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/lib/auth';
 import { addDays, baht, isoDate, thDate, thDateTs, todayISO } from '../../../../src/lib/gym';
 import {
-  APPT_COLS, apptRange, dayLabel, DURATIONS, inLeave, overlaps, TC_COLS, tcName, tcPhone, toTs,
+  APPT_COLS, apptRange, dayLabel, DURATIONS, gymChoice, inLeave, useMyGyms, overlaps, TC_COLS, tcName, tcPhone, toTs,
   type Appt, type Leave, type Pkg, type TC,
 } from '../../../../src/lib/trainer';
 import { Btn, Card, Chips, ConfirmBtn, DateField, Field, H, Header, Notice, Pill, Screen, TimeField, Txt } from '../../../../src/ui';
@@ -89,7 +89,7 @@ export default function ClientPage() {
           <Btn icon="calendar" label="นัดเทรน" onPress={() => setPanel('book')} />
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Btn kind="ghost" icon="receipt" label="ขายแพ็กเกจ PT" onPress={() => setPanel('sell')} style={{ flex: 1 }} />
-            <Btn kind="ghost" label="แก้เป้าหมาย" onPress={() => setPanel('goal')} style={{ flex: 1 }} />
+            <Btn kind="ghost" icon="pencil" label="แก้ข้อมูล" onPress={() => setPanel('goal')} style={{ flex: 1 }} />
           </View>
         </View>
       ) : null}
@@ -220,17 +220,27 @@ function SellPkgForm({ tc, onClose }: { tc: TC; onClose: (msg?: string) => void 
 }
 
 function GoalForm({ tc, onClose }: { tc: TC; onClose: (msg?: string) => void }) {
+  const { profile } = useAuth();
+  const mine = tc.trainer_id === profile?.id;
+  const gyms = useMyGyms(mine ? profile?.id : null);
   const [goal, setGoal] = useState(tc.goal ?? '');
+  const [gym, setGym] = useState(tc.gym_id ?? '');
   const [err, setErr] = useState('');
   async function save() {
-    const { error } = await supabase.from('trainer_clients').update({ goal: goal.trim() || null }).eq('id', tc.id);
+    const row: Record<string, unknown> = { goal: goal.trim() || null };
+    if (mine && !tc.member_id) row.gym_id = gym || null;
+    const { error } = await supabase.from('trainer_clients').update(row).eq('id', tc.id);
     if (error) { setErr(thError(error)); return; }
-    onClose('บันทึกเป้าหมายแล้ว');
+    onClose('บันทึกแล้ว');
   }
   return (
     <Card>
       {err ? <Notice text={err} /> : null}
       <Field label="เป้าหมาย" value={goal} onChangeText={setGoal} multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
+      {mine && !tc.member_id && gyms.length ? <>
+        <Chips label="ลูกเทรนของ" options={gymChoice(gyms)} value={gym} onChange={setGym} />
+        <Txt muted size={12.5}>เลือกยิม = เจ้าของและ Admin ของยิมนั้นเห็นลูกเทรนคนนี้ นัด และครั้งที่เหลือ · ส่วนตัว = เห็นแค่คุณ</Txt>
+      </> : null}
       <Btn label="บันทึก" onPress={save} />
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onClose()} />
     </Card>

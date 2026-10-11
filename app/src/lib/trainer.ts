@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { addDays, isoDate, thDate } from './gym';
 import { prettyPhone } from './phone';
@@ -105,3 +106,16 @@ export function leaveText(l: Leave) {
   return `${thDate(a)}${last > a ? ' – ' + thDate(last) : ''}${l.reason ? ' · ' + l.reason : ''}`;
 }
 
+
+/** Gyms I work at (any role). A trainee linked to one of these is visible to that gym's owner / admin. */
+export function useMyGyms(userId?: string | null) {
+  const [gyms, setGyms] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from('gym_staff').select('gym:gyms(id,name)').eq('user_id', userId).eq('active', true)
+      .then(({ data }) => setGyms(((data as any) ?? []).map((r: any) => r.gym).filter(Boolean)));
+  }, [userId]);
+  return gyms;
+}
+export const gymChoice = (gyms: { id: string; name: string }[]) =>
+  [{ v: '', t: 'ส่วนตัว (นอกยิม)' }, ...gyms.map(g => ({ v: g.id, t: g.name }))];
