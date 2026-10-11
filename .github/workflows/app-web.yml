@@ -6,18 +6,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: app } }
+    defaults: { run: { working-directory: app, shell: bash } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with: { node-version: 22 }
       - run: npm install --no-audit --no-fund
+      # Each step reports its last lines as an annotation so the log can be read through the API
       - name: Check Expo package versions
-        run: npx expo install --check || true
+        run: |
+          npx expo install --check > check.log 2>&1 || true
+          echo "::notice title=expo-check::$(tail -25 check.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
       - name: Type check
-        run: npx tsc --noEmit || true
+        run: |
+          npx tsc --noEmit > tsc.log 2>&1 && echo "::notice title=tsc::ok" || echo "::warning title=tsc::$(head -40 tsc.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
       - name: Build web
-        run: npx expo export -p web
+        run: |
+          set -o pipefail
+          if ! npx expo export -p web > build.log 2>&1; then
+            echo "::error title=build::$(tail -60 build.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"; exit 1; fi
+          echo "::notice title=build::$(tail -15 build.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
       - run: ls -la dist && test -f dist/_redirects
       - uses: actions/upload-artifact@v4
         with: { name: web-dist, path: app/dist }
