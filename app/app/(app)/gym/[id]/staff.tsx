@@ -5,6 +5,7 @@ import { supabase, thError } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/lib/auth';
 import { ROLE_TH, type Role, useGym } from '../../../../src/lib/gym';
 import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Notice, Pill, Row, Screen, Txt } from '../../../../src/ui';
+import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type Staff = { role: Role; user_id: string; active: boolean; profile: { display_name: string; uid: number } | null };
 const ADDABLE: { v: Role; t: string }[] = [{ v: 'admin', t: 'Admin' }, { v: 'operator', t: 'Operator' }, { v: 'trainer', t: 'เทรนเนอร์' }];
@@ -53,7 +54,7 @@ export default function StaffPage() {
   }
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="staff">
       <Header title="ทีมงาน" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
@@ -86,6 +87,6 @@ export default function StaffPage() {
         ))}
       </Card>
       {!owner ? <Txt muted size={12.5}>เฉพาะเจ้าของยิมเพิ่มหรือนำคนออกจากทีมได้</Txt> : null}
-    </Screen>
+    </GymFrame>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions,
   type TextInputProps, type TextProps, type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,8 +14,8 @@ export function H({ style, size = 22, ...p }: TextProps & { size?: number }) {
 }
 
 /** Phone-width column, centred on large screens */
-export function Screen({ children, scroll = true, center }: { children: React.ReactNode; scroll?: boolean; center?: boolean }) {
-  const inner = <View style={[s.col, center && { flexGrow: 1, justifyContent: 'center' }]}>{children}</View>;
+export function Screen({ children, scroll = true, center, wide }: { children: React.ReactNode; scroll?: boolean; center?: boolean; wide?: boolean }) {
+  const inner = <View style={[s.col, wide && { maxWidth: 1180, paddingHorizontal: 24 }, center && { flexGrow: 1, justifyContent: 'center' }]}>{children}</View>;
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       {scroll ? <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{inner}</ScrollView> : inner}
@@ -187,6 +187,24 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
         <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' }} />
       </View>
     </Pressable>
+  );
+}
+
+/** true on a computer-sized browser window */
+export function useWide(min = 960) {
+  const { width } = useWindowDimensions();
+  return Platform.OS === 'web' && width >= min;
+}
+
+/** Two columns on wide screens, stacked on phones */
+export function Cols({ left, right, ratio = [3, 2] }: { left: React.ReactNode; right: React.ReactNode; ratio?: [number, number] }) {
+  const wide = useWide();
+  if (!wide) return <>{left}{right}</>;
+  return (
+    <View style={{ flexDirection: 'row', gap: 20, alignItems: 'flex-start' }}>
+      <View style={{ flex: ratio[0], gap: 16, minWidth: 0 }}>{left}</View>
+      <View style={{ flex: ratio[1], gap: 16, minWidth: 0 }}>{right}</View>
+    </View>
   );
 }
 

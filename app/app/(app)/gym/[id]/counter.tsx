@@ -5,9 +5,10 @@ import { supabase, thError } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/lib/auth';
 import { baht, isDesk, PAY_TH, thTime, todayRange, useGym } from '../../../../src/lib/gym';
 import { enqueue, flush, loadMembers, searchMembers, takeFailed, useQueue, type Member, type QueuedCheckin, type QueuedWalkin } from '../../../../src/lib/counter';
-import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Notice, Pill, Screen, Txt } from '../../../../src/ui';
+import { Btn, Card, Chips, Cols, ConfirmBtn, Field, H, Header, Notice, Pill, Screen, Txt } from '../../../../src/ui';
 import { expiryText, MemberRow } from '../../../../src/ui/MemberRow';
 import { C, F, R } from '../../../../src/lib/theme';
+import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type LogCheckin = { id: string; member_id: string; kind: string; checked_at: string; member: { name: string; code: string } | null };
 type LogWalkin = { id: string; at: string; price: number; pay_method: string; note: string | null };
@@ -102,11 +103,11 @@ export default function Counter() {
   const walkSum = walkins.reduce((a, w) => a + Number(w.price), 0) + pendingWalkins.reduce((a, w) => a + w.price, 0);
 
   if (gym && !isDesk(role)) return (
-    <Screen><Header title="เคาน์เตอร์" back={() => router.replace(`/gym/${id}` as any)} /><Notice text="หน้าเคาน์เตอร์สำหรับเจ้าของ Admin และ Operator" /></Screen>
+    <GymFrame id={id} gym={gym} role={role} active="counter"><Header title="เคาน์เตอร์" back={() => router.replace(`/gym/${id}` as any)} /><Notice text="หน้าเคาน์เตอร์สำหรับเจ้าของ Admin และ Operator" /></GymFrame>
   );
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="counter">
       <Header title="เคาน์เตอร์" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)}
         right={<Pill text={online ? 'ออนไลน์' : 'ออฟไลน์'} kind={online ? 'ok' : 'warn'} />} />
 
@@ -116,67 +117,70 @@ export default function Counter() {
       {pending.length ? <Notice kind="info" text={`รอส่ง ${pending.length} รายการ`} /> : null}
       {toast ? <Notice text={toast.t} kind={toast.ok ? 'ok' : 'bad'} /> : null}
 
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Card style={{ flex: 1, padding: 12, gap: 0 }}><H size={22}>{checkins.length + pendingCheckins.length}</H><Txt muted size={12.5}>เช็กอินวันนี้</Txt></Card>
-        <Card style={{ flex: 1, padding: 12, gap: 0 }}><H size={22}>{walkins.length + pendingWalkins.length}</H><Txt muted size={12.5}>ขาจร · {baht(walkSum)}</Txt></Card>
-      </View>
-
-      <Card>
-        <TextInput ref={searchRef} value={q} onChangeText={t => { setQ(t); setSel(null); setAgain(null); }} autoFocus
-          placeholder="ค้นหา ชื่อ / เบอร์ / รหัสสมาชิก" placeholderTextColor="#8a968f" accessibilityLabel="ค้นหาสมาชิก"
-          onSubmitEditing={() => { if (results.length === 1) setSel(results[0].id); }} returnKeyType="search"
-          style={{ borderWidth: 1.5, borderColor: C.accent, borderRadius: R.field, paddingHorizontal: 14, paddingVertical: 13, fontSize: 18, fontFamily: F.body, color: C.fg, backgroundColor: C.surface }} />
-
-        {q.trim() && !results.length ? <Txt muted>ไม่พบ "{q.trim()}" · เพิ่มเป็นสมาชิกใหม่ หรือบันทึกเป็นขาจร</Txt> : null}
-
-        {selected ? (
-          <View style={{ gap: 10 }}>
-            <MemberRow m={selected} />
-            {selected.note ? <Txt muted size={13}>หมายเหตุ: {selected.note}</Txt> : null}
-            {canCheckIn(selected) ? <>
-              {again === selected.id ? <Notice kind="info" text={`${selected.name} เช็กอินแล้ววันนี้ ${thTime(lastToday(selected.id)!)} · กดอีกครั้งถ้าจะเช็กอินซ้ำ`} /> : null}
-              <Btn label={again === selected.id ? 'เช็กอินซ้ำ' : selected.status === 'pt_only' ? 'เช็กอิน (มาเทรน PT)' : 'เช็กอิน'} onPress={() => checkIn(selected)} style={{ minHeight: 56 }} />
-            </> : <>
-              <Notice text={selected.status === 'frozen' ? `พักสมาชิกอยู่ · ${expiryText(selected)}` : selected.status === 'none' ? 'ยังไม่มีแพ็กเกจสมาชิก' : `สมาชิกหมดอายุแล้ว · ${expiryText(selected)}`} />
-              <Btn label="ต่ออายุ / ขายแพ็กเกจ" onPress={() => router.push(`/gym/${id}/member/${selected.id}?sell=1` as any)} />
-              <Btn kind="ghost" label="คิดเป็นขาจรวันนี้" onPress={() => openWalk(`สมาชิก ${selected.name} (${selected.code})`)} />
-            </>}
-            <Btn kind="ghost" label="ดูข้อมูลสมาชิก" onPress={() => router.push(`/gym/${id}/member/${selected.id}` as any)} />
+      <Cols
+        left={<>
+          <Card>
+            <TextInput ref={searchRef} value={q} onChangeText={t => { setQ(t); setSel(null); setAgain(null); }} autoFocus
+              placeholder="ค้นหา ชื่อ / เบอร์ / รหัสสมาชิก" placeholderTextColor="#8a968f" accessibilityLabel="ค้นหาสมาชิก"
+              onSubmitEditing={() => { if (results.length === 1) setSel(results[0].id); }} returnKeyType="search"
+              style={{ borderWidth: 1.5, borderColor: C.accent, borderRadius: R.field, paddingHorizontal: 14, paddingVertical: 13, fontSize: 18, fontFamily: F.body, color: C.fg, backgroundColor: C.surface }} />
+    
+            {q.trim() && !results.length ? <Txt muted>ไม่พบ "{q.trim()}" · เพิ่มเป็นสมาชิกใหม่ หรือบันทึกเป็นขาจร</Txt> : null}
+    
+            {selected ? (
+              <View style={{ gap: 10 }}>
+                <MemberRow m={selected} />
+                {selected.note ? <Txt muted size={13}>หมายเหตุ: {selected.note}</Txt> : null}
+                {canCheckIn(selected) ? <>
+                  {again === selected.id ? <Notice kind="info" text={`${selected.name} เช็กอินแล้ววันนี้ ${thTime(lastToday(selected.id)!)} · กดอีกครั้งถ้าจะเช็กอินซ้ำ`} /> : null}
+                  <Btn label={again === selected.id ? 'เช็กอินซ้ำ' : selected.status === 'pt_only' ? 'เช็กอิน (มาเทรน PT)' : 'เช็กอิน'} onPress={() => checkIn(selected)} style={{ minHeight: 56 }} />
+                </> : <>
+                  <Notice text={selected.status === 'frozen' ? `พักสมาชิกอยู่ · ${expiryText(selected)}` : selected.status === 'none' ? 'ยังไม่มีแพ็กเกจสมาชิก' : `สมาชิกหมดอายุแล้ว · ${expiryText(selected)}`} />
+                  <Btn label="ต่ออายุ / ขายแพ็กเกจ" onPress={() => router.push(`/gym/${id}/member/${selected.id}?sell=1` as any)} />
+                  <Btn kind="ghost" label="คิดเป็นขาจรวันนี้" onPress={() => openWalk(`สมาชิก ${selected.name} (${selected.code})`)} />
+                </>}
+                <Btn kind="ghost" label="ดูข้อมูลสมาชิก" onPress={() => router.push(`/gym/${id}/member/${selected.id}` as any)} />
+              </View>
+            ) : results.map(m => <MemberRow key={m.id} m={m} onPress={() => { setSel(m.id); setAgain(null); }} />)}
+          </Card>
+          {walk ? (
+            <Card>
+              <H size={17}>บันทึกขาจร</H>
+              <Field label="ราคา (บาท)" value={walk.price} onChangeText={v => setWalk({ ...walk, price: v.replace(/[^\d.]/g, '') })} keyboardType="decimal-pad" />
+              <Chips label="ชำระโดย" options={PAYS} value={walk.pay} onChange={v => setWalk({ ...walk, pay: v })} />
+              <Field label="หมายเหตุ (ไม่บังคับ)" value={walk.note} onChangeText={v => setWalk({ ...walk, note: v })} placeholder="เช่น ลูกเทรนของเทรนเนอร์ภายนอก" />
+              <Btn label="บันทึกขาจร" onPress={saveWalkin} />
+              <Btn kind="ghost" label="ยกเลิก" onPress={() => setWalk(null)} />
+            </Card>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Btn kind="ghost" label="+ ขาจร" onPress={() => openWalk()} style={{ flex: 1 }} />
+              <Btn kind="ghost" label="+ สมาชิกใหม่" onPress={() => router.push(`/gym/${id}/member/new` as any)} style={{ flex: 1 }} />
+            </View>
+          )}
+        </>}
+        right={<>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Card style={{ flex: 1, padding: 12, gap: 0 }}><H size={22}>{checkins.length + pendingCheckins.length}</H><Txt muted size={12.5}>เช็กอินวันนี้</Txt></Card>
+            <Card style={{ flex: 1, padding: 12, gap: 0 }}><H size={22}>{walkins.length + pendingWalkins.length}</H><Txt muted size={12.5}>ขาจร · {baht(walkSum)}</Txt></Card>
           </View>
-        ) : results.map(m => <MemberRow key={m.id} m={m} onPress={() => { setSel(m.id); setAgain(null); }} />)}
-      </Card>
-
-      {walk ? (
-        <Card>
-          <H size={17}>บันทึกขาจร</H>
-          <Field label="ราคา (บาท)" value={walk.price} onChangeText={v => setWalk({ ...walk, price: v.replace(/[^\d.]/g, '') })} keyboardType="decimal-pad" />
-          <Chips label="ชำระโดย" options={PAYS} value={walk.pay} onChange={v => setWalk({ ...walk, pay: v })} />
-          <Field label="หมายเหตุ (ไม่บังคับ)" value={walk.note} onChangeText={v => setWalk({ ...walk, note: v })} placeholder="เช่น ลูกเทรนของเทรนเนอร์ภายนอก" />
-          <Btn label="บันทึกขาจร" onPress={saveWalkin} />
-          <Btn kind="ghost" label="ยกเลิก" onPress={() => setWalk(null)} />
-        </Card>
-      ) : (
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <Btn kind="ghost" label="+ ขาจร" onPress={() => openWalk()} style={{ flex: 1 }} />
-          <Btn kind="ghost" label="+ สมาชิกใหม่" onPress={() => router.push(`/gym/${id}/member/new` as any)} style={{ flex: 1 }} />
-        </View>
-      )}
-
-      <Card style={{ gap: 6 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <H size={17} style={{ flex: 1 }}>วันนี้</H>
-          <Btn kind="ghost" label="รีเฟรช" onPress={() => { flush(); loadAll(); }} style={{ minHeight: 36 }} />
-        </View>
-        {pendingCheckins.map(p => <LogLine key={p.ref} time={p.at} text={`เช็กอิน · ${p.member_name}`} tag="รอส่ง" />)}
-        {pendingWalkins.map(p => <LogLine key={p.ref} time={p.at} text={`ขาจร ${baht(p.price)} · ${PAY_TH[p.pay_method]}${p.note ? ' · ' + p.note : ''}`} tag="รอส่ง" />)}
-        {[...checkins.map(c => ({ k: 'c' as const, at: c.checked_at, c })), ...walkins.map(w => ({ k: 'w' as const, at: w.at, w }))]
-          .sort((a, b) => b.at.localeCompare(a.at))
-          .map(x => x.k === 'c'
-            ? <LogLine key={x.c.id} time={x.at} text={`เช็กอิน · ${x.c.member?.name ?? ''}${x.c.kind === 'pt' ? ' (PT)' : ''}`} onUndo={() => undo('checkins', x.c.id)} />
-            : <LogLine key={x.w.id} time={x.at} text={`ขาจร ${baht(x.w.price)} · ${PAY_TH[x.w.pay_method]}${x.w.note ? ' · ' + x.w.note : ''}`} onUndo={() => undo('walkins', x.w.id)} />)}
-        {!checkins.length && !walkins.length && !pending.length ? <Txt muted>ยังไม่มีรายการวันนี้</Txt> : null}
-      </Card>
-    </Screen>
+          <Card style={{ gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <H size={17} style={{ flex: 1 }}>วันนี้</H>
+              <Btn kind="ghost" label="รีเฟรช" onPress={() => { flush(); loadAll(); }} style={{ minHeight: 36 }} />
+            </View>
+            {pendingCheckins.map(p => <LogLine key={p.ref} time={p.at} text={`เช็กอิน · ${p.member_name}`} tag="รอส่ง" />)}
+            {pendingWalkins.map(p => <LogLine key={p.ref} time={p.at} text={`ขาจร ${baht(p.price)} · ${PAY_TH[p.pay_method]}${p.note ? ' · ' + p.note : ''}`} tag="รอส่ง" />)}
+            {[...checkins.map(c => ({ k: 'c' as const, at: c.checked_at, c })), ...walkins.map(w => ({ k: 'w' as const, at: w.at, w }))]
+              .sort((a, b) => b.at.localeCompare(a.at))
+              .map(x => x.k === 'c'
+                ? <LogLine key={x.c.id} time={x.at} text={`เช็กอิน · ${x.c.member?.name ?? ''}${x.c.kind === 'pt' ? ' (PT)' : ''}`} onUndo={() => undo('checkins', x.c.id)} />
+                : <LogLine key={x.w.id} time={x.at} text={`ขาจร ${baht(x.w.price)} · ${PAY_TH[x.w.pay_method]}${x.w.note ? ' · ' + x.w.note : ''}`} onUndo={() => undo('walkins', x.w.id)} />)}
+            {!checkins.length && !walkins.length && !pending.length ? <Txt muted>ยังไม่มีรายการวันนี้</Txt> : null}
+          </Card>
+        </>}
+      />
+    </GymFrame>
   );
 }
 

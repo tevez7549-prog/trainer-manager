@@ -4,6 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../src/lib/supabase';
 import { baht, isManager, planLength, type Plan, useGym } from '../../../../src/lib/gym';
 import { Btn, Card, ConfirmBtn, Field, H, Header, Notice, Pill, Row, Screen, Toggle, Txt } from '../../../../src/ui';
+import { GymFrame } from '../../../../src/ui/GymFrame';
 
 const QUICK = [
   { name: '1 เดือน', months: 1, days: 0 }, { name: '3 เดือน', months: 3, days: 0 },
@@ -50,7 +51,7 @@ export default function Plans() {
   }
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="plans">
       <Header title="แพ็กเกจสมาชิก" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
       {err ? <Notice text={err} /> : null}
 
@@ -85,6 +86,6 @@ export default function Plans() {
             onPress={can ? () => setD({ id: p.id, name: p.name, months: String(p.months), days: String(p.days), price: String(p.price), active: p.active }) : undefined} />
         ))}
       </Card>
-    </Screen>
+    </GymFrame>
   );
 }

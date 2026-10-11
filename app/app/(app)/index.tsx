@@ -134,7 +134,11 @@ export default function Home() {
       </Card>
 
       {profile?.is_super_admin ? (
-        <Notice kind="info" text="คุณเป็น Super Admin · จัดการผู้ใช้ได้ที่หน้า Super Admin" />
+        <Card>
+          <H size={17}>Super Admin</H>
+          <Txt muted size={13.5}>หลังบ้าน: ผู้ใช้ แผน ระงับ/ลบบัญชี ยิมทั้งหมด และบันทึกการแก้ไข</Txt>
+          <Btn label="เปิดหลังบ้าน" onPress={() => router.push('/admin' as any)} />
+        </Card>
       ) : null}
     </Screen>
   );

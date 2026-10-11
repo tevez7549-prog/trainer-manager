@@ -6,6 +6,7 @@ import { isManager, thDate, useGym } from '../../../../src/lib/gym';
 import { downloadTemplate, parseFile, pickFile, TEMPLATE_HEADERS, type ParsedRow } from '../../../../src/lib/excel';
 import { Btn, Card, H, Header, Notice, Screen, Stat, Txt } from '../../../../src/ui';
 import { C } from '../../../../src/lib/theme';
+import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type Result = { rows: number; added: number; existing: number; memberships: number; errors: { line: number; name: string; error: string }[] };
 const CHUNK = 500;
@@ -58,10 +59,10 @@ export default function ImportPage() {
     setBusy(false); setProgress(''); setResult(total); setRows(null);
   }
 
-  if (gym && !isManager(role)) return <Screen><Header title="นำเข้า Excel" back={() => router.replace(`/gym/${id}` as any)} /><Notice text="เฉพาะเจ้าของและ Admin นำเข้าได้" /></Screen>;
+  if (gym && !isManager(role)) return <GymFrame id={id} gym={gym} role={role} active="import"><Header title="นำเข้า Excel" back={() => router.replace(`/gym/${id}` as any)} /><Notice text="เฉพาะเจ้าของและ Admin นำเข้าได้" /></GymFrame>;
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="import">
       <Header title="นำเข้าสมาชิกจาก Excel" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
       {Platform.OS !== 'web' ? <Notice kind="info" text="นำเข้า Excel ใช้ได้บนเว็บ (คอมพิวเตอร์) เท่านั้น" /> : null}
       {err ? <Notice text={err} /> : null}
@@ -114,6 +115,6 @@ export default function ImportPage() {
         <Btn label="ดูรายชื่อสมาชิก" onPress={() => router.replace(`/gym/${id}/members` as any)} />
         <Btn kind="ghost" label="นำเข้าไฟล์อื่น" onPress={() => setResult(null)} />
       </> : null}
-    </Screen>
+    </GymFrame>
   );
 }

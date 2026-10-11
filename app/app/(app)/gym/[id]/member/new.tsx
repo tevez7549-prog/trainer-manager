@@ -7,6 +7,7 @@ import { phoneError, toE164, type Country } from '../../../../../src/lib/phone';
 import { Btn, Card, Field, Header, Notice, Screen, Toggle, Txt } from '../../../../../src/ui';
 import { PhoneField } from '../../../../../src/ui/PhoneField';
 import { newSale, saleError, sell, SellForm, type Sale } from '../../../../../src/ui/SellForm';
+import { GymFrame } from '../../../../../src/ui/GymFrame';
 
 export default function NewMember() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,10 +49,10 @@ export default function NewMember() {
     router.replace(`/gym/${id}/member/${data!.id}` as any);
   }
 
-  if (gym && !isDesk(role)) return <Screen><Header title="เพิ่มสมาชิก" back={() => router.back()} /><Notice text="คุณไม่มีสิทธิ์เพิ่มสมาชิก" /></Screen>;
+  if (gym && !isDesk(role)) return <GymFrame id={id} gym={gym} role={role} active="members"><Header title="เพิ่มสมาชิก" back={() => router.back()} /><Notice text="คุณไม่มีสิทธิ์เพิ่มสมาชิก" /></GymFrame>;
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="members">
       <Header title="เพิ่มสมาชิก" sub={gym?.name} back={() => (router.canGoBack() ? router.back() : router.replace(`/gym/${id}/members` as any))} />
       {err ? <Notice text={err} /> : null}
       <Card>
@@ -68,6 +69,6 @@ export default function NewMember() {
         </Card>
       ) : null}
       <Btn label={willSell ? 'บันทึกและขายแพ็กเกจ' : 'บันทึกสมาชิก'} onPress={save} loading={busy} />
-    </Screen>
+    </GymFrame>
   );
 }

@@ -13,6 +13,7 @@ import { newSale, saleError, sell, SellForm, type Sale } from '../../../../../sr
 import { C } from '../../../../../src/lib/theme';
 import { sessionsLeft } from '../../../../../src/lib/trainer';
 import { Chips, Row } from '../../../../../src/ui';
+import { GymFrame } from '../../../../../src/ui/GymFrame';
 
 type Ms = { id: string; plan_name: string; start_date: string; end_date: string; price: number; pay_method: string | null; created_at: string };
 type Ci = { id: string; checked_at: string; kind: string };
@@ -74,14 +75,14 @@ export default function MemberPage() {
     router.replace(`/gym/${id}/members` as any);
   }
 
-  if (err) return <Screen><Header title="สมาชิก" back={() => router.replace(`/gym/${id}/members` as any)} /><Notice text={err} /></Screen>;
-  if (!m) return <Screen><Header title="สมาชิก" back={() => router.back()} /><Txt muted>กำลังโหลด…</Txt></Screen>;
+  if (err) return <GymFrame id={id} gym={gym} role={role} active="members"><Header title="สมาชิก" back={() => router.replace(`/gym/${id}/members` as any)} /><Notice text={err} /></GymFrame>;
+  if (!m) return <GymFrame id={id} gym={gym} role={role} active="members"><Header title="สมาชิก" back={() => router.back()} /><Txt muted>กำลังโหลด…</Txt></GymFrame>;
   const st = STATUS_TH[m.status];
   const desk = isDesk(role), mgr = isManager(role);
   const canCheckIn = m.status === 'active' || m.status === 'expiring' || m.status === 'pt_only';
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="members">
       <Header title={m.name} sub={`${m.code}${gym ? ' · ' + gym.name : ''}`} back={() => (router.canGoBack() ? router.back() : router.replace(`/gym/${id}/members` as any))} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
@@ -145,7 +146,7 @@ export default function MemberPage() {
       </Card>
 
       {mgr ? <ConfirmBtn label="ลบสมาชิกนี้" confirmLabel="กดอีกครั้ง: ลบสมาชิกและประวัติทั้งหมด" onConfirm={delMember} /> : null}
-    </Screen>
+    </GymFrame>
   );
 }
 

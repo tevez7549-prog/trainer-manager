@@ -6,6 +6,7 @@ import { DAYS_SHORT, gymCountry, isManager, useGym } from '../../../../src/lib/g
 import { COUNTRIES } from '../../../../src/lib/phone';
 import { Btn, Card, Field, Header, Notice, Screen, Txt } from '../../../../src/ui';
 import { C, R } from '../../../../src/lib/theme';
+import { GymFrame } from '../../../../src/ui/GymFrame';
 
 export default function GymSettings() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,7 +38,7 @@ export default function GymSettings() {
   }
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="settings">
       <Header title="ตั้งค่ายิม" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
       {!isManager(role) && gym ? <Notice text="เฉพาะเจ้าของและ Admin แก้ไขได้" /> : null}
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
@@ -86,6 +87,6 @@ export default function GymSettings() {
         </View>
         {isManager(role) ? <Btn label="บันทึก" onPress={save} loading={busy} /> : null}
       </Card>
-    </Screen>
+    </GymFrame>
   );
 }

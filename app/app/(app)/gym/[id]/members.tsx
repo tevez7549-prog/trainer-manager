@@ -5,13 +5,14 @@ import { useGym } from '../../../../src/lib/gym';
 import { loadMembers, searchMembers, type Member, type MemberStatus } from '../../../../src/lib/counter';
 import { Btn, Card, Chips, Field, Header, Notice, Screen, Txt } from '../../../../src/ui';
 import { MemberRow } from '../../../../src/ui/MemberRow';
+import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type Filter = 'all' | MemberStatus;
 const PAGE = 50;
 
 export default function Members() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { gym } = useGym(id);
+  const { gym, role } = useGym(id);
   const [rows, setRows] = useState<Member[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [q, setQ] = useState('');
@@ -39,7 +40,7 @@ export default function Members() {
   ];
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="members">
       <Header title="สมาชิก" sub={gym?.name} back={() => router.replace(`/gym/${id}` as any)} />
       {offline ? <Notice kind="info" text="ออฟไลน์ · แสดงรายชื่อที่บันทึกไว้ในเครื่อง" /> : null}
       <Btn label="+ เพิ่มสมาชิก" onPress={() => router.push(`/gym/${id}/member/new` as any)} />
@@ -51,6 +52,6 @@ export default function Members() {
         {list.slice(0, n).map(m => <MemberRow key={m.id} m={m} onPress={() => router.push(`/gym/${id}/member/${m.id}` as any)} />)}
       </Card>
       {list.length > n ? <View><Btn kind="ghost" label={`แสดงเพิ่ม (${list.length - n})`} onPress={() => setN(n + PAGE)} /></View> : null}
-    </Screen>
+    </GymFrame>
   );
 }

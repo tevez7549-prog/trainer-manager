@@ -4,6 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../../../src/lib/supabase';
 import { baht, isDesk, isManager, ROLE_TH, todayRange, useGym } from '../../../../src/lib/gym';
 import { Btn, Card, Header, Notice, Pill, Row, Screen, Stat, Txt } from '../../../../src/ui';
+import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type Today = { checkins: number; walkins: number; walkinSum: number; expiring: number; expired: number; active: number };
 
@@ -32,7 +33,7 @@ export default function GymHome() {
   const go = (p: string) => router.push(`/gym/${id}/${p}` as any);
 
   return (
-    <Screen>
+    <GymFrame id={id} gym={gym} role={role} active="home">
       <Header title={gym?.name ?? 'ยิม'} sub={gym?.branch ? `สาขา${gym.branch}` : undefined} back={() => router.replace('/')}
         right={role ? <Pill text={ROLE_TH[role]} kind={role === 'owner' ? 'ok' : 'info'} /> : null} />
       {err ? <Notice text={err} /> : null}
@@ -63,6 +64,6 @@ export default function GymHome() {
           {isManager(role) ? <Row icon="⚙️" title="ตั้งค่ายิม" sub="ชื่อ ราคาขาจร วันปิด ประเทศ" onPress={() => go('settings')} /> : null}
         </Card>
       ) : !err ? <Txt muted>กำลังโหลด…</Txt> : null}
-    </Screen>
+    </GymFrame>
   );
 }
