@@ -178,18 +178,31 @@ export function Chips<T extends string | number>({ options, value, onChange, lab
   );
 }
 
+// iPhone Safari gives date/time inputs a fixed inner width and centres the text, so they spill past the card.
+// Force them to shrink to the column and left-align like the other fields.
+let pickerCss = false;
+function addPickerCss() {
+  if (pickerCss || typeof document === 'undefined') return;
+  pickerCss = true;
+  const el = document.createElement('style');
+  el.textContent = `input.tm-picker{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;text-align:left}
+input.tm-picker::-webkit-date-and-time-value{text-align:left;margin:0}
+input.tm-picker::-webkit-datetime-edit{padding:0}`;
+  document.head.appendChild(el);
+}
 const webInput = (label: string) => ({
-  border: `1px solid ${C.line}`, borderRadius: R.field, padding: '10px 14px', fontSize: 16, fontFamily: F.body, color: C.fg,
-  background: C.surface2, minHeight: 48, boxSizing: 'border-box', width: '100%', colorScheme: C.scheme, 'aria-label': label,
+  border: `1px solid ${C.line}`, borderRadius: R.field, padding: '0 14px', fontSize: 16, fontFamily: F.body, color: C.fg,
+  background: C.surface2, height: 48, lineHeight: '48px', boxSizing: 'border-box', width: '100%', minWidth: 0, maxWidth: '100%',
+  display: 'block', textAlign: 'left', colorScheme: C.scheme, 'aria-label': label,
 });
 
 /** Date picker: the browser's own calendar on web, typed YYYY-MM-DD on phones */
 export function DateField({ label, value, onChange, hint, min, max }: { label: string; value: string; onChange: (v: string) => void; hint?: string; min?: string; max?: string }) {
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 8, minWidth: 0, width: '100%' }}>
       <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text>
       {Platform.OS === 'web'
-        ? React.createElement('input', { type: 'date', value, min, max, 'aria-label': label, onChange: (e: any) => e.target.value && onChange(e.target.value), style: webInput(label) })
+        ? (addPickerCss(), React.createElement('input', { type: 'date', className: 'tm-picker', value, min, max, 'aria-label': label, onChange: (e: any) => e.target.value && onChange(e.target.value), style: webInput(label) }))
         : <TextInput value={value} onChangeText={onChange} placeholder="2026-10-11" placeholderTextColor={C.muted} accessibilityLabel={label}
             style={{ borderWidth: 1, borderColor: C.line, borderRadius: R.field, backgroundColor: C.surface2, color: C.fg, fontSize: 16, paddingHorizontal: 14, minHeight: 48 }} />}
       {hint ? <Txt size={13} muted>{hint}</Txt> : null}
@@ -200,10 +213,10 @@ export function DateField({ label, value, onChange, hint, min, max }: { label: s
 /** Time picker: the browser's own control on web, typed HH:MM on phones */
 export function TimeField({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 8, minWidth: 0, width: '100%' }}>
       <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text>
       {Platform.OS === 'web'
-        ? React.createElement('input', { type: 'time', value, step: 300, 'aria-label': label, onChange: (e: any) => e.target.value && onChange(e.target.value), style: webInput(label) })
+        ? (addPickerCss(), React.createElement('input', { type: 'time', className: 'tm-picker', value, step: 300, 'aria-label': label, onChange: (e: any) => e.target.value && onChange(e.target.value), style: webInput(label) }))
         : <TextInput value={value} onChangeText={onChange} placeholder="18:00" placeholderTextColor={C.muted} accessibilityLabel={label}
             style={{ borderWidth: 1, borderColor: C.line, borderRadius: R.field, backgroundColor: C.surface2, color: C.fg, fontSize: 16, paddingHorizontal: 14, minHeight: 48 }} />}
       {hint ? <Txt size={13} muted>{hint}</Txt> : null}
