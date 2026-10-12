@@ -116,7 +116,7 @@ export function Row({ title, sub, right, onPress, icon, ic, danger }: {
         : icon ? <View style={{ width: 40, height: 40, borderRadius: R.field, backgroundColor: leadBg, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: leadFg, fontWeight: '600', fontSize: 14, fontFamily: F.body }}>{icon}</Text></View> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontFamily: F.body, fontSize: 16, lineHeight: 24, fontWeight: '600', color: danger ? C.badFg : C.fg }}>{tr(title)}</Text>
+        <Text numberOfLines={2} style={{ fontFamily: F.body, fontSize: 16, lineHeight: 24, fontWeight: '600', color: danger ? C.badFg : C.fg }}>{tr(title)}</Text>
         {sub ? <Text numberOfLines={2} style={{ fontFamily: F.body, fontSize: 14, lineHeight: 22, color: C.muted }}>{tr(sub)}</Text> : null}
       </View>
       {right}

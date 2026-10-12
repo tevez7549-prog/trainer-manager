@@ -129,28 +129,31 @@ export function RandomWorkout({ onStart, onClose, onSaved }: { onStart: (title: 
 
       {picks?.map((p, i) => (
         <View key={p.ex.id + i} style={{ borderRadius: R.field, backgroundColor: C.surface2, padding: 10, gap: 8, borderWidth: p.locked ? 1.5 : 0, borderColor: C.accent }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Pressable accessibilityRole="button" accessibilityLabel={`วิธีเล่น ${exName(p.ex)}`} onPress={() => setOpen(open === i ? null : i)}
-              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <Thumb e={p.ex} size={52} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Txt bold numberOfLines={1}>{exName(p.ex)}</Txt>
-                <Txt muted size={12.5} numberOfLines={1}>
-                  {p.role === 'main' ? (p.ex.kind === 'strength' ? `${p.sets} เซต × ${p.reps} ครั้ง · พัก ${p.rest} วิ` : `${p.reps} นาที`) : `${roleTh[p.role]} · ${p.reps} นาที`}
-                  {p.ex.muscle ? ` · ${MUSCLE_TH[p.ex.muscle] ?? p.ex.muscle}` : ''}
-                </Txt>
-              </View>
-            </Pressable>
+          {/* name gets the full width; the three actions sit under it so nothing is squeezed on small phones */}
+          <Pressable accessibilityRole="button" accessibilityLabel={`วิธีเล่น ${exName(p.ex)}`} onPress={() => setOpen(open === i ? null : i)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <Thumb e={p.ex} size={52} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Txt bold numberOfLines={2}>{exName(p.ex)}</Txt>
+              <Txt muted size={12.5} numberOfLines={2}>
+                {p.role === 'main' ? (p.ex.kind === 'strength' ? `${p.sets} เซต × ${p.reps} ครั้ง · พัก ${p.rest} วิ` : `${p.reps} นาที`) : `${roleTh[p.role]} · ${p.reps} นาที`}
+                {p.ex.muscle ? ` · ${MUSCLE_TH[p.ex.muscle] ?? p.ex.muscle}` : ''}
+              </Txt>
+            </View>
+          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'flex-end', marginTop: -4 }}>
             <Pressable accessibilityRole="button" accessibilityLabel={p.locked ? 'ปลดล็อก' : 'ล็อกท่านี้ไว้'} onPress={() => toggleLock(i)} hitSlop={4}
-              style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: p.locked ? C.accentSoft : 'transparent' }}>
-              <Icon name={p.locked ? 'check' : 'star'} size={18} color={p.locked ? C.accent : C.muted} />
+              style={{ minHeight: 36, paddingHorizontal: 10, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: p.locked ? C.accentSoft : 'transparent' }}>
+              <Icon name={p.locked ? 'check' : 'star'} size={16} color={p.locked ? C.accent : C.muted} />
+              <Txt size={13} style={{ color: p.locked ? C.accent : C.muted }}>{p.locked ? 'ล็อกแล้ว' : 'ล็อก'}</Txt>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="เปลี่ยนท่านี้" onPress={() => lib && setPicks(swap(lib, picks!, i, f, recent))} hitSlop={4}
-              style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="refresh-cw" size={18} color={C.fg} />
+              style={{ minHeight: 36, paddingHorizontal: 10, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Icon name="refresh-cw" size={16} color={C.fg} />
+              <Txt size={13}>เปลี่ยน</Txt>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="เอาท่านี้ออก" onPress={() => remove(i)} hitSlop={4}
-              style={{ width: 32, height: 40, alignItems: 'center', justifyContent: 'center' }}>
+              style={{ minHeight: 36, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="x" size={18} color={C.muted} />
             </Pressable>
           </View>

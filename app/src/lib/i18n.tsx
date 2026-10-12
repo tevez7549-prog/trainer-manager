@@ -29,6 +29,7 @@ function templates(): Tpl[] {
   if (tpls) return tpls;
   tpls = Object.keys(EN).filter(k => /\{\d\}/.test(k))
     // most specific (most fixed text) first
+    .filter(k => k.replace(/\{\d\}/g, '').trim().length > 0)
     .sort((a, b) => b.replace(/\{\d\}/g, '').length - a.replace(/\{\d\}/g, '').length)
     .map(k => ({
       re: new RegExp('^' + k.split(/\{\d\}/).map(esc).join('([\\s\\S]+?)') + '$'),
@@ -39,19 +40,25 @@ function templates(): Tpl[] {
 }
 
 const cache = new Map<string, string | null>();
-/** Exact or template match; null when the text isn't known */
+const thaiCount = (s: string) => (s.match(/[\u0E01-\u0E3A\u0E40-\u0E5B]/g) ?? []).length;
+/** Exact or template match; null when the text isn't known. When several templates fit, the one that leaves the least Thai wins. */
 function lookup(s: string): string | null {
   if (cache.has(s)) return cache.get(s)!;
+  cache.set(s, null);   // guards against loops while this one is worked out
   let r: string | null = EN[s] ?? null;
   if (r == null) {
+    const cands: string[] = [];
     for (const t of templates()) {
       const m = s.match(t.re);
       if (!m) continue;
       const vals: string[] = [];
       t.order.forEach((n, i) => { vals[n] = tr(m[i + 1]); });
-      r = t.en.replace(/\{(\d)\}/g, (_, n) => vals[Number(n)] ?? '');
-      break;
+      cands.push(t.en.replace(/\{(\d)\}/g, (_, n) => vals[Number(n)] ?? ''));
+      if (cands.length >= 6) break;
     }
+    if (s.includes(' · ')) cands.push(s.split(' · ').map(x => tr(x)).join(' · '));
+    let best = Infinity;
+    for (const c of cands) { const n = thaiCount(c); if (n < best) { best = n; r = c; } }
   }
   if (cache.size > 5000) cache.clear();
   cache.set(s, r);
@@ -65,9 +72,11 @@ export function tr(s: string | null | undefined) {
   if (lang === 'th' || !s || s[0] === KEEP || !THAI.test(s)) return s;
   const [, lead, body, tail] = s.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
   const hit = lookup(body);
-  if (hit != null) return lead + hit + tail;
+  if (hit != null && !THAI.test(hit)) return lead + hit + tail;
   // pieces joined in code ("ลบ " + name + " แล้ว"): translate each Thai run that is known on its own
-  return s.replace(/[ก-๛](?:[ก-๛ .()/,-]*[ก-๛.)])?/g, run => lookup(run) ?? run);
+  const runs = s.replace(/[\u0E01-\u0E5B](?:[\u0E01-\u0E5B .()/,-]*[\u0E01-\u0E5B.)])?/g, run => lookup(run) ?? run);
+  if (hit != null && thaiCount(hit) <= thaiCount(runs)) return lead + hit + tail;
+  return runs;
 }
 
 /** For JSX children: "{n} ท่า" arrives as [5, ' ท่า'], so try the whole line first, then each piece */
@@ -78,9 +87,7 @@ export function trNode(c: React.ReactNode): React.ReactNode {
     if (c.every(x => x == null || typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean')) {
       const whole = c.filter(x => x != null && typeof x !== 'boolean').join('');
       if (!THAI.test(whole)) return c;
-      const [, lead, body, tail] = whole.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
-      const hit = lookup(body);
-      if (hit != null) return lead + hit + tail;
+      return tr(whole);
     }
     return c.map(x => (typeof x === 'string' ? tr(x) : x));
   }

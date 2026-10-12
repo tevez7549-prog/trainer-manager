@@ -51,7 +51,7 @@ const errs = new Set();
 const br = await chromium.launch();
 for (const lang of ['th', 'en']) {
   for (const w of WIDTHS) {
-    const ctx = await br.newContext({ viewport: { width: w, height: 800 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    const ctx = await br.newContext({ viewport: { width: w, height: 1400 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     for (const [name, path, auth] of ROUTES) {
       const page = await ctx.newPage();
       page.on('pageerror', e => errs.add(`${name}: ${e.message}`.slice(0, 200)));
