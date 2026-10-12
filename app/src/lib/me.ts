@@ -53,7 +53,7 @@ export type Photo = { id: string; taken_on: string; angle: 'front' | 'side' | 'b
 export const ANGLE_TH = { front: 'ด้านหน้า', side: 'ด้านข้าง', back: 'ด้านหลัง' } as const;
 
 // ---------- training ----------
-export type Exercise = { id: string; name_th: string; name_en: string | null; body_part: string; kind: string };
+export type Exercise = { id: string; name_th: string; name_en: string | null; body_part: string; kind: string; media_url?: string | null };
 export const PART_TH: Record<string, string> = { chest: 'อก', back: 'หลัง', legs: 'ขา', shoulders: 'ไหล่', arms: 'แขน', core: 'แกนกลาง', cardio: 'คาร์ดิโอ', stretch: 'ยืดเหยียด' };
 export type WSet = { id?: string; exercise_id: string | null; exercise_name: string; set_no: number; reps: number | null; weight_kg: number | null; duration_sec: number | null };
 export type Workout = { id: string; title: string | null; started_at: string; ended_at: string | null; note: string | null; trainer_id: string | null; sets: WSet[] };

@@ -4,11 +4,11 @@
 
 export type SplitKey = 'push' | 'pull' | 'legs' | 'full' | 'easy';
 export const SPLITS: Record<SplitKey, { name: string; why: string; parts: string[]; moves: string[] }> = {
-  push: { name: 'ส่วนบน ดัน (อก ไหล่ แขนหลัง)', why: 'อก ไหล่ ไทรเซป', parts: ['chest', 'shoulders'], moves: ['Bench press', 'Overhead press', 'Lateral raise', 'Triceps pushdown'] },
-  pull: { name: 'ส่วนบน ดึง (หลัง แขนหน้า)', why: 'หลัง ไบเซป', parts: ['back'], moves: ['Lat pulldown', 'Seated cable row', 'Face pull', 'Biceps curl'] },
-  legs: { name: 'ขา + แกนกลาง', why: 'ขา ก้น หน้าท้อง', parts: ['legs', 'core'], moves: ['Back squat', 'Romanian deadlift', 'Leg press', 'Plank'] },
-  full: { name: 'ทั้งตัว (เริ่มต้น)', why: 'ทุกส่วนเบา ๆ เหมาะกับช่วงเริ่ม', parts: [], moves: ['Back squat', 'Dumbbell press', 'Lat pulldown', 'Plank'] },
-  easy: { name: 'คาร์ดิโอเบา ๆ + ยืดเหยียด', why: 'ให้กล้ามเนื้อได้พัก', parts: ['cardio', 'stretch'], moves: ['Treadmill', 'Full body stretch'] },
+  push: { name: 'ส่วนบน ดัน (อก ไหล่ แขนหลัง)', why: 'อก ไหล่ ไทรเซป', parts: ['chest', 'shoulders'], moves: ['Barbell Bench Press - Medium Grip', 'Dumbbell Shoulder Press', 'Side Lateral Raise', 'Triceps Pushdown'] },
+  pull: { name: 'ส่วนบน ดึง (หลัง แขนหน้า)', why: 'หลัง ไบเซป', parts: ['back'], moves: ['Wide-Grip Lat Pulldown', 'Seated Cable Rows', 'Face Pull', 'Dumbbell Bicep Curl'] },
+  legs: { name: 'ขา + แกนกลาง', why: 'ขา ก้น หน้าท้อง', parts: ['legs', 'core'], moves: ['Barbell Squat', 'Romanian Deadlift', 'Leg Press', 'Plank'] },
+  full: { name: 'ทั้งตัว (เริ่มต้น)', why: 'ทุกส่วนเบา ๆ เหมาะกับช่วงเริ่ม', parts: [], moves: ['Goblet Squat', 'Dumbbell Bench Press', 'Wide-Grip Lat Pulldown', 'Plank'] },
+  easy: { name: 'คาร์ดิโอเบา ๆ + ยืดเหยียด', why: 'ให้กล้ามเนื้อได้พัก', parts: ['cardio', 'stretch'], moves: ['Walking, Treadmill', "World's Greatest Stretch"] },
 };
 
 export type RecentWorkout = { started_at: string; title: string | null; parts: string[] };

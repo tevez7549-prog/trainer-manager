@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { supabase, thError } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -7,11 +7,13 @@ import { PART_TH, type Exercise } from '../lib/me';
 import { C, R } from '../lib/theme';
 import { Btn, Card, Chips, DateField, Field, H, Notice, Txt } from './index';
 import { Icon } from './Icon';
+import { ExerciseInfo, ExercisePicker, Thumb } from './ExercisePicker';
+import { exName } from '../lib/exercise';
 
 export type ProgRow = { ex: Exercise; sets: string; reps: string; kg: string };
 export type Template = { id: string; name: string; items: { position: number; sets: number | null; reps: number | null; weight_kg: number | null; exercise: Exercise | null }[] };
 
-export const TEMPLATE_COLS = 'id,name,items:program_exercises(position,sets,reps,weight_kg,exercise:exercises(id,name_th,name_en,body_part,kind))';
+export const TEMPLATE_COLS = 'id,name,items:program_exercises(position,sets,reps,weight_kg,exercise:exercises(id,name_th,name_en,body_part,kind,media_url))';
 export const rowsOf = (t: Template): ProgRow[] => [...t.items].sort((a, b) => a.position - b.position).filter(i => i.exercise)
   .map(i => ({ ex: i.exercise!, sets: i.sets ? String(i.sets) : '', reps: i.reps ? String(i.reps) : '', kg: i.weight_kg ? String(i.weight_kg) : '' }));
 
@@ -56,16 +58,14 @@ export function ProgramEditor({ title, initial, editId, tcId, onDone }: {
   const [name, setName] = useState(initial?.name ?? '');
   const [rows, setRows] = useState<ProgRow[]>(initial?.rows ?? []);
   const [day, setDay] = useState(addDays(todayISO(), 1));
-  const [lib, setLib] = useState<Exercise[]>([]);
   const [tpls, setTpls] = useState<Template[]>([]);
-  const [part, setPart] = useState('chest');
+  const [picking, setPicking] = useState(!initial?.rows.length);
+  const [info, setInfo] = useState<number | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    supabase.from('exercises').select('id,name_th,name_en,body_part,kind').order('name_th').then(({ data }) => setLib((data as Exercise[]) ?? []));
     if (tcId && profile) loadTemplates(profile.id).then(setTpls);
   }, [tcId, profile]);
-  const shown = useMemo(() => lib.filter(e => e.body_part === part), [lib, part]);
   const set = (i: number, k: 'sets' | 'reps' | 'kg', v: string) => setRows(rows.map((r, a) => a === i ? { ...r, [k]: v.replace(/[^\d.]/g, '') } : r));
   const move = (i: number, d: -1 | 1) => { const j = i + d; if (j < 0 || j >= rows.length) return; const n = [...rows]; [n[i], n[j]] = [n[j], n[i]]; setRows(n); };
 
@@ -92,11 +92,16 @@ export function ProgramEditor({ title, initial, editId, tcId, onDone }: {
       {rows.map((r, i) => (
         <View key={r.ex.id + i} style={{ gap: 6, padding: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Txt bold style={{ flex: 1 }}>{i + 1}. {r.ex.name_th}</Txt>
+            <Pressable accessibilityRole="button" accessibilityLabel={`วิธีเล่น ${exName(r.ex)}`} onPress={() => setInfo(info === i ? null : i)}
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <Thumb e={r.ex} size={44} />
+              <Txt bold style={{ flex: 1 }}>{i + 1}. {exName(r.ex)}</Txt>
+            </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="เลื่อนขึ้น" onPress={() => move(i, -1)} hitSlop={6} style={{ padding: 6, transform: [{ rotate: '180deg' }] }}><Icon name="chevron-down" size={18} color={C.muted} /></Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="เลื่อนลง" onPress={() => move(i, 1)} hitSlop={6} style={{ padding: 6 }}><Icon name="chevron-down" size={18} color={C.muted} /></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={`เอา ${r.ex.name_th} ออก`} onPress={() => setRows(rows.filter((_, a) => a !== i))} hitSlop={6} style={{ padding: 6 }}><Icon name="x" size={18} color={C.muted} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`เอา ${exName(r.ex)} ออก`} onPress={() => setRows(rows.filter((_, a) => a !== i))} hitSlop={6} style={{ padding: 6 }}><Icon name="x" size={18} color={C.muted} /></Pressable>
           </View>
+          {info === i ? <ExerciseInfo id={r.ex.id} e={r.ex as any} /> : null}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}><Field label="เซต" value={r.sets} onChangeText={v => set(i, 'sets', v)} keyboardType="number-pad" /></View>
             <View style={{ flex: 1 }}><Field label={r.ex.kind === 'strength' ? 'ครั้ง' : 'นาที'} value={r.reps} onChangeText={v => set(i, 'reps', v)} keyboardType="number-pad" /></View>
@@ -104,15 +109,11 @@ export function ProgramEditor({ title, initial, editId, tcId, onDone }: {
           </View>
         </View>
       ))}
-      <Chips options={Object.keys(PART_TH).map(k => ({ v: k, t: PART_TH[k] }))} value={part} onChange={setPart} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {shown.map(x => (
-          <Pressable key={x.id} accessibilityRole="button" onPress={() => setRows([...rows, { ex: x, sets: '3', reps: x.kind === 'strength' ? '10' : '', kg: '' }])}
-            style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 14, borderRadius: R.pill, backgroundColor: C.surface2, justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
-            <Txt size={15}>+ {x.name_th}</Txt>
-          </Pressable>
-        ))}
-      </View>
+      {picking ? <>
+        <ExercisePicker ownerId={profile?.id} picked={rows.map(r => r.ex.id)}
+          onPick={x => setRows([...rows, { ex: x, sets: '3', reps: x.kind === 'strength' ? '10' : '', kg: '' }])} />
+        {rows.length ? <Btn kind="ghost" label={`เลือกท่าเสร็จแล้ว (${rows.length} ท่า)`} onPress={() => setPicking(false)} /> : null}
+      </> : <Btn kind="ghost" icon="plus" label="เพิ่มท่า" onPress={() => setPicking(true)} />}
       <Btn label={tcId ? 'ส่งโปรแกรม' : 'บันทึกโปรแกรม'} onPress={save} loading={busy} />
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onDone()} />
     </Card>

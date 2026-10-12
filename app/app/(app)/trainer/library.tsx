@@ -7,7 +7,9 @@ import { addDays, todayISO } from '../../../src/lib/gym';
 import { TRAINER_TABS } from '../../../src/lib/nav';
 import { PART_TH, type Exercise } from '../../../src/lib/me';
 import { TC_COLS, tcName, type TC } from '../../../src/lib/trainer';
-import { Btn, Card, Chips, ConfirmBtn, DateField, Empty, Field, H, Header, Notice, Screen, Txt } from '../../../src/ui';
+import { Btn, Card, Chips, ConfirmBtn, DateField, Empty, Field, H, Header, Label, Notice, Screen, Txt } from '../../../src/ui';
+import { ExercisePicker } from '../../../src/ui/ExercisePicker';
+import { exName } from '../../../src/lib/exercise';
 import { loadTemplates, ProgramEditor, rowsOf, saveProgram, type Template } from '../../../src/ui/ProgramEditor';
 import { TabBar } from '../../../src/ui/TabBar';
 import { C, R } from '../../../src/lib/theme';
@@ -52,7 +54,7 @@ export default function Library() {
               <H size={17}>{t.name}</H>
               <Txt muted size={13}>{rows.length} ท่า · {[...new Set(rows.map(r => PART_TH[r.ex.body_part]))].join(' · ')}</Txt>
               {rows.slice(0, 6).map((r, i) => (
-                <Txt key={i} size={14}>{i + 1}. {r.ex.name_th} <Txt muted size={14}>{[r.sets && `${r.sets} เซต`, r.reps && `${r.reps} ครั้ง`, r.kg && `${r.kg} kg`].filter(Boolean).join(' × ')}</Txt></Txt>
+                <Txt key={i} size={14}>{i + 1}. {exName(r.ex)} <Txt muted size={14}>{[r.sets && `${r.sets} เซต`, r.reps && `${r.reps} ครั้ง`, r.kg && `${r.kg} kg`].filter(Boolean).join(' × ')}</Txt></Txt>
               ))}
               {rows.length > 6 ? <Txt muted size={13}>และอีก {rows.length - 6} ท่า</Txt> : null}
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
@@ -118,60 +120,63 @@ function Assign({ t, onDone }: { t: Template; onDone: (msg?: string, ok?: boolea
   );
 }
 
-/** Built-in moves plus the trainer's own */
+/** The whole library to browse (moving pictures + how-to), plus the trainer's own moves */
 function Moves() {
   const { profile } = useAuth();
-  const [list, setList] = useState<(Exercise & { created_by: string | null; how_to: string | null })[]>([]);
+  const [own, setOwn] = useState<(Exercise & { how_to: string | null })[]>([]);
   const [part, setPart] = useState('chest');
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [how, setHow] = useState('');
   const [kind, setKind] = useState<'strength' | 'cardio' | 'stretch'>('strength');
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [reload, setReload] = useState(0);
   const load = useCallback(() => {
-    supabase.from('exercises').select('id,name_th,name_en,body_part,kind,created_by,how_to').order('name_th').then(({ data }) => setList((data as any) ?? []));
-  }, []);
+    if (!profile) return;
+    supabase.from('exercises').select('id,name_th,name_en,body_part,kind,how_to').eq('created_by', profile.id).order('name_th').then(({ data }) => setOwn((data as any) ?? []));
+  }, [profile]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   async function add() {
     if (!name.trim()) { setMsg({ t: 'ใส่ชื่อท่า', ok: false }); return; }
     const { error } = await supabase.from('exercises').insert({ name_th: name.trim(), body_part: part, kind, how_to: how.trim() || null, created_by: profile!.id });
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
-    setMsg({ t: `เพิ่มท่า ${name.trim()} แล้ว`, ok: true }); setName(''); setHow(''); setAdding(false); load();
+    setMsg({ t: `เพิ่มท่า ${name.trim()} แล้ว`, ok: true }); setName(''); setHow(''); setAdding(false); load(); setReload(reload + 1);
   }
   async function del(id: string) {
     const { error } = await supabase.from('exercises').delete().eq('id', id);
     setMsg(error ? { t: 'ลบไม่ได้ ท่านี้อยู่ในโปรแกรมหรือบันทึกแล้ว', ok: false } : { t: 'ลบแล้ว', ok: true });
-    load();
+    load(); setReload(reload + 1);
   }
-  const shown = list.filter(e => e.body_part === part);
 
   return <>
     {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
-    <Chips options={Object.keys(PART_TH).map(k => ({ v: k, t: `${PART_TH[k]} (${list.filter(e => e.body_part === k).length})` }))} value={part} onChange={setPart} />
+    <Card>
+      <ExercisePicker ownerId={profile?.id} reloadKey={reload} />
+    </Card>
+
+    <Label>ท่าของฉัน</Label>
     {adding ? (
       <Card>
-        <H size={17}>เพิ่มท่าของฉัน · {PART_TH[part]}</H>
+        <H size={17}>เพิ่มท่าของฉัน</H>
         <Field label="ชื่อท่า" value={name} onChangeText={setName} placeholder="เช่น บัลแกเรียนสปลิตสควอท" />
+        <Chips label="ส่วน" options={Object.keys(PART_TH).map(k => ({ v: k, t: PART_TH[k] }))} value={part} onChange={setPart} />
         <Chips label="ประเภท" options={[{ v: 'strength', t: 'เวท' }, { v: 'cardio', t: 'คาร์ดิโอ' }, { v: 'stretch', t: 'ยืด' }]} value={kind} onChange={setKind} />
         <Field label="วิธีเล่น (ไม่บังคับ)" value={how} onChangeText={setHow} multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
         <Btn label="เพิ่มท่า" onPress={add} />
         <Btn kind="ghost" label="ยกเลิก" onPress={() => setAdding(false)} />
       </Card>
-    ) : <Btn kind="ghost" icon="plus" label={`เพิ่มท่าของฉัน (${PART_TH[part]})`} onPress={() => setAdding(true)} />}
-    <Card style={{ gap: 0, paddingVertical: 4 }}>
-      {shown.map(e => (
-        <View key={e.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line, gap: 4 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Txt bold style={{ flex: 1 }}>{e.name_th}{e.name_en ? <Txt muted size={13}>  {e.name_en}</Txt> : null}</Txt>
-            {e.created_by === profile?.id ? <Txt size={12.5} style={{ color: C.accent }}>ของฉัน</Txt> : null}
+    ) : <Btn kind="ghost" icon="plus" label="เพิ่มท่าของฉัน" onPress={() => setAdding(true)} />}
+    {own.length ? (
+      <Card style={{ gap: 0, paddingVertical: 4 }}>
+        {own.map(e => (
+          <View key={e.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line, gap: 4 }}>
+            <Txt bold>{e.name_th} <Txt muted size={13}>· {PART_TH[e.body_part] ?? e.body_part}</Txt></Txt>
+            {e.how_to ? <Txt muted size={13}>{e.how_to}</Txt> : null}
+            <ConfirmBtn label="ลบท่านี้" onConfirm={() => del(e.id)} />
           </View>
-          {e.how_to ? <Txt muted size={13}>{e.how_to}</Txt> : null}
-          {e.created_by === profile?.id ? <ConfirmBtn label="ลบท่านี้" onConfirm={() => del(e.id)} /> : null}
-        </View>
-      ))}
-      {!shown.length ? <Txt muted style={{ paddingVertical: 14 }}>ยังไม่มีท่าในหมวดนี้</Txt> : null}
-    </Card>
-    <Txt muted size={12.5}>ท่าในระบบเป็นชุดตัวอย่าง ยังไม่มีรูปหรือคลิปสาธิต</Txt>
+        ))}
+      </Card>
+    ) : null}
   </>;
 }

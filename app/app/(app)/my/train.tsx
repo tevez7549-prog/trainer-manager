@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../src/lib/supabase';
@@ -6,12 +6,14 @@ import { useAuth } from '../../../src/lib/auth';
 import { addDays, thDate, thDateTs, todayISO } from '../../../src/lib/gym';
 import { MEMBER_TABS } from '../../../src/lib/nav';
 import { fmt1, PART_TH, type Exercise, type Workout } from '../../../src/lib/me';
-import { Btn, Card, Chips, ConfirmBtn, Empty, Field, H, Header, Label, Notice, Screen, Stat, Txt } from '../../../src/ui';
+import { Btn, Card, ConfirmBtn, Empty, Field, H, Header, Label, Notice, Screen, Stat, Txt } from '../../../src/ui';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
 import { loadTemplates, ProgramEditor, rowsOf, TEMPLATE_COLS, type Template } from '../../../src/ui/ProgramEditor';
 import { SPLITS, type SplitKey } from '../../../src/lib/plan';
 import { C, R } from '../../../src/lib/theme';
+import { ExerciseInfo, ExercisePicker, Thumb } from '../../../src/ui/ExercisePicker';
+import { exName } from '../../../src/lib/exercise';
 
 type ProgEx = { position: number; sets: number | null; reps: number | null; weight_kg: number | null; note: string | null; exercise: Exercise | null };
 type Program = { id: string; name: string; planned_for: string | null; created_at: string; owner: { display_name: string } | null; items: ProgEx[] };
@@ -43,7 +45,7 @@ export default function TrainPage() {
     if (!tcIds.length) { setPrograms([]); return; }
     const since = addDays(todayISO(), -6);
     const [p, a] = await Promise.all([
-      supabase.from('programs').select('id,name,planned_for,created_at,owner:profiles!programs_owner_id_fkey(display_name),items:program_exercises(position,sets,reps,weight_kg,note,exercise:exercises(id,name_th,name_en,body_part,kind))')
+      supabase.from('programs').select('id,name,planned_for,created_at,owner:profiles!programs_owner_id_fkey(display_name),items:program_exercises(position,sets,reps,weight_kg,note,exercise:exercises(id,name_th,name_en,body_part,kind,media_url))')
         .in('trainer_client_id', tcIds).order('created_at', { ascending: false }).limit(10),
       supabase.from('appointments').select('id', { count: 'exact', head: true }).in('trainer_client_id', tcIds).eq('status', 'done').gte('starts_at', new Date(since + 'T00:00:00').toISOString()),
     ]);
@@ -72,7 +74,7 @@ export default function TrainPage() {
       });
     } else if (params.split && params.split in SPLITS) {
       const sp = SPLITS[params.split as SplitKey];
-      supabase.from('exercises').select('id,name_th,name_en,body_part,kind').in('name_en', sp.moves).is('created_by', null).then(({ data }) => {
+      supabase.from('exercises').select('id,name_th,name_en,body_part,kind,media_url').in('name_en', sp.moves).is('created_by', null).then(({ data }) => {
         const ex = sp.moves.map(n => ((data as Exercise[]) ?? []).find(e => e.name_en === n)).filter(Boolean) as Exercise[];
         setDraft({ title: sp.name, trainerId: null, ex: ex.map(e => ({ ex: e, sets: Array.from({ length: e.kind === 'strength' ? 3 : 1 }, () => ({ reps: e.kind === 'strength' ? '10' : '', kg: '' })) })) });
       });
@@ -105,7 +107,7 @@ export default function TrainPage() {
           <Card key={t.id} style={{ gap: 6 }}>
             <H size={17}>{t.name}</H>
             {rows.map((r, k) => (
-              <Txt key={k} size={14}>{k + 1}. {r.ex.name_th}  <Txt muted size={14}>{[r.sets && `${r.sets} เซต`, r.reps && `${r.reps} ครั้ง`, r.kg && `${r.kg} kg`].filter(Boolean).join(' × ')}</Txt></Txt>
+              <Txt key={k} size={14}>{k + 1}. {exName(r.ex)}  <Txt muted size={14}>{[r.sets && `${r.sets} เซต`, r.reps && `${r.reps} ครั้ง`, r.kg && `${r.kg} kg`].filter(Boolean).join(' × ')}</Txt></Txt>
             ))}
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
               {!draft ? <Btn icon="dumbbell" label="เริ่มเล่น" onPress={() => fromProgram(t as any)} style={{ flex: 1 }} /> : null}
@@ -128,7 +130,7 @@ export default function TrainPage() {
             </View>
           </View>
           {p.items.map((i, k) => (
-            <Txt key={k} size={14}>{k + 1}. {i.exercise?.name_th ?? '–'}  <Txt muted size={14}>{[i.sets && `${i.sets} เซต`, i.reps && `${i.reps} ครั้ง`, i.weight_kg && `${fmt1(i.weight_kg)} kg`].filter(Boolean).join(' × ')}</Txt></Txt>
+            <Txt key={k} size={14}>{k + 1}. {exName(i.exercise)}  <Txt muted size={14}>{[i.sets && `${i.sets} เซต`, i.reps && `${i.reps} ครั้ง`, i.weight_kg && `${fmt1(i.weight_kg)} kg`].filter(Boolean).join(' × ')}</Txt></Txt>
           ))}
           {!draft ? <Btn kind="ghost" icon="dumbbell" label="เริ่มตามโปรแกรมนี้" onPress={() => fromProgram(p)} /> : null}
         </Card>
@@ -173,12 +175,9 @@ function HistRow({ w, onDeleted }: { w: Workout; onDeleted: () => void }) {
 /** Log a session: pick exercises, then reps × kg per set */
 function Editor({ draft, setDraft, onDone }: { draft: Draft; setDraft: (d: Draft) => void; onDone: (msg?: string, ok?: boolean) => void }) {
   const { profile } = useAuth();
-  const [lib, setLib] = useState<Exercise[]>([]);
-  const [part, setPart] = useState('chest');
   const [picking, setPicking] = useState(draft.ex.length === 0);
+  const [info, setInfo] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { supabase.from('exercises').select('id,name_th,name_en,body_part,kind').order('name_th').then(({ data }) => setLib((data as Exercise[]) ?? [])); }, []);
-  const shown = useMemo(() => lib.filter(e => e.body_part === part), [lib, part]);
 
   const setSet = (i: number, j: number, k: 'reps' | 'kg', v: string) => {
     const ex = draft.ex.map((e, a) => a !== i ? e : { ...e, sets: e.sets.map((s, b) => b !== j ? s : { ...s, [k]: v.replace(/[^\d.]/g, '') }) });
@@ -189,7 +188,7 @@ function Editor({ draft, setDraft, onDone }: { draft: Draft; setDraft: (d: Draft
 
   async function save() {
     const sets = draft.ex.flatMap(e => e.sets.filter(s => s.reps || s.kg).map((s, n) => ({
-      exercise_id: e.ex.id, exercise_name: e.ex.name_th, set_no: n + 1, reps: s.reps ? Number(s.reps) : null, weight_kg: s.kg ? Number(s.kg) : null,
+      exercise_id: e.ex.id, exercise_name: exName(e.ex), set_no: n + 1, reps: s.reps ? Number(s.reps) : null, weight_kg: s.kg ? Number(s.kg) : null,
     })));
     if (!sets.length) { onDone('ยังไม่ได้ใส่จำนวนครั้งหรือน้ำหนัก', false); return; }
     setBusy(true);
@@ -208,9 +207,14 @@ function Editor({ draft, setDraft, onDone }: { draft: Draft; setDraft: (d: Draft
       {draft.ex.map((e, i) => (
         <View key={e.ex.id + i} style={{ gap: 6, padding: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Txt bold style={{ flex: 1 }}>{e.ex.name_th}</Txt>
-            <Pressable accessibilityRole="button" accessibilityLabel={`เอา ${e.ex.name_th} ออก`} onPress={() => removeEx(i)} hitSlop={8}><Icon name="x" size={18} color={C.muted} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`วิธีเล่น ${exName(e.ex)}`} onPress={() => setInfo(info === i ? null : i)}
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <Thumb e={e.ex} size={44} />
+              <Txt bold style={{ flex: 1 }}>{exName(e.ex)}</Txt>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`เอา ${exName(e.ex)} ออก`} onPress={() => removeEx(i)} hitSlop={8} style={{ padding: 6 }}><Icon name="x" size={18} color={C.muted} /></Pressable>
           </View>
+          {info === i ? <ExerciseInfo id={e.ex.id} e={e.ex as any} /> : null}
           {e.sets.map((s, j) => (
             <View key={j} style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
               <Txt muted style={{ width: 44, paddingBottom: 14 }}>เซต {j + 1}</Txt>
@@ -222,16 +226,9 @@ function Editor({ draft, setDraft, onDone }: { draft: Draft; setDraft: (d: Draft
         </View>
       ))}
       {picking ? <>
-        <Chips options={Object.keys(PART_TH).map(k => ({ v: k, t: PART_TH[k] }))} value={part} onChange={setPart} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {shown.map(x => (
-            <Pressable key={x.id} accessibilityRole="button" onPress={() => { setDraft({ ...draft, ex: [...draft.ex, { ex: x, sets: [{ reps: '', kg: '' }, { reps: '', kg: '' }, { reps: '', kg: '' }] }] }); setPicking(false); }}
-              style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 14, borderRadius: R.pill, backgroundColor: C.surface2, justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
-              <Txt size={15}>{x.name_th}</Txt>
-            </Pressable>
-          ))}
-        </View>
-        <Txt muted size={12.5}>คลังท่าตัวอย่าง {lib.length} ท่า</Txt>
+        <ExercisePicker ownerId={profile?.id} picked={draft.ex.map(e => e.ex.id)}
+          onPick={x => setDraft({ ...draft, ex: [...draft.ex, { ex: x, sets: Array.from({ length: x.kind === 'strength' ? 3 : 1 }, () => ({ reps: '', kg: '' })) }] })} />
+        {draft.ex.length ? <Btn kind="ghost" label={`เลือกท่าเสร็จแล้ว (${draft.ex.length} ท่า)`} onPress={() => setPicking(false)} /> : null}
       </> : <Btn kind="ghost" icon="plus" label="เพิ่มท่า" onPress={() => setPicking(true)} />}
       <Btn label="บันทึก" onPress={save} loading={busy} />
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onDone()} />
