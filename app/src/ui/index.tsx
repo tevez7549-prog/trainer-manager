@@ -74,7 +74,7 @@ export function Field({ label, error, hint, style, icon, ...p }: TextInputProps 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, borderRadius: R.field, backgroundColor: C.surface2,
         borderWidth: bw, borderColor: error ? C.badFg : focus ? C.accent : C.line, paddingHorizontal: 16 - (bw - 1) }}>
         {icon ? <Icon name={icon} size={20} /> : null}
-        <TextInput placeholderTextColor={C.muted} {...p} placeholder={tr(p.placeholder)} accessibilityLabel={tr(label)}
+        <TextInput placeholderTextColor={C.muted} {...p} placeholder={tr(p.placeholder) ?? undefined} accessibilityLabel={tr(label)}
           onFocus={e => { setFocus(true); p.onFocus?.(e); }} onBlur={e => { setFocus(false); p.onBlur?.(e); }}
           style={[{ flex: 1, minWidth: 0, fontSize: 16, color: C.fg, fontFamily: F.body, paddingVertical: 11, outlineStyle: 'none' } as any, style]} />
       </View>
