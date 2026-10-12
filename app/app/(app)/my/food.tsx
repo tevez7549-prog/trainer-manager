@@ -427,16 +427,19 @@ function AiText({ onSave, busy, photo }: { onSave: (i: NewItem) => void; busy: b
   const [note, setNote] = useState<string | null>(null);
   const [err, setErr] = useState('');
   const [asking, setAsking] = useState(false);
+  const [editing, setEditing] = useState<number | null>(null);
   async function ask(img = pic) {
     if (photo ? !img : !q.trim()) { setErr(photo ? 'ถ่ายหรือเลือกรูปอาหารก่อน' : 'พิมพ์สิ่งที่กิน เช่น ข้าวสวย 100 กรัม'); return; }
-    setAsking(true); setErr(''); setItems(null);
+    setAsking(true); setErr(''); setItems(null); setEditing(null);
     const { data, error } = await supabase.functions.invoke('food-ai', { body: photo ? { q: q.trim(), image: img!.b64, media_type: 'image/jpeg' } : { q: q.trim() } });
     setAsking(false);
     let code = data?.error as string | undefined;
     if (error) { try { code = (await (error as any).context.json()).error; } catch { code = 'ai_failed'; } }
     if (code) {
       setErr(code === 'ai_not_configured' ? 'AI ยังไม่เปิดใช้ (ผู้ดูแลยังไม่ได้ใส่คีย์) · ใช้ "ค้นหา" หรือ "สร้างเอง" ไปก่อน'
-        : code === 'daily_limit' ? 'ใช้ AI ครบ 30 ครั้งของวันนี้แล้ว · พรุ่งนี้ใช้ได้ใหม่' : 'AI ตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง');
+        : code === 'daily_limit' ? 'ใช้ AI ครบ 30 ครั้งของวันนี้แล้ว · พรุ่งนี้ใช้ได้ใหม่'
+        : code === 'ai_bad_output' ? (photo ? 'AI อ่านรูปนี้ไม่ออก ลองถ่ายใกล้ขึ้น หรือพิมพ์บอกเพิ่มว่ากินอะไร' : 'AI ไม่เข้าใจข้อความนี้ ลองพิมพ์ชื่ออาหารกับปริมาณ')
+        : 'AI ตอบไม่ได้ตอนนี้ ลองใหม่อีกครั้ง');
       return;
     }
     setItems((data?.items as AiItem[]) ?? []); setNote(data?.note ?? null);
@@ -456,12 +459,16 @@ function AiText({ onSave, busy, photo }: { onSave: (i: NewItem) => void; busy: b
       <Btn icon="sparkles" label={asking ? 'AI กำลังคำนวณ…' : 'ให้ AI คำนวณ'} onPress={() => ask()} loading={asking} />
     </>}
     {items && !items.length ? <Txt muted>{note || 'AI ไม่เจออาหารในข้อความนี้'}</Txt> : null}
-    {(items ?? []).map((i, k) => (
-      <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
-        <View style={{ flex: 1 }}>
+    {(items ?? []).map((i, k) => editing === k ? (
+      <AiEdit key={k} item={i} onCancel={() => setEditing(null)}
+        onDone={(x) => { setItems(items!.map((y, j) => (j === k ? x : y))); setEditing(null); }} />
+    ) : (
+      <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Txt bold>{i.name}{i.amount ? ` · ${fmt1(i.amount)} ${i.unit}` : ''}</Txt>
           <Txt muted size={13}>{macroLine(i)}{i.grams ? ` · ~${Math.round(i.grams)} g` : ''}</Txt>
         </View>
+        <Btn kind="ghost" label="แก้ไข" onPress={() => setEditing(k)} style={{ minHeight: 40 }} />
         <Btn label="เพิ่ม" onPress={() => onSave(toItem(i))} loading={busy} style={{ minHeight: 40 }} />
       </View>
     ))}
@@ -470,6 +477,57 @@ function AiText({ onSave, busy, photo }: { onSave: (i: NewItem) => void; busy: b
   </>;
 }
 
+
+/**
+ * Fix what the AI guessed before adding it. Changing the amount scales the values from the AI's amount
+ * (AI said 1 จาน, you ate 0.5 → half); the values themselves can also be typed over.
+ */
+function AiEdit({ item, onDone, onCancel }: { item: AiItem; onDone: (i: AiItem) => void; onCancel: () => void }) {
+  const s = (n: number | null | undefined) => (n == null ? '' : String(n));
+  const [name, setName] = useState(item.name);
+  const [amount, setAmount] = useState(s(item.amount || 1));
+  const [unit, setUnit] = useState(item.unit);
+  const [kcal, setKcal] = useState(s(item.kcal));
+  const [p, setP] = useState(s(item.protein_g)); const [c, setC_] = useState(s(item.carb_g)); const [f, setF] = useState(s(item.fat_g));
+  const [g, setG] = useState(s(item.grams));
+  const num = (v: string) => v.replace(/[^\d.]/g, '');
+  const macroKcal = Math.round(Number(p || 0) * 4 + Number(c || 0) * 4 + Number(f || 0) * 9);
+
+  function changeAmount(v: string) {
+    const old = Number(amount) || 0, nu = Number(num(v)) || 0;
+    setAmount(num(v));
+    if (old > 0 && nu > 0 && nu !== old) {
+      const k = nu / old, sc = (x: string, d = 1) => (x === '' ? '' : String(Math.round(Number(x) * k * 10 ** d) / 10 ** d));
+      setKcal(sc(kcal, 0)); setP(sc(p)); setC_(sc(c)); setF(sc(f)); setG(sc(g, 0));
+    }
+  }
+  return (
+    <View style={{ gap: 10, padding: 12, borderRadius: R.field, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.accent }}>
+      <Txt bold size={14}>แก้ไขก่อนเพิ่ม</Txt>
+      <Field label="ชื่อ" value={name} onChangeText={setName} />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 1 }}><Field label="ปริมาณ" value={amount} onChangeText={changeAmount} keyboardType="decimal-pad" /></View>
+        <View style={{ flex: 1 }}><Field label="หน่วย" value={unit} onChangeText={setUnit} /></View>
+        <View style={{ flex: 1 }}><Field label="น้ำหนัก g" value={g} onChangeText={v => setG(num(v))} keyboardType="decimal-pad" /></View>
+      </View>
+      <Txt muted size={12.5}>เปลี่ยนปริมาณแล้วค่าด้านล่างปรับตามสัดส่วนให้เอง</Txt>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 1 }}><Field label="โปรตีน g" value={p} onChangeText={v => setP(num(v))} keyboardType="decimal-pad" /></View>
+        <View style={{ flex: 1 }}><Field label="คาร์บ g" value={c} onChangeText={v => setC_(num(v))} keyboardType="decimal-pad" /></View>
+        <View style={{ flex: 1 }}><Field label="ไขมัน g" value={f} onChangeText={v => setF(num(v))} keyboardType="decimal-pad" /></View>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
+        <View style={{ flex: 1 }}><Field label="แคลอรี (kcal)" value={kcal} onChangeText={v => setKcal(num(v))} keyboardType="decimal-pad" /></View>
+        <Btn kind="ghost" label="คำนวณจาก Macro" onPress={() => setKcal(String(macroKcal))} style={{ minHeight: 48 }} />
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Btn kind="ghost" label="ยกเลิก" onPress={onCancel} style={{ flex: 1 }} />
+        <Btn label="ใช้ค่านี้" onPress={() => onDone({ name: name.trim() || item.name, amount: Number(amount) || 0, unit: unit.trim(), grams: g === '' ? null : Number(g),
+          kcal: Number(kcal || 0), protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0) })} style={{ flex: 1 }} />
+      </View>
+    </View>
+  );
+}
 
 /**
  * Step 1: we work out the daily calories from the person's details (Mifflin–St Jeor × activity, then the goal) — editable.

@@ -22,7 +22,9 @@ Rules:
 - grams = estimated weight of that amount (null for drinks measured in ml is fine; then use ml as grams).
 - Values are for the whole amount eaten, not per 100 g. Use typical Thai street-food / home-cooking values.
 - Round kcal to whole numbers and macros to one decimal.
-- If the text is not food, return {"items":[],"note":"ไม่ใช่อาหาร"}.`;
+- Photos: name what you see. If it shows raw ingredients or a pack (e.g. a tray of eggs), give one typical serving (e.g. 1 ฟอง) and say in note how many you see.
+- Always answer with the JSON object only, even when unsure; put doubts in note.
+- If it is not food at all, return {"items":[],"note":"ไม่ใช่อาหาร"}.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -54,7 +56,7 @@ Deno.serve(async (req) => {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 600, system: SYSTEM, messages: [{ role: "user", content: image
+    body: JSON.stringify({ model: MODEL, max_tokens: 1000, system: SYSTEM, messages: [{ role: "user", content: image
       ? [{ type: "image", source: { type: "base64", media_type: mediaType, data: image } },
          { type: "text", text: q || "อาหารในรูปนี้คืออะไร ประมาณปริมาณจากรูป" }]
       : q }] }),
@@ -69,7 +71,8 @@ Deno.serve(async (req) => {
   const out = await r.json();
   const text: string = (out.content ?? []).map((c: any) => c.text ?? "").join("");
   let parsed: { items?: any[]; note?: string } = {};
-  try { parsed = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)); } catch { return json({ error: "ai_bad_output" }, 502); }
+  try { parsed = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)); }
+  catch { console.error("ai_bad_output", out.stop_reason, text.slice(0, 400)); return json({ error: "ai_bad_output" }, 502); }
 
   const num = (v: unknown, d = 1) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? Math.round(n * 10 ** d) / 10 ** d : 0; };
   const items = (parsed.items ?? []).slice(0, 8).map((i) => ({
