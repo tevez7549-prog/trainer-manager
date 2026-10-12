@@ -5,6 +5,7 @@ import { supabase, thError } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth';
 import { Btn, Card, Chips, Field, H, Notice, Screen, Txt } from '../../src/ui';
 import { useThemeMode, type ThemeMode } from '../../src/lib/themePref';
+import { KEEP, useLang, type Lang } from '../../src/lib/i18n';
 import { C, R } from '../../src/lib/theme';
 import { phoneError, splitE164, toE164 } from '../../src/lib/phone';
 import { PhoneField } from '../../src/ui/PhoneField';
@@ -16,6 +17,7 @@ import { Row } from '../../src/ui';
 export default function Me() {
   const { profile, refresh, signOut } = useAuth();
   const { mode, setMode } = useThemeMode();
+  const { lang, setLang } = useLang();
   const tabs = MEMBER_TABS;
   const [name, setName] = useState(profile?.display_name ?? '');
   const init = splitE164(profile?.phone);
@@ -64,6 +66,7 @@ export default function Me() {
       <Card>
         <H size={17}>หน้าตาแอป</H>
         <Chips options={[{ v: 'dark', t: 'มืด' }, { v: 'light', t: 'สว่าง' }, { v: 'system', t: 'ตามเครื่อง' }]} value={mode} onChange={v => setMode(v as ThemeMode)} />
+        <Chips label={KEEP + 'ภาษา / Language'} options={[{ v: 'th', t: KEEP + 'ไทย' }, { v: 'en', t: 'English' }]} value={lang} onChange={v => setLang(v as Lang)} />
       </Card>
       {profile.is_super_admin ? <Btn kind="ghost" icon="shield" label="หลังบ้าน (Super Admin)" onPress={() => router.push('/admin' as any)} /> : null}
       <Btn kind="danger" icon="log-out" label="ออกจากระบบ" onPress={signOut} />

@@ -6,13 +6,14 @@ import { signInWith, supabase, thError } from '../../src/lib/supabase';
 import { Btn, Card, Field, H, Notice, Screen, Txt } from '../../src/ui';
 import { C, F, LINE_GREEN, LINE_INK, R } from '../../src/lib/theme';
 import { Lockup } from '../../src/ui/Logo';
+import { tr, useLang } from '../../src/lib/i18n';
 
 // LINE and Google logos must be their official files; until they are added the buttons carry text only.
 function ProviderBtn({ label, bg, fg, border, onPress, busy }: { label: string; bg: string; fg: string; border?: string; onPress: () => void; busy?: boolean }) {
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ busy: !!busy }} onPress={busy ? undefined : onPress}
       style={(st: any) => ({ minHeight: 52, borderRadius: R.field, backgroundColor: bg, borderWidth: 1, borderColor: border ?? bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: busy ? 0.6 : st.pressed ? 0.85 : st.hovered ? 0.93 : 1 })}>
-      {busy ? <ActivityIndicator color={fg} /> : <Text style={{ fontFamily: F.body, color: fg, fontWeight: '600', fontSize: 16, lineHeight: 24 }}>{label}</Text>}
+      {busy ? <ActivityIndicator color={fg} /> : <Text style={{ fontFamily: F.body, color: fg, fontWeight: '600', fontSize: 16, lineHeight: 24 }}>{tr(label)}</Text>}
     </Pressable>
   );
 }
@@ -23,6 +24,7 @@ export default function Login() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState<'' | 'email' | 'google' | 'line'>('');
   const [showEmail, setShowEmail] = useState(false);
+  const { lang, setLang } = useLang();
 
   // Google / LINE send errors back in the address bar
   useEffect(() => {
@@ -51,8 +53,14 @@ export default function Login() {
   return (
     <Screen center>
       <View style={{ gap: 16, paddingHorizontal: 4 }}>
-        <Lockup height={40} />
-        <Txt muted size={16}>จัดการยิม เทรนเนอร์ และลูกเทรน ในที่เดียว</Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 0 }}><Lockup height={40} /></View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Language" onPress={() => setLang(lang === 'th' ? 'en' : 'th')} hitSlop={8}
+            style={{ minHeight: 36, paddingHorizontal: 12, borderRadius: R.pill, borderWidth: 1, borderColor: C.line, justifyContent: 'center' }}>
+            <Text style={{ fontFamily: F.body, fontWeight: '600', fontSize: 14, color: C.fg }}>{lang === 'th' ? 'EN' : 'TH'}</Text>
+          </Pressable>
+        </View>
+        <Txt muted size={16}>บันทึกการออกกำลังกาย อาหาร และชวนคนที่คุณรักมาเล่นด้วยกัน</Txt>
       </View>
 
       <Card>

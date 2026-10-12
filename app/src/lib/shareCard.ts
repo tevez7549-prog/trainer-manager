@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { tr } from './i18n';
 
 /** What goes on a story card (9:16) */
 export type CardData = {
@@ -37,7 +38,7 @@ export async function drawCard(d: CardData): Promise<Blob | null> {
   ctx.fillStyle = MUTED; ctx.font = display(600, 44); ctx.fillText(d.who, 250, 208);
 
   ctx.fillStyle = VOLT; ctx.font = display(700, 360); ctx.fillText(d.big, 90, 700);
-  ctx.fillStyle = INK; ctx.font = display(700, 84); ctx.fillText(d.bigLabel, 96, 820);
+  ctx.fillStyle = INK; ctx.font = display(700, 84); ctx.fillText(tr(d.bigLabel), 96, 820);
 
   let y = 900;
   if (d.week) {
@@ -49,15 +50,15 @@ export async function drawCard(d: CardData): Promise<Blob | null> {
   stats.forEach(([label, value], i) => {
     const top = y + i * 190;
     ctx.fillStyle = SURF; round(ctx, 90, top, W - 180, 160, 40); ctx.fill();
-    ctx.fillStyle = MUTED; ctx.font = body(500, 38); ctx.fillText(label, 140, top + 64);
-    ctx.fillStyle = INK; ctx.font = display(700, 64); ctx.fillText(value, 140, top + 132);
+    ctx.fillStyle = MUTED; ctx.font = body(500, 38); ctx.fillText(tr(label), 140, top + 64);
+    ctx.fillStyle = INK; ctx.font = display(700, 64); ctx.fillText(tr(value), 140, top + 132);
   });
   ctx.fillStyle = MUTED; ctx.font = body(500, 38);
   const words = d.footer.split(' '); let line = '', ly = H - 150;
   const lines: string[] = [];
   words.forEach(w => { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > W - 180) { lines.push(line); line = w; } else line = t; });
   if (line) lines.push(line);
-  lines.slice(-2).forEach((l, i, a) => ctx.fillText(l, 90, ly - (a.length - 1 - i) * 52));
+  lines.slice(-2).forEach((l, i, a) => ctx.fillText(tr(l), 90, ly - (a.length - 1 - i) * 52));
   return await new Promise<Blob | null>(res => cv.toBlob(b => res(b), 'image/png'));
 }
 

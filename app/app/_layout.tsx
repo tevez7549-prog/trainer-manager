@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/lib/auth';
 import { ThemeProvider } from '../src/lib/themePref';
+import { LangProvider, type Lang } from '../src/lib/i18n';
 import { C, type Scheme } from '../src/lib/theme';
 
 function headLink(id: string, rel: string, href: string, extra: Record<string, string> = {}) {
@@ -15,10 +16,10 @@ function headLink(id: string, rel: string, href: string, extra: Record<string, s
   document.head.appendChild(l);
 }
 
-function WebChrome({ scheme }: { scheme: Scheme }) {
+function WebChrome({ scheme, lang }: { scheme: Scheme; lang: Lang }) {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    document.documentElement.lang = 'th';
+    document.documentElement.lang = lang;
     headLink('tm-fonts', 'stylesheet', 'https://fonts.googleapis.com/css2?family=Anuphan:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap');
     headLink('tm-icon', 'icon', '/icon-192.png', { type: 'image/png' });
     headLink('tm-apple', 'apple-touch-icon', '/apple-touch-icon.png');
@@ -28,7 +29,7 @@ function WebChrome({ scheme }: { scheme: Scheme }) {
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
     if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
     meta.content = C.bg;
-  }, [scheme]);
+  }, [scheme, lang]);
   return null;
 }
 
@@ -36,16 +37,20 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <ThemeProvider>
-          {scheme => (
-            // remount the screens when the palette changes so every colour is read again
-            <Fragment key={scheme}>
-              <WebChrome scheme={scheme} />
-              <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
-            </Fragment>
+        <LangProvider>
+          {lang => (
+            <ThemeProvider>
+              {scheme => (
+                // remount the screens when the palette or language changes so every colour and word is read again
+                <Fragment key={scheme + lang}>
+                  <WebChrome scheme={scheme} lang={lang} />
+                  <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+                  <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
+                </Fragment>
+              )}
+            </ThemeProvider>
           )}
-        </ThemeProvider>
+        </LangProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

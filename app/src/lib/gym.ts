@@ -1,3 +1,4 @@
+import { getLang } from './i18n';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from './supabase';
@@ -56,6 +57,7 @@ export function useGym(id: string | undefined) {
 
 // ---------- dates (local time, Thai Buddhist year) ----------
 const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const pad = (n: number) => String(n).padStart(2, '0');
 export const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 export const todayISO = () => isoDate(new Date());
@@ -68,6 +70,7 @@ export function thDate(iso?: string | null, longYear = false) {
   if (!iso) return '–';
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
   if (!y || !m || !d) return iso;
+  if (getLang() === 'en') return `${d} ${MONTHS_EN[m - 1]} ${longYear ? y : String(y).slice(2)}`;
   const by = y + 543;
   return `${d} ${MONTHS[m - 1]} ${longYear ? by : String(by).slice(2)}`;
 }

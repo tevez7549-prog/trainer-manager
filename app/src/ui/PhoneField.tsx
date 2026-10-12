@@ -1,3 +1,4 @@
+import { tr } from '../lib/i18n';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { COUNTRIES, type Country } from '../lib/phone';
@@ -14,7 +15,7 @@ export function PhoneField({ label, country, onCountry, value, onChangeText, err
   const bw = error || focus ? 2 : 1;
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text>
+      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{tr(label)}</Text>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={`รหัสประเทศ ${country.name} +${country.dial}`} onPress={() => setOpen(!open)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: open ? C.accent : C.line, borderRadius: R.field, paddingHorizontal: 12, minHeight: 48, backgroundColor: C.surface2 }}>

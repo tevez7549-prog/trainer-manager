@@ -6,19 +6,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, F, R } from '../lib/theme';
 import { Icon, type IconName } from './Icon';
+import { tr, trNode } from '../lib/i18n';
 
 // Volt Graphite components. Colours are read from C at render time (see theme.ts), so nothing is cached in a StyleSheet.
 
-export function Txt({ style, muted, size, bold, ...p }: TextProps & { muted?: boolean; size?: number; bold?: boolean }) {
+export function Txt({ style, muted, size, bold, children, ...p }: TextProps & { muted?: boolean; size?: number; bold?: boolean }) {
   const fs = size ?? 15;
-  return <Text {...p} style={[{ fontFamily: F.body, color: muted ? C.muted : C.fg, fontSize: fs, lineHeight: Math.round(fs * 1.55), fontWeight: bold ? '600' : '400', fontVariant: ['tabular-nums'] }, style]} />;
+  return <Text {...p} children={trNode(children)} style={[{ fontFamily: F.body, color: muted ? C.muted : C.fg, fontSize: fs, lineHeight: Math.round(fs * 1.55), fontWeight: bold ? '600' : '400', fontVariant: ['tabular-nums'] }, style]} />;
 }
-export function H({ style, size = 22, ...p }: TextProps & { size?: number }) {
-  return <Text {...p} accessibilityRole="header" style={[{ fontFamily: F.display, color: C.fg, fontSize: size, lineHeight: Math.round(size * 1.4), fontWeight: '700', fontVariant: ['tabular-nums'] }, style]} />;
+export function H({ style, size = 22, children, ...p }: TextProps & { size?: number }) {
+  return <Text {...p} children={trNode(children)} accessibilityRole="header" style={[{ fontFamily: F.display, color: C.fg, fontSize: size, lineHeight: Math.round(size * 1.4), fontWeight: '700', fontVariant: ['tabular-nums'] }, style]} />;
 }
 /** Section label above a group (`label` style, ink-muted) */
 export function Label({ children, style }: { children: React.ReactNode; style?: any }) {
-  return <Text style={[{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.muted, paddingHorizontal: 4 }, style]}>{children}</Text>;
+  return <Text style={[{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.muted, paddingHorizontal: 4 }, style]}>{trNode(children)}</Text>;
 }
 
 /** Phone-width column, centred on large screens */
@@ -58,7 +59,7 @@ export function Btn({ label, onPress, kind = 'primary', loading, disabled, style
         transform: st.pressed && !off ? [{ translateY: 1 }] : undefined }, style]}>
       {loading ? <ActivityIndicator color={fg} /> : <>
         {icon ? <Icon name={icon} size={18} color={fg} /> : null}
-        <Text style={{ fontFamily: F.body, color: fg, fontWeight: '600', fontSize: 16, lineHeight: 24 }}>{label}</Text>
+        <Text style={{ fontFamily: F.body, color: fg, fontWeight: '600', fontSize: 16, lineHeight: 24 }}>{tr(label)}</Text>
       </>}
     </Pressable>
   );
@@ -69,11 +70,11 @@ export function Field({ label, error, hint, style, icon, ...p }: TextInputProps 
   const bw = error || focus ? 2 : 1;
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text>
+      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{tr(label)}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, borderRadius: R.field, backgroundColor: C.surface2,
         borderWidth: bw, borderColor: error ? C.badFg : focus ? C.accent : C.line, paddingHorizontal: 16 - (bw - 1) }}>
         {icon ? <Icon name={icon} size={20} /> : null}
-        <TextInput placeholderTextColor={C.muted} {...p} accessibilityLabel={label}
+        <TextInput placeholderTextColor={C.muted} {...p} placeholder={tr(p.placeholder)} accessibilityLabel={tr(label)}
           onFocus={e => { setFocus(true); p.onFocus?.(e); }} onBlur={e => { setFocus(false); p.onBlur?.(e); }}
           style={[{ flex: 1, minWidth: 0, fontSize: 16, color: C.fg, fontFamily: F.body, paddingVertical: 11, outlineStyle: 'none' } as any, style]} />
       </View>
@@ -115,8 +116,8 @@ export function Row({ title, sub, right, onPress, icon, ic, danger }: {
         : icon ? <View style={{ width: 40, height: 40, borderRadius: R.field, backgroundColor: leadBg, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: leadFg, fontWeight: '600', fontSize: 14, fontFamily: F.body }}>{icon}</Text></View> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontFamily: F.body, fontSize: 16, lineHeight: 24, fontWeight: '600', color: danger ? C.badFg : C.fg }}>{title}</Text>
-        {sub ? <Text numberOfLines={2} style={{ fontFamily: F.body, fontSize: 14, lineHeight: 22, color: C.muted }}>{sub}</Text> : null}
+        <Text numberOfLines={1} style={{ fontFamily: F.body, fontSize: 16, lineHeight: 24, fontWeight: '600', color: danger ? C.badFg : C.fg }}>{tr(title)}</Text>
+        {sub ? <Text numberOfLines={2} style={{ fontFamily: F.body, fontSize: 14, lineHeight: 22, color: C.muted }}>{tr(sub)}</Text> : null}
       </View>
       {right}
       {onPress ? <Icon name="chevron-right" size={18} /> : null}
@@ -130,7 +131,7 @@ export function Pill({ text, kind = 'ok' }: { text: string; kind?: PillKind }) {
   const m = { ok: [C.accentSoft, C.accent], warn: [C.warnBg, C.warnFg], bad: [C.badBg, C.badFg], info: [C.infoBg, C.infoFg], mute: [C.surface2, C.muted], caution: [C.cautionBg, C.cautionFg] }[kind];
   return (
     <View style={{ backgroundColor: m[0], borderRadius: R.badge, paddingHorizontal: 10, minHeight: 26, justifyContent: 'center', alignSelf: 'flex-start' }}>
-      <Text style={{ fontFamily: F.body, fontSize: 13, lineHeight: 18, fontWeight: '600', color: m[1] }}>{text}</Text>
+      <Text style={{ fontFamily: F.body, fontSize: 13, lineHeight: 18, fontWeight: '600', color: m[1] }}>{tr(text)}</Text>
     </View>
   );
 }
@@ -139,7 +140,7 @@ export function Pill({ text, kind = 'ok' }: { text: string; kind?: PillKind }) {
 export function Header({ title, sub, back, right }: { title: string; sub?: string; back?: () => void; right?: React.ReactNode }) {
   return (
     <View style={{ gap: 4, paddingTop: back ? 0 : 8 }}>
-      {back ? <Pressable accessibilityRole="button" accessibilityLabel="กลับ" onPress={back} hitSlop={8}
+      {back ? <Pressable accessibilityRole="button" accessibilityLabel={tr('กลับ')} onPress={back} hitSlop={8}
         style={({ pressed }) => ({ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 6, paddingRight: 12, marginLeft: -4, opacity: pressed ? 0.6 : 1 })}>
         <Icon name="chevron-left" size={18} /><Txt muted size={14}>กลับ</Txt>
       </Pressable> : null}
@@ -160,7 +161,7 @@ export function Chips<T extends string | number>({ options, value, onChange, lab
 }) {
   return (
     <View style={{ gap: 8 }}>
-      {label ? <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text> : null}
+      {label ? <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{tr(label)}</Text> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map(o => {
           const on = o.v === value;
@@ -169,7 +170,7 @@ export function Chips<T extends string | number>({ options, value, onChange, lab
               style={(st: any) => ({ minHeight: 40, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 4,
                 borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accentSoft : st.pressed || st.hovered ? C.surface2 : C.surface })}>
               {on ? <Icon name="check" size={16} color={C.accent} /> : null}
-              <Text style={{ fontFamily: F.body, fontSize: 15, lineHeight: 22, fontWeight: on ? '600' : '500', color: on ? C.accent : C.fg }}>{o.t}</Text>
+              <Text style={{ fontFamily: F.body, fontSize: 15, lineHeight: 22, fontWeight: on ? '600' : '500', color: on ? C.accent : C.fg }}>{tr(o.t)}</Text>
             </Pressable>
           );
         })}
@@ -200,7 +201,7 @@ const webInput = (label: string) => ({
 export function DateField({ label, value, onChange, hint, min, max }: { label: string; value: string; onChange: (v: string) => void; hint?: string; min?: string; max?: string }) {
   return (
     <View style={{ gap: 8, minWidth: 0, width: '100%' }}>
-      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text>
+      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{tr(label)}</Text>
       {Platform.OS === 'web'
         ? (addPickerCss(), React.createElement('input', { type: 'date', className: 'tm-picker', value, min, max, 'aria-label': label, onChange: (e: any) => e.target.value && onChange(e.target.value), style: webInput(label) }))
         : <TextInput value={value} onChangeText={onChange} placeholder="2026-10-11" placeholderTextColor={C.muted} accessibilityLabel={label}
@@ -214,7 +215,7 @@ export function DateField({ label, value, onChange, hint, min, max }: { label: s
 export function TimeField({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
   return (
     <View style={{ gap: 8, minWidth: 0, width: '100%' }}>
-      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text>
+      <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{tr(label)}</Text>
       {Platform.OS === 'web'
         ? (addPickerCss(), React.createElement('input', { type: 'time', className: 'tm-picker', value, step: 300, 'aria-label': label, onChange: (e: any) => e.target.value && onChange(e.target.value), style: webInput(label) }))
         : <TextInput value={value} onChangeText={onChange} placeholder="18:00" placeholderTextColor={C.muted} accessibilityLabel={label}
@@ -302,16 +303,16 @@ export function Loading() {
 /** Dropdown: the browser's own list on web (opens the phone's native picker on iPhone), a simple list elsewhere */
 export function Select<T extends string>({ label, value, options, onChange }: { label?: string; value: T; options: { v: T; t: string }[]; onChange: (v: T) => void }) {
   const [open, setOpen] = React.useState(false);
-  const cur = options.find(o => o.v === value)?.t ?? value;
+  const cur = tr(options.find(o => o.v === value)?.t ?? value);
   return (
     <View style={{ gap: 8, minWidth: 0 }}>
-      {label ? <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{label}</Text> : null}
+      {label ? <Text style={{ fontFamily: F.display, fontSize: 14, lineHeight: 20, fontWeight: '600', color: C.fg }}>{tr(label)}</Text> : null}
       {Platform.OS === 'web' ? (
         <View style={{ position: 'relative' }}>
           {React.createElement('select', {
-            value, 'aria-label': label ?? 'เลือก', onChange: (e: any) => onChange(e.target.value),
+            value, 'aria-label': tr(label ?? 'เลือก'), onChange: (e: any) => onChange(e.target.value),
             style: { ...webInput(label ?? ''), appearance: 'none', WebkitAppearance: 'none', paddingRight: 40, cursor: 'pointer' },
-          }, options.map(o => React.createElement('option', { key: o.v, value: o.v }, o.t)))}
+          }, options.map(o => React.createElement('option', { key: o.v, value: o.v }, tr(o.t))))}
           <View pointerEvents="none" style={{ position: 'absolute', right: 14, top: 14 }}><Icon name="chevron-down" size={20} color={C.muted} /></View>
         </View>
       ) : <>
