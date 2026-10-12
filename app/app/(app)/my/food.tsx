@@ -13,6 +13,7 @@ import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Label, Notice, Row, Scr
 import { DayTotals } from '../../../src/ui/Macro';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
+import { gramsOf, MacroSplit, STYLES, type Split } from '../../../src/ui/MacroSplit';
 import { C, R } from '../../../src/lib/theme';
 
 type Comment = { id: string; meal_id: string; body: string; created_at: string; author: { display_name: string } | null };
@@ -410,7 +411,7 @@ async function pickPhoto(): Promise<{ b64: string; preview: string } | null> {
   });
   if (!file) return null;
   const url = URL.createObjectURL(file);
-  const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+  const img = await new Promise<HTMLImageElement>((res, rej) => { const i = document.createElement('img'); i.onload = () => res(i); i.onerror = rej; i.src = url; });
   const k = Math.min(1, 1024 / Math.max(img.width, img.height));
   const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
   cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
@@ -470,16 +471,27 @@ function AiText({ onSave, busy, photo }: { onSave: (i: NewItem) => void; busy: b
 }
 
 
-/** Daily calorie target from body stats (Mifflin–St Jeor), or typed in */
-function TargetForm({ onDone }: { current?: Target | null; onDone: (msg?: string) => void }) {
+/**
+ * Step 1: we work out the daily calories from the person's details (Mifflin–St Jeor × activity, then the goal) — editable.
+ * Step 2: how to split them: a preset eating style, or drag the carb / protein / fat ratio.
+ */
+function TargetForm({ current, onDone }: { current?: Target | null; onDone: (msg?: string) => void }) {
   const { profile } = useAuth();
   const [sex, setSex] = useState<'m' | 'f'>('m');
   const [age, setAge] = useState('30');
   const [height, setHeight] = useState('170');
   const [weight, setWeight] = useState('');
   const [act, setAct] = useState(1.375);
-  const [goal, setGoal] = useState<'lose' | 'maintain' | 'gain'>('lose');
-  const [style, setStyle] = useState<'balanced' | 'high_carb' | 'low_carb'>('balanced');
+  const [goal, setGoal] = useState<'lose' | 'maintain' | 'gain'>((current?.goal as any) ?? 'lose');
+  const [kcalTxt, setKcalTxt] = useState(current ? String(current.kcal) : '');
+  const [edited, setEdited] = useState(!!current);
+  const [split, setSplit] = useState<Split>(() => {
+    if (current?.kcal && current.protein_g && current.carb_g && current.fat_g) {
+      const c = Math.round(current.carb_g * 4 / current.kcal * 100), p = Math.round(current.protein_g * 4 / current.kcal * 100);
+      return { c, p, f: Math.max(5, 100 - c - p) };
+    }
+    return STYLES[0].s;
+  });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -490,39 +502,52 @@ function TargetForm({ onDone }: { current?: Target | null; onDone: (msg?: string
   }, [profile]);
 
   const ok = Number(age) > 10 && Number(height) > 100 && Number(weight) > 25;
-  const r = ok ? calcTarget({ sex, age: Number(age), height: Number(height), weight: Number(weight), activity: act, goal, style }) : null;
+  const calc = ok ? calcTarget({ sex, age: Number(age), height: Number(height), weight: Number(weight), activity: act, goal, style: 'balanced' }) : null;
+  // the calculated number follows the inputs until the person types their own
+  useEffect(() => { if (calc && !edited) setKcalTxt(String(calc.kcal)); }, [calc?.kcal, edited]);
+  const kcal = Number(kcalTxt) || 0;
+  const g = gramsOf(kcal, split);
 
   async function save() {
-    if (!r) { setErr('ใส่อายุ ส่วนสูง และน้ำหนักให้ครบ'); return; }
+    if (!(kcal >= 800 && kcal <= 6000)) { setErr('แคลอรีต่อวันควรอยู่ระหว่าง 800–6,000'); return; }
     setBusy(true);
+    const st = STYLES.find(x => x.s.c === split.c && x.s.p === split.p && x.s.f === split.f);
     const { error } = await supabase.from('nutrition_targets').insert({
-      user_id: profile!.id, set_by: profile!.id, goal, style, kcal: r.kcal, protein_g: r.protein_g, carb_g: r.carb_g, fat_g: r.fat_g,
+      user_id: profile!.id, set_by: profile!.id, goal, style: st?.db ?? 'custom', kcal, protein_g: g.p, carb_g: g.c, fat_g: g.f,
+      note: st ? st.t : `กำหนดเอง C${split.c} P${split.p} F${split.f}`,
     });
     setBusy(false);
     if (error) { setErr(thError(error)); return; }
-    onDone(`ตั้งเป้า ${r.kcal.toLocaleString('en-US')} kcal ต่อวันแล้ว`);
+    onDone(`ตั้งเป้า ${kcal.toLocaleString('en-US')} kcal · คาร์บ ${g.c} โปรตีน ${g.p} ไขมัน ${g.f} ก.`);
   }
 
   return (
     <Card>
-      <H size={17}>ตั้งเป้าแคลอรี</H>
+      <H size={17}>ตั้งเป้าหมาย</H>
       {err ? <Notice text={err} /> : null}
+      <Txt bold size={14}>1. แคลอรีต่อวัน</Txt>
       <Chips label="เพศ" options={[{ v: 'm', t: 'ชาย' }, { v: 'f', t: 'หญิง' }]} value={sex} onChange={setSex} />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}><Field label="อายุ" value={age} onChangeText={v => setAge(v.replace(/\D/g, ''))} keyboardType="number-pad" /></View>
         <View style={{ flex: 1 }}><Field label="สูง (ซม.)" value={height} onChangeText={v => setHeight(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" /></View>
         <View style={{ flex: 1 }}><Field label="หนัก (กก.)" value={weight} onChangeText={v => setWeight(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" /></View>
       </View>
-      <Chips label="ออกกำลังกาย" options={ACTIVITY} value={act} onChange={setAct} />
+      <Select label="ออกกำลังกาย" value={String(act)} options={ACTIVITY.map(a => ({ v: String(a.v), t: a.t }))} onChange={v => setAct(Number(v))} />
       <Chips label="เป้าหมาย" options={[{ v: 'lose', t: 'ลดไขมัน' }, { v: 'maintain', t: 'คงที่' }, { v: 'gain', t: 'เพิ่มกล้าม' }]} value={goal} onChange={setGoal} />
-      <Chips label="สัดส่วนอาหาร" options={[{ v: 'balanced', t: 'สมดุล' }, { v: 'high_carb', t: 'คาร์บสูง' }, { v: 'low_carb', t: 'คาร์บต่ำ' }]} value={style} onChange={setStyle} />
-      {r ? (
-        <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface2, gap: 2 }}>
-          <Txt bold>{r.kcal.toLocaleString('en-US')} kcal ต่อวัน</Txt>
-          <Txt muted size={14}>ใช้พลังงานราว {r.tdee.toLocaleString('en-US')} kcal · โปรตีน {r.protein_g} g · คาร์บ {r.carb_g} g · ไขมัน {r.fat_g} g</Txt>
-        </View>
-      ) : null}
-      <Btn label="บันทึกเป้า" onPress={save} loading={busy} />
+      {calc ? <Txt muted size={13}>ร่างกายใช้พลังงานราว {calc.tdee.toLocaleString('en-US')} kcal/วัน (TDEE) · {goal === 'lose' ? 'ลด 500' : goal === 'gain' ? 'เพิ่ม 300' : 'เท่าเดิม'} ตามเป้าหมาย</Txt>
+        : <Txt muted size={13}>ใส่อายุ ส่วนสูง น้ำหนัก เพื่อให้ระบบคำนวณ</Txt>}
+      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
+        <View style={{ flex: 1 }}><Field label="เป้าแคลอรีต่อวัน (แก้เองได้)" value={kcalTxt} onChangeText={v => { setKcalTxt(v.replace(/\D/g, '')); setEdited(true); }} keyboardType="number-pad" /></View>
+        {calc && edited && Number(kcalTxt) !== calc.kcal ? <Btn kind="ghost" label={`ใช้ ${calc.kcal}`} onPress={() => { setEdited(false); setKcalTxt(String(calc.kcal)); }} style={{ minHeight: 48 }} /> : null}
+      </View>
+
+      <Txt bold size={14} style={{ marginTop: 8 }}>2. แนวทางการกิน</Txt>
+      <MacroSplit kcal={kcal} value={split} onChange={setSplit} />
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Btn kind="ghost" label="รีเซ็ต" onPress={() => { setSplit(STYLES[0].s); setEdited(false); if (calc) setKcalTxt(String(calc.kcal)); }} />
+        <Btn label="บันทึกเป้า" onPress={save} loading={busy} style={{ flex: 1 }} />
+      </View>
       <Btn kind="ghost" label="ยกเลิก" onPress={() => onDone()} />
     </Card>
   );
