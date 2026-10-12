@@ -16,11 +16,14 @@ import { TabBar } from '../../../src/ui/TabBar';
 import { gramsOf, MacroSplit, STYLES, type Split } from '../../../src/ui/MacroSplit';
 import { ScrollBox } from '../../../src/ui/ScrollBox';
 import { C, R } from '../../../src/lib/theme';
+import { getLang } from '../../../src/lib/i18n';
 
 type Comment = { id: string; meal_id: string; body: string; created_at: string; author: { display_name: string } | null };
 type Mode = 'photo' | 'ai' | 'search' | 'fav' | 'recent' | 'custom';
 type NewItem = Omit<MealItem, 'id' | 'meal_id'>;
 const SHORT: Record<string, string> = { 'มื้อเช้า': 'เช้า', 'มื้อกลางวัน': 'เที่ยง', 'มื้อเย็น': 'เย็น', 'ของว่าง': 'ว่าง' };
+// English words don't fit the small badge, so English shows an icon instead
+const MEAL_IC: Record<string, any> = { 'มื้อเช้า': 'sun', 'มื้อกลางวัน': 'utensils', 'มื้อเย็น': 'moon', 'ของว่าง': 'star' };
 const mealNow = () => { const h = new Date().getHours(); return h < 10 ? 'มื้อเช้า' : h < 15 ? 'มื้อกลางวัน' : h < 21 ? 'มื้อเย็น' : 'ของว่าง'; };
 const scaled = (f: Food, x: number, ai = false): NewItem => ({
   name: f.name_th, grams: f.serving_g > 0 ? Math.round(f.serving_g * x) : null, kcal: Math.round(f.kcal * x), protein_g: +(f.protein_g * x).toFixed(1),
@@ -97,7 +100,8 @@ export default function FoodPage() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68, paddingVertical: 8 }}>
                 <Pressable accessibilityRole="button" disabled={!items.length} onPress={() => setOpen(on ? null : m!.id)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 }}>
                   <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: items.length ? C.accentSoft : C.surface2, alignItems: 'center', justifyContent: 'center' }}>
-                    <Txt bold size={13} style={{ color: items.length ? C.accent : C.muted }}>{SHORT[name] ?? name}</Txt>
+                    {getLang() === 'en' ? <Icon name={MEAL_IC[name] ?? 'utensils'} size={20} color={items.length ? C.accent : C.muted} />
+                      : <Txt bold size={13} style={{ color: items.length ? C.accent : C.muted }}>{SHORT[name] ?? name}</Txt>}
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     {items.length ? <>

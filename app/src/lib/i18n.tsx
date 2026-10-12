@@ -56,7 +56,9 @@ function lookup(s: string): string | null {
       cands.push(t.en.replace(/\{(\d)\}/g, (_, n) => vals[Number(n)] ?? ''));
       if (cands.length >= 6) break;
     }
-    if (s.includes(' · ')) cands.push(s.split(' · ').map(x => tr(x)).join(' · '));
+    // "a · b · c": try every place to cut, so a known sentence can keep its own " · " (e.g. "3 sets × 10 reps · rest 75s" + " · Chest")
+    const parts = s.split(' · ');
+    for (let k = 1; k < parts.length; k++) cands.push(tr(parts.slice(0, k).join(' · ')) + ' · ' + tr(parts.slice(k).join(' · ')));
     let best = Infinity;
     for (const c of cands) { const n = thaiCount(c); if (n < best) { best = n; r = c; } }
   }
