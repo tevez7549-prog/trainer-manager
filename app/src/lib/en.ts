@@ -1,5 +1,9 @@
 /** Thai -> English for every piece of text in the app. Generated from the source; {0} marks a value filled in at runtime. */
 export const EN: Record<string, string> = {
+ "ดูย้อนหลัง": "History",
+ "กราฟแคลอรี คาร์บ โปรตีน ไขมัน 7 / 30 วัน": "Calorie, carb, protein & fat charts \u00b7 7 / 30 days",
+ "ยังไม่มีบันทึกใน {0} วันนี้ · บันทึกมื้อแรกแล้วกราฟจะขึ้นที่นี่": "Nothing logged in the last {0} days \u00b7 charts appear once you log a meal",
+ "บันทึก {0}/{1} วัน · เฉลี่ยคิดเฉพาะวันที่บันทึก · แตะแท่งเพื่อเปลี่ยนวันที่แสดงด้านบน (ตอนนี้: {2})": "Logged {0}/{1} days \u00b7 averages count logged days only \u00b7 tap a bar to switch the day shown above (now: {2})",
  "บันทึก {0}/{1} วัน · เฉลี่ยคิดเฉพาะวันที่บันทึก · แตะแท่งเพื่อดูวันนั้น": "Logged {0}/{1} days \u00b7 averages count logged days only \u00b7 tap a bar to open that day",
  "เฉลี่ย {0} / เป้า {1} {2}": "Avg {0} / goal {1} {2}",
  "เฉลี่ย {0} {1}": "Avg {0} {1}",

@@ -88,7 +88,6 @@ export default function FoodPage() {
         </Card>
       </Pressable>
       {setting ? <TargetForm current={target ?? null} onDone={(t) => { setSetting(false); if (t) done(t); }} /> : null}
-      {profile ? <FoodHistory userId={profile.id} target={target ?? null} day={day} onPickDay={setDay} refresh={meals} /> : null}
 
       <Label>{today ? 'มื้อวันนี้' : `มื้อวันที่ ${thDate(day)}`}</Label>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
@@ -145,6 +144,9 @@ export default function FoodPage() {
         <Row ic="pencil" title="สร้างเมนูเอง" sub="กรอกโปรตีน คาร์บ ไขมัน แล้วคำนวณแคลให้" onPress={() => setMode(mode === 'custom' ? null : 'custom')} />
       </Card>
       {sheet?.at === 'top' ? <AddSheet key={sheet.mode} mode={sheet.mode} meal={sheet.meal} day={day} onDone={(t) => { setSheet(null); if (t) done(t); }} /> : null}
+
+      {/* history sits at the bottom, closed until tapped */}
+      {profile ? <FoodHistory userId={profile.id} target={target ?? null} day={day} onPickDay={setDay} refresh={meals} /> : null}
 
     </Screen>
   );

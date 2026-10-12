@@ -59,7 +59,7 @@ async function mock(page) {
 
 const ROUTES = [
   ['login', '/login', false], ['signup', '/signup', false],
-  ['home', '/?me=1', true], ['train', '/my/train', true], ['random', '/my/train#random', true], ['food', '/my/food', true], ['body', '/my/body', true],
+  ['home', '/?me=1', true], ['train', '/my/train', true], ['random', '/my/train#random', true], ['food', '/my/food', true], ['food-history', '/my/food#history', true], ['body', '/my/body', true],
   ['groups', '/groups', true], ['group-new', '/groups/new', true], ['me', '/me', true], ['care-add', '/trainer/add', true],
 ];
 
@@ -78,8 +78,14 @@ for (const lang of ['th', 'en']) {
         localStorage.setItem('tm-lang', JSON.stringify(l));
         if (a) localStorage.setItem(k, JSON.stringify(s));
       }, [session, `sb-${REF}-auth-token`, auth, lang]);
-      await page.goto(BASE + path.replace('#random', ''), { waitUntil: 'networkidle' }).catch(() => {});
+      await page.goto(BASE + path.replace(/#.*$/, ''), { waitUntil: 'networkidle' }).catch(() => {});
       await page.waitForTimeout(1200);
+      if (path.endsWith('#history')) {
+        const h = page.getByText(lang === 'th' ? 'ดูย้อนหลัง' : 'History', { exact: true }).first();
+        if (await h.count()) { await h.click(); await page.waitForTimeout(800); }
+        await page.evaluate(() => { const els = [...document.querySelectorAll('div')].filter(d => getComputedStyle(d).overflowY === 'auto' || getComputedStyle(d).overflowY === 'scroll'); els.forEach(d => { d.scrollTop = d.scrollHeight; }); });
+        await page.waitForTimeout(300);
+      }
       if (path.endsWith('#random')) {
         const btn = page.getByText(lang === 'th' ? 'สุ่มโปรแกรมวันนี้' : /random/i).first();
         if (await btn.count()) { await btn.click(); await page.waitForTimeout(600); }

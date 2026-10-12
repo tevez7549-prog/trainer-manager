@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase';
 import { addDays, thDate, todayISO } from '../lib/gym';
 import type { Target, Totals } from '../lib/me';
 import { C } from '../lib/theme';
-import { Card, Chips, H, Txt } from './index';
+import { Card, Chips, Txt } from './index';
+import { Icon } from './Icon';
 
 /**
  * Looking back at food: four bar charts on the same days (calories, carbs, protein, fat), each with its goal line
@@ -19,12 +20,14 @@ const short = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(M
 export function FoodHistory({ userId, target, day, onPickDay, refresh }: {
   userId: string; target: Target | null; day: string; onPickDay: (iso: string) => void; refresh: unknown;
 }) {
+  const [open, setOpen] = useState(false);
   const [range, setRange] = useState<7 | 30>(7);
   const [byDay, setByDay] = useState<Record<string, Totals> | null>(null);
   const today = todayISO();
 
   // 60 days covers the longest range plus the period before it, in one query
   useEffect(() => {
+    if (!open) return;   // nothing is loaded until the card is opened
     let live = true;
     (async () => {
       const { data } = await supabase.from('meals').select('eaten_on,items:meal_items(kcal,protein_g,carb_g,fat_g)')
@@ -37,7 +40,7 @@ export function FoodHistory({ userId, target, day, onPickDay, refresh }: {
       if (live) setByDay(m);
     })();
     return () => { live = false; };
-  }, [userId, today, refresh]);
+  }, [open, userId, today, refresh]);
 
   const days = (from: number, n: number): (Day & { iso: string })[] =>
     Array.from({ length: n }, (_, i) => {
@@ -58,12 +61,21 @@ export function FoodHistory({ userId, target, day, onPickDay, refresh }: {
 
   return (
     <Card>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <H size={17} style={{ flex: 1 }}>ย้อนหลัง</H>
-        <Chips options={[{ v: 7, t: '7 วัน' }, { v: 30, t: '30 วัน' }]} value={range} onChange={v => setRange(v as 7 | 30)} />
-      </View>
-      {byDay === null ? <Txt muted size={13}>กำลังโหลด…</Txt> : <>
-        <Txt muted size={13}>{logged ? `บันทึก ${logged}/${range} วัน · เฉลี่ยคิดเฉพาะวันที่บันทึก · แตะแท่งเพื่อดูวันนั้น` : `ยังไม่มีบันทึกใน ${range} วันนี้ · เริ่มบันทึกมื้อแรกด้านล่างได้เลย`}</Txt>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
+        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="activity" size={20} color={C.accent} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Txt bold size={16}>ดูย้อนหลัง</Txt>
+          <Txt muted size={13}>กราฟแคลอรี คาร์บ โปรตีน ไขมัน 7 / 30 วัน</Txt>
+        </View>
+        <Icon name={open ? 'chevron-down' : 'chevron-right'} size={20} color={C.muted} />
+      </Pressable>
+      {!open ? null : <>
+      <Chips options={[{ v: 7, t: '7 วัน' }, { v: 30, t: '30 วัน' }]} value={range} onChange={v => setRange(v as 7 | 30)} />
+      {byDay === null ? <Txt muted size={13}>กำลังโหลด…</Txt> : !logged ? <Txt muted size={13.5}>{`ยังไม่มีบันทึกใน ${range} วันนี้ · บันทึกมื้อแรกแล้วกราฟจะขึ้นที่นี่`}</Txt> : <>
+        <Txt muted size={13}>{`บันทึก ${logged}/${range} วัน · เฉลี่ยคิดเฉพาะวันที่บันทึก · แตะแท่งเพื่อเปลี่ยนวันที่แสดงด้านบน (ตอนนี้: ${day === today ? 'วันนี้' : thDate(day)})`}</Txt>
         {metrics.map((m, i) => (
           <View key={m.k} style={i ? { borderTopWidth: 1, borderTopColor: C.line, paddingTop: 12 } : undefined}>
             <MetricChart m={m} days={cur} prev={prev} selected={day} onPick={onPickDay} tall={i === 0} />
@@ -78,6 +90,7 @@ export function FoodHistory({ userId, target, day, onPickDay, refresh }: {
           <Legend color={C.surface2} t="ไม่ได้บันทึก" />
         </View>
         {!target ? <Txt muted size={12.5}>ตั้งเป้าที่การ์ดด้านบน แล้วกราฟจะมีเส้นเป้าให้เทียบ</Txt> : null}
+      </>}
       </>}
     </Card>
   );
