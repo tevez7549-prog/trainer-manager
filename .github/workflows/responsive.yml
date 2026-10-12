@@ -3,6 +3,7 @@ on:
   push:
     paths: ['app/**', '.github/workflows/responsive.yml']
   workflow_dispatch:
+concurrency: { group: responsive, cancel-in-progress: true }
 permissions:
   contents: write
 jobs:
