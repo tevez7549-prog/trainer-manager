@@ -1,7 +1,12 @@
 import { supabase } from './supabase';
 
 // ---------- food ----------
-export type Food = { id: string; name_th: string; serving_g: number; kcal: number; protein_g: number; carb_g: number; fat_g: number; created_by: string | null };
+export type Food = {
+  id: string; name_th: string; serving_g: number; kcal: number; protein_g: number; carb_g: number; fat_g: number; created_by: string | null;
+  /** per-item foods (serving_g = 0): what one portion is, e.g. จาน */ unit?: string | null;
+  /** other portion sizes: weight foods [label, grams], per-item foods [label, multiplier] */ servings?: [string, number][] | null;
+  category?: string | null;
+};
 export type MealItem = { id: string; meal_id: string; name: string; grams: number | null; kcal: number; protein_g: number; carb_g: number; fat_g: number; from_ai: boolean; food_id: string | null };
 export type Meal = { id: string; user_id: string; eaten_on: string; name: string; position: number; items: MealItem[] };
 export type Target = { id: string; kcal: number; protein_g: number | null; carb_g: number | null; fat_g: number | null; goal: string | null; style: string | null;

@@ -41,3 +41,24 @@ begin
   return n;
 end $$;
 revoke all on function private.import_foods(jsonb, text) from public, anon, authenticated;
+
+-- Clean-up after import: empty entries (0 kcal and no macros, except drinks that really are 0) are hidden from search;
+-- entries with macros but 0 kcal get kcal worked out from the macros.
+alter table public.foods add column if not exists hidden boolean not null default false;
+update public.foods set hidden = true
+  where source = 'calforlife' and kcal = 0 and protein_g + carb_g + fat_g = 0
+    and name_th !~* '(น้ำเปล่า|water|ชา|tea|กาแฟ|coffee|zero|ซีโร่|โซดา|soda|diet|ไดเอท)';
+update public.foods set kcal = round(protein_g * 4 + carb_g * 4 + fat_g * 9)
+  where source = 'calforlife' and kcal = 0 and protein_g + carb_g + fat_g > 0;
+create or replace function public.search_foods(q text, lim int default 20)
+returns setof public.foods language sql stable set search_path = public, extensions as $$
+  with w as (select array_remove(regexp_split_to_array(lower(trim(q)), '\s+'), '') a)
+  select f.* from public.foods f, w
+  where coalesce(array_length(w.a, 1), 0) > 0 and not f.hidden
+    and (select bool_and(lower(f.name_th) like '%' || x || '%') from unnest(w.a) x)
+  order by (lower(f.name_th) like w.a[1] || '%') desc,
+           (f.name_th ~ '[ก-๙]') desc,
+           (f.created_by is not null) desc,
+           length(f.name_th)
+  limit least(greatest(lim, 1), 50)
+$$;

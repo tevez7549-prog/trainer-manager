@@ -217,9 +217,27 @@ function AddSheet({ mode: mode0, meal: meal0, day, bare, onDone }: { mode: Mode;
   return bare ? <View style={{ gap: 12 }}>{body}</View> : <Card>{body}</Card>;
 }
 
-function useFoods() {
-  const [foods, setFoods] = useState<Food[]>([]);
-  useEffect(() => { supabase.from('foods').select('*').order('name_th').then(({ data }) => setFoods((data as Food[]) ?? [])); }, []);
+/** Search the food library on the server (≈13k items): every word must match; waits for the user to stop typing */
+function useFoodSearch(term: string) {
+  const [res, setRes] = useState<{ q: string; list: Food[] } | null>(null);
+  useEffect(() => {
+    if (!term) { setRes(null); return; }
+    let live = true;
+    const t = setTimeout(() => {
+      supabase.rpc('search_foods', { q: term, lim: 20 }).then(({ data }) => { if (live) setRes({ q: term, list: (data as Food[]) ?? [] }); });
+    }, 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [term]);
+  return { list: res?.list ?? [], loading: !!term && res?.q !== term };
+}
+/** My favourite foods (own menus included when starred) */
+function useFavFoods(ids: Set<string>) {
+  const [foods, setFoods] = useState<Food[] | null>(null);
+  const key = [...ids].sort().join(',');
+  useEffect(() => {
+    if (!key) { setFoods([]); return; }
+    supabase.from('foods').select('*').in('id', key.split(',')).order('name_th').then(({ data }) => setFoods((data as Food[]) ?? []));
+  }, [key]);
   return foods;
 }
 function useFavIds() {
@@ -237,19 +255,31 @@ function useFavIds() {
   return { ids, toggle };
 }
 
-/** Pick a food, then how much */
+const SERVING_TH: [RegExp, string][] = [[/\btbsp\b/i, 'ช้อนโต๊ะ'], [/\btsp\b/i, 'ช้อนชา'], [/\bcups?\b/i, 'ถ้วย'], [/\bslices?\b/i, 'แผ่น'], [/\bpieces?\b/i, 'ชิ้น'],
+  [/\bservings?\b/i, 'ที่'], [/\boz\b/i, 'ออนซ์'], [/\blb\b/i, 'ปอนด์'], [/\bfl oz\b/i, 'fl oz']];
+const servingLabel = (s: string) => SERVING_TH.reduce((t, [re, th]) => t.replace(re, th), s);
+
+/** Pick a food, then how much: quick portion sizes from the library, ×½ ×1 ×2, or the real grams eaten */
 function Portion({ f, onAdd, onBack, busy }: { f: Food; onAdd: (x: number) => void; onBack: () => void; busy: boolean }) {
+  const byWeight = f.serving_g > 0;
+  const base = byWeight ? `${fmt1(f.serving_g)} กรัม` : `1 ${f.unit || 'ที่'}`;
+  // weight foods: portions are grams (x = grams / serving_g); per-item foods: portions are multipliers
+  const opts: { v: number; t: string }[] = [{ v: 1, t: base }];
+  (f.servings ?? []).forEach(([label, n]) => {
+    const v = byWeight ? n / f.serving_g : n;
+    if (v > 0 && !opts.some(o => Math.abs(o.v - v) < 0.001)) opts.push({ v, t: byWeight ? `${servingLabel(label)} (${fmt1(n)} ก.)` : servingLabel(label) });
+  });
+  [0.5, 2].forEach(v => { if (!opts.some(o => Math.abs(o.v - v) < 0.001)) opts.push({ v, t: `×${v}` }); });
   const [x, setX] = useState(1);
   const [g, setG] = useState('');
-  const byWeight = f.serving_g > 0;
-  // a typed amount (what you really ate) wins over the quick ×½ ×1 ×2 buttons
+  // a typed amount (what you really ate) wins over the buttons
   const mult = byWeight && Number(g) > 0 ? Number(g) / f.serving_g : x;
   return <>
     <Txt bold>{f.name_th}</Txt>
-    {byWeight ? <Txt muted size={13}>ค่าในระบบต่อ 1 ที่ = {fmt1(f.serving_g)} กรัม</Txt> : null}
-    <Chips label="ปริมาณ" options={[0.5, 1, 1.5, 2].map(v => ({ v, t: v === 1 ? '1 ที่' : `×${v}` }))} value={g ? null : x} onChange={v => { setX(v); setG(''); }} />
+    <Txt muted size={13}>ค่าในระบบต่อ {base} = {Math.round(f.kcal)} kcal</Txt>
+    <Chips label="ปริมาณ" options={opts.slice(0, 7)} value={g ? null : x} onChange={v => { setX(v); setG(''); }} />
     {byWeight ? <Field label="หรือกรอกที่กินจริง (กรัม)" value={g} onChangeText={v => setG(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder={`เช่น ${Math.round(f.serving_g * 1.5)}`} /> : null}
-    <Txt muted size={14}>{macroLine(scaled(f, mult))}</Txt>
+    <Txt muted size={14}>{macroLine(scaled(f, mult))}{byWeight ? ` · ${Math.round(f.serving_g * mult)} ก.` : ''}</Txt>
     <Btn label="เพิ่ม" onPress={() => onAdd(mult)} loading={busy} />
     <Btn kind="ghost" label="เลือกอย่างอื่น" onPress={onBack} />
   </>;
@@ -261,7 +291,10 @@ function FoodList({ foods, onPick, fav }: { foods: Food[]; onPick: (f: Food) => 
       {foods.map(f => (
         <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: C.line }}>
           <Pressable accessibilityRole="button" onPress={() => onPick(f)} style={({ pressed }) => ({ flex: 1, flexDirection: 'row', paddingVertical: 12, opacity: pressed ? 0.6 : 1 })}>
-            <Txt style={{ flex: 1 }}>{f.name_th}</Txt><Txt muted>{Math.round(f.kcal)} kcal</Txt>
+            <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+              <Txt numberOfLines={2}>{f.name_th}</Txt>
+              <Txt muted size={12.5}>{Math.round(f.kcal)} kcal / {f.serving_g > 0 ? `${fmt1(f.serving_g)} ก.` : `1 ${f.unit || 'ที่'}`}{f.category ? ` · ${f.category}` : ''}</Txt>
+            </View>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={fav.ids.has(f.id) ? `เอา ${f.name_th} ออกจากเมนูโปรด` : `เพิ่ม ${f.name_th} เป็นเมนูโปรด`}
             onPress={() => fav.toggle(f.id)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
@@ -274,29 +307,29 @@ function FoodList({ foods, onPick, fav }: { foods: Food[]; onPick: (f: Food) => 
 }
 
 function SearchFoods({ onPick, busy }: { onPick: (f: Food, x: number) => void; busy: boolean }) {
-  const foods = useFoods(), fav = useFavIds();
+  const fav = useFavIds();
   const [q, setQ] = useState('');
   const [pick, setPick] = useState<Food | null>(null);
   const term = q.trim();
-  // nothing listed until the user types; then the closest matches first (name starts with the word, then contains it)
-  // my favourites and own menus first, then names that start with the word
-  const found = useMemo(() => !term ? [] : foods.filter(f => f.name_th.includes(term))
-    .sort((a, b) => (Number(!fav.ids.has(a.id)) - Number(!fav.ids.has(b.id))) || (Number(!a.created_by) - Number(!b.created_by))
-      || (Number(!a.name_th.startsWith(term)) - Number(!b.name_th.startsWith(term)))).slice(0, 8), [foods, term, fav.ids]);
+  // nothing listed until the user types; the server sends the closest matches, my favourites go first
+  const { list, loading } = useFoodSearch(term);
+  const found = useMemo(() => [...list].sort((a, b) => Number(!fav.ids.has(a.id)) - Number(!fav.ids.has(b.id))), [list, fav.ids]);
   if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
   return <>
     <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="พิมพ์ชื่ออาหาร เช่น กะเพรา อกไก่" icon="search" autoFocus />
     {term ? <FoodList foods={found} onPick={setPick} fav={fav} /> : null}
-    {term && !found.length ? <Txt muted>ไม่เจอ "{term}" · ลองคำอื่น หรือเลือก "สร้างเอง"</Txt> : null}
-    <Txt muted size={12.5}>ค้นจากคลังอาหาร (ตัวอย่าง) และเมนูของฉัน · ไม่เจอ? ลอง ✦ AI · แตะดาวเพื่อเก็บเป็นเมนูโปรด</Txt>
+    {term && loading && !found.length ? <Txt muted>กำลังค้นหา…</Txt> : null}
+    {term && !loading && !found.length ? <Txt muted>ไม่เจอ "{term}" · ลองคำสั้นลง หรือใช้ ✦ AI / สร้างเอง</Txt> : null}
+    <Txt muted size={12.5}>ค้นจากคลังอาหารกว่า 12,000 รายการ (ไทย + อังกฤษ) และเมนูของฉัน · พิมพ์หลายคำได้ เช่น "ข้าว ไก่" · แตะดาวเพื่อเก็บเป็นเมนูโปรด</Txt>
   </>;
 }
 
 function Favorites({ onPick, busy }: { onPick: (f: Food, x: number) => void; busy: boolean }) {
-  const foods = useFoods(), fav = useFavIds();
+  const fav = useFavIds();
   const [pick, setPick] = useState<Food | null>(null);
-  const list = foods.filter(f => fav.ids.has(f.id));
+  const list = useFavFoods(fav.ids);
   if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
+  if (list === null) return <Txt muted>กำลังโหลด…</Txt>;
   return list.length ? <FoodList foods={list} onPick={setPick} fav={fav} />
     : <Txt muted>ยังไม่มีเมนูโปรด · ตอนค้นหาแตะรูปดาวข้างอาหาร หรือสร้างเมนูเองแล้วเลือก "เก็บเป็นเมนูโปรด"</Txt>;
 }
