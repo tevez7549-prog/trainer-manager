@@ -70,7 +70,7 @@ function barColor(d: Day, target: number | null) {
 
 function KcalBars({ days, target, selected, onPick }: { days: (Day & { iso: string })[]; target: number | null; selected: string; onPick: (iso: string) => void }) {
   const H_ = 120;
-  const top = Math.max(...days.map(d => d.kcal), target ? target * 1.2 : 0, 1);
+  const top = Math.max(...days.map(d => d.kcal * 1.18), target ? target * 1.2 : 0, 1);   // room for the number over the tallest bar
   const y = (v: number) => (v / top) * H_;
   const few = days.length <= 7;
   return (
