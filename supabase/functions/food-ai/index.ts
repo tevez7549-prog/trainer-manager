@@ -59,7 +59,13 @@ Deno.serve(async (req) => {
          { type: "text", text: q || "อาหารในรูปนี้คืออะไร ประมาณปริมาณจากรูป" }]
       : q }] }),
   });
-  if (!r.ok) return json({ error: "ai_failed", status: r.status }, 502);
+  if (!r.ok) {
+    // keep Anthropic's error type/message so the cause shows in the function logs (never includes the key)
+    let type = "", message = "";
+    try { const e = await r.json(); type = e?.error?.type ?? ""; message = String(e?.error?.message ?? "").slice(0, 300); } catch { /* not json */ }
+    console.error("anthropic error", r.status, type, message);
+    return json({ error: "ai_failed", status: r.status, type, message }, 502);
+  }
   const out = await r.json();
   const text: string = (out.content ?? []).map((c: any) => c.text ?? "").join("");
   let parsed: { items?: any[]; note?: string } = {};
