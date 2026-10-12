@@ -14,6 +14,7 @@ import { DayTotals } from '../../../src/ui/Macro';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
 import { gramsOf, MacroSplit, STYLES, type Split } from '../../../src/ui/MacroSplit';
+import { ScrollBox } from '../../../src/ui/ScrollBox';
 import { C, R } from '../../../src/lib/theme';
 
 type Comment = { id: string; meal_id: string; body: string; created_at: string; author: { display_name: string } | null };
@@ -285,15 +286,16 @@ function Portion({ f, onAdd, onBack, busy }: { f: Food; onAdd: (x: number) => vo
   </>;
 }
 
+const ROW_H = 64;   // one result row; the list box shows 5, the rest scroll inside it
 function FoodList({ foods, onPick, fav }: { foods: Food[]; onPick: (f: Food) => void; fav: ReturnType<typeof useFavIds> }) {
   return (
-    <View>
+    <ScrollBox maxHeight={ROW_H * 5}>
       {foods.map(f => (
-        <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: C.line }}>
+        <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', height: ROW_H, borderBottomWidth: 1, borderBottomColor: C.line }}>
           <Pressable accessibilityRole="button" onPress={() => onPick(f)} style={({ pressed }) => ({ flex: 1, flexDirection: 'row', paddingVertical: 12, opacity: pressed ? 0.6 : 1 })}>
             <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-              <Txt numberOfLines={2}>{f.name_th}</Txt>
-              <Txt muted size={12.5}>{Math.round(f.kcal)} kcal / {f.serving_g > 0 ? `${fmt1(f.serving_g)} ก.` : `1 ${f.unit || 'ที่'}`}{f.category ? ` · ${f.category}` : ''}</Txt>
+              <Txt numberOfLines={1}>{f.name_th}</Txt>
+              <Txt muted size={12.5} numberOfLines={1}>{Math.round(f.kcal)} kcal / {f.serving_g > 0 ? `${fmt1(f.serving_g)} ก.` : `1 ${f.unit || 'ที่'}`}{f.category ? ` · ${f.category}` : ''}</Txt>
             </View>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={fav.ids.has(f.id) ? `เอา ${f.name_th} ออกจากเมนูโปรด` : `เพิ่ม ${f.name_th} เป็นเมนูโปรด`}
@@ -302,7 +304,7 @@ function FoodList({ foods, onPick, fav }: { foods: Food[]; onPick: (f: Food) => 
           </Pressable>
         </View>
       ))}
-    </View>
+    </ScrollBox>
   );
 }
 
@@ -317,6 +319,7 @@ function SearchFoods({ onPick, busy }: { onPick: (f: Food, x: number) => void; b
   if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
   return <>
     <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="พิมพ์ชื่ออาหาร เช่น กะเพรา อกไก่" icon="search" autoFocus />
+    {term && found.length ? <Txt muted size={12.5}>พบ {found.length}{found.length >= 20 ? '+' : ''} รายการ{found.length > 5 ? ' · เลื่อนในกรอบเพื่อดูเพิ่ม' : ''}</Txt> : null}
     {term ? <FoodList foods={found} onPick={setPick} fav={fav} /> : null}
     {term && loading && !found.length ? <Txt muted>กำลังค้นหา…</Txt> : null}
     {term && !loading && !found.length ? <Txt muted>ไม่เจอ "{term}" · ลองคำสั้นลง หรือใช้ ✦ AI / สร้างเอง</Txt> : null}
