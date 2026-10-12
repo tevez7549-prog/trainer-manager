@@ -36,9 +36,16 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  // The gateway (verify_jwt) has already checked the token's signature, so read the user id from it
+  // instead of a second round-trip to the auth server.
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-  const { data: who } = await admin.auth.getUser(token);
-  if (!who?.user) return json({ error: "not signed in" }, 401);
+  let uid = "";
+  try {
+    const b = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(b + "=".repeat((4 - b.length % 4) % 4)));
+    if (claims.role === "authenticated" && typeof claims.sub === "string") uid = claims.sub;
+  } catch { /* fall through */ }
+  if (!uid) return json({ error: "not signed in" }, 401);
 
   let body: { q?: string; image?: string; media_type?: string };
   try { body = await req.json(); } catch { return json({ error: "bad json" }, 400); }
@@ -50,7 +57,7 @@ Deno.serve(async (req) => {
   // per-person daily limit, counted in the audit log
   const since = new Date(); since.setHours(0, 0, 0, 0);
   const { count } = await admin.from("audit_log").select("id", { count: "exact", head: true })
-    .eq("actor_id", who.user.id).eq("action", "food_ai").gte("at", since.toISOString());
+    .eq("actor_id", uid).eq("action", "food_ai").gte("at", since.toISOString());
   if ((count ?? 0) >= DAILY_LIMIT) return json({ error: "daily_limit" }, 429);
 
   const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -81,7 +88,7 @@ Deno.serve(async (req) => {
     protein_g: num(i.protein_g), carb_g: num(i.carb_g), fat_g: num(i.fat_g),
   })).filter((i) => i.name);
 
-  await admin.from("audit_log").insert({ actor_id: who.user.id, action: "food_ai", target: "meal_items", detail: { q, photo: !!image, n: items.length,
+  await admin.from("audit_log").insert({ actor_id: uid, action: "food_ai", target: "meal_items", detail: { q, photo: !!image, n: items.length,
     in: out.usage?.input_tokens, out: out.usage?.output_tokens } });
   return json({ items, note: parsed.note ?? null, left: DAILY_LIMIT - (count ?? 0) - 1 });
 });

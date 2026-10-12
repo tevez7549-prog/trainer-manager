@@ -400,23 +400,41 @@ function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean 
 type AiItem = { name: string; amount: number; unit: string; grams: number | null; kcal: number; protein_g: number; carb_g: number; fat_g: number };
 
 /** Type what you ate in plain words; the AI turns it into items with calories and macros */
-/** Shrink a phone photo to ≤1024 px JPEG (base64) before it goes to the AI: faster and cheaper */
-async function pickPhoto(): Promise<{ b64: string; preview: string } | null> {
-  if (Platform.OS !== 'web') return null;
-  const file = await new Promise<File | null>(res => {
+/**
+ * Open the camera / photo picker. The input is put in the page while it is open: on iPhone Safari a detached
+ * input sometimes never reports the chosen photo, which is why it needed a second tap.
+ */
+function choosePhoto(): Promise<File | null> {
+  return new Promise(res => {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = 'image/*'; (input as any).capture = 'environment';
-    input.onchange = () => res(input.files?.[0] ?? null);
+    input.style.cssText = 'position:fixed;left:-9999px;opacity:0';
+    document.body.appendChild(input);
+    let done = false;
+    const finish = (f: File | null) => { if (done) return; done = true; input.remove(); res(f); };
+    input.onchange = () => finish(input.files?.[0] ?? null);
+    input.addEventListener('cancel', () => finish(null));
     input.click();
   });
-  if (!file) return null;
-  const url = URL.createObjectURL(file);
-  const img = await new Promise<HTMLImageElement>((res, rej) => { const i = document.createElement('img'); i.onload = () => res(i); i.onerror = rej; i.src = url; });
-  const k = Math.min(1, 1024 / Math.max(img.width, img.height));
-  const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-  cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
-  const preview = cv.toDataURL('image/jpeg', 0.8);
-  URL.revokeObjectURL(url);
+}
+
+/** Shrink to ≤768 px JPEG before it goes to the AI: about 4× smaller to upload than the old 1024 px, still plenty for food */
+async function shrinkPhoto(file: File): Promise<{ b64: string; preview: string }> {
+  const MAX = 768;
+  let src: CanvasImageSource, w: number, h: number, url: string | null = null;
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as any);   // decodes off the main thread
+    src = bmp; w = bmp.width; h = bmp.height;
+  } catch {
+    url = URL.createObjectURL(file);
+    const img = await new Promise<HTMLImageElement>((ok, bad) => { const i = document.createElement('img'); i.onload = () => ok(i); i.onerror = bad; i.src = url!; });
+    src = img; w = img.naturalWidth; h = img.naturalHeight;
+  }
+  const k = Math.min(1, MAX / Math.max(w, h));
+  const cv = document.createElement('canvas'); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+  cv.getContext('2d')!.drawImage(src, 0, 0, cv.width, cv.height);
+  if (url) URL.revokeObjectURL(url);
+  const preview = cv.toDataURL('image/jpeg', 0.72);
   return { b64: preview.split(',')[1], preview };
 }
 
@@ -429,7 +447,7 @@ function AiText({ onSave, busy, photo }: { onSave: (i: NewItem) => void; busy: b
   const [asking, setAsking] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
   async function ask(img = pic) {
-    if (photo ? !img : !q.trim()) { setErr(photo ? 'ถ่ายหรือเลือกรูปอาหารก่อน' : 'พิมพ์สิ่งที่กิน เช่น ข้าวสวย 100 กรัม'); return; }
+    if (photo ? !img?.b64 : !q.trim()) { setErr(photo ? 'ถ่ายหรือเลือกรูปอาหารก่อน' : 'พิมพ์สิ่งที่กิน เช่น ข้าวสวย 100 กรัม'); return; }
     setAsking(true); setErr(''); setItems(null); setEditing(null);
     const { data, error } = await supabase.functions.invoke('food-ai', { body: photo ? { q: q.trim(), image: img!.b64, media_type: 'image/jpeg' } : { q: q.trim() } });
     setAsking(false);
@@ -451,9 +469,17 @@ function AiText({ onSave, busy, photo }: { onSave: (i: NewItem) => void; busy: b
     {photo ? <>
       {pic ? <Image source={{ uri: pic.preview }} accessibilityLabel="รูปอาหารที่เลือก" style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: R.field, backgroundColor: C.surface2 }} resizeMode="cover" /> : null}
       <Btn kind={pic ? 'ghost' : 'primary'} icon="camera" label={pic ? 'ถ่ายใหม่' : 'ถ่ายรูป / เลือกรูปอาหาร'}
-        onPress={async () => { const p = await pickPhoto(); if (p) { setPic(p); ask(p); } else if (Platform.OS !== 'web') setErr('ถ่ายรูปได้บนเว็บก่อน แอปมือถือกำลังทำ'); }} />
+        onPress={async () => {
+          if (Platform.OS !== 'web') { setErr('ถ่ายรูปได้บนเว็บก่อน แอปมือถือกำลังทำ'); return; }
+          const file = await choosePhoto();
+          if (!file) return;
+          setErr(''); setItems(null); setAsking(true);
+          setPic({ b64: '', preview: URL.createObjectURL(file) });          // show the photo right away
+          try { const p = await shrinkPhoto(file); setPic(p); ask(p); }
+          catch { setAsking(false); setErr('เปิดรูปนี้ไม่ได้ ลองถ่ายใหม่'); }
+        }} />
       <Field label="บอก AI เพิ่ม (ไม่บังคับ)" value={q} onChangeText={setQ} placeholder="เช่น กินไปครึ่งจาน, ไม่ใส่ไข่" />
-      {pic ? <Btn icon="sparkles" label={asking ? 'AI กำลังดูรูป…' : 'ให้ AI ดูรูปอีกครั้ง'} onPress={() => ask()} loading={asking} /> : null}
+      {pic?.b64 || asking ? <Btn icon="sparkles" label={asking ? 'AI กำลังดูรูป… (ราว 5 วินาที)' : 'ให้ AI ดูรูปอีกครั้ง'} onPress={() => ask()} loading={asking} /> : null}
     </> : <>
       <Field label="กินอะไรไป" value={q} onChangeText={setQ} placeholder="เช่น ข้าวสวย 100 กรัม, ผัดกะเพราหมูสับ 1 จาน" autoFocus onSubmitEditing={() => ask()} returnKeyType="search" />
       <Btn icon="sparkles" label={asking ? 'AI กำลังคำนวณ…' : 'ให้ AI คำนวณ'} onPress={() => ask()} loading={asking} />
