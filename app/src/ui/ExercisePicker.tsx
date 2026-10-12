@@ -4,10 +4,12 @@ import { supabase } from '../lib/supabase';
 import { C, R } from '../lib/theme';
 import { EQUIP_TH, exName, exSub, LEVEL_TH, loadLibrary, mediaUri, MUSCLE_TH, searchLib, type LibEx } from '../lib/exercise';
 import { PART_TH } from '../lib/me';
-import { Btn, Field, Select, Txt } from './index';
+import { Field, Select, Txt } from './index';
 import { Icon } from './Icon';
+import { ScrollBox } from './ScrollBox';
 
-const PAGE = 25;
+const PAGE = 30;
+const ROW_H = 73;   // one row (56 px picture + padding); the box shows 6, the rest scroll inside it
 // muscle chips in the order people think: upper body, core, legs, then cardio / stretching
 const MUSCLE_ORDER = ['chest', 'shoulders', 'lats', 'middle back', 'lower back', 'traps', 'biceps', 'triceps', 'forearms', 'abdominals',
   'quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors', 'neck'];
@@ -65,19 +67,20 @@ export function ExercisePicker({ onPick, picked = [], ownerId, reloadKey }: { on
 
       {lib === null ? <Txt muted>กำลังโหลดคลังท่า…</Txt> : null}
       {lib && !shown.length ? <Txt muted>ไม่เจอท่า ลองคำอื่น หรือเปลี่ยนอุปกรณ์</Txt> : null}
-      {lib ? <Txt muted size={12.5}>{shown.length.toLocaleString('en-US')} ท่า{q.trim() ? ` ที่ตรงกับ "${q.trim()}"` : ''}</Txt> : null}
+      {lib ? <Txt muted size={12.5}>{shown.length.toLocaleString('en-US')} ท่า{q.trim() ? ` ที่ตรงกับ "${q.trim()}"` : ''}{shown.length > 6 ? ' · เลื่อนในกรอบเพื่อดูเพิ่ม' : ''}</Txt> : null}
 
       <View style={{ borderRadius: R.field, backgroundColor: C.surface2, overflow: 'hidden' }}>
+       <ScrollBox maxHeight={ROW_H * 6} onNearEnd={() => { if (shown.length > n) setN(n + PAGE); }}>
         {shown.slice(0, n).map((e, i) => {
           const on = picked.includes(e.id);
           return (
             <View key={e.id} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8, height: ROW_H - 1 }}>
                 <Pressable accessibilityRole="button" accessibilityLabel={`ดูวิธีเล่น ${exName(e)}`} onPress={() => setOpen(open === e.id ? null : e.id)}
                   style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <Thumb e={e} size={56} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Txt bold size={15} numberOfLines={2}>{exName(e)}</Txt>
+                    <Txt bold size={15} numberOfLines={1}>{exName(e)}</Txt>
                     <Txt muted size={12.5} numberOfLines={1}>{[exSub(e), e.muscle && MUSCLE_TH[e.muscle], e.equipment && EQUIP_TH[e.equipment]].filter(Boolean).join(' · ')}</Txt>
                   </View>
                 </Pressable>
@@ -91,8 +94,8 @@ export function ExercisePicker({ onPick, picked = [], ownerId, reloadKey }: { on
             </View>
           );
         })}
+       </ScrollBox>
       </View>
-      {shown.length > n ? <Btn kind="ghost" label={`ดูเพิ่มอีก ${Math.min(PAGE, shown.length - n)} ท่า`} onPress={() => setN(n + PAGE)} /> : null}
     </View>
   );
 }
