@@ -312,7 +312,7 @@ export const EN: Record<string, string> = {
  "ปริมาณ": "Amount",
  "หรือกรอกที่กินจริง (กรัม)": "Or enter what you actually ate (grams)",
  "เพิ่ม": "Add",
- "เลือกอย่างอื่น": "Choose something else",
+ "เลือกอย่างอื่น": "Pick another",
  "พิมพ์ชื่ออาหาร เช่น กะเพรา อกไก่": "Type a food name, e.g. basil stir-fry, chicken breast",
  "· เลื่อนในกรอบเพื่อดูเพิ่ม": "· Scroll in the box to see more",
  "ข้าว ไก่": "rice chicken",
