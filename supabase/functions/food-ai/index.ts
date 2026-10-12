@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 600, temperature: 0, system: SYSTEM, messages: [{ role: "user", content: image
+    body: JSON.stringify({ model: MODEL, max_tokens: 600, system: SYSTEM, messages: [{ role: "user", content: image
       ? [{ type: "image", source: { type: "base64", media_type: mediaType, data: image } },
          { type: "text", text: q || "อาหารในรูปนี้คืออะไร ประมาณปริมาณจากรูป" }]
       : q }] }),
