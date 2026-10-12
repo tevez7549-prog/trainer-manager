@@ -1,5 +1,6 @@
 /** Thai -> English for every piece of text in the app. Generated from the source; {0} marks a value filled in at runtime. */
 export const EN: Record<string, string> = {
+ "เป้า {0} kcal": "Goal {0} kcal",
  "มีบันทึก": "Logged",
  "วันที่บันทึก": "Days logged",
  "ย้อนหลัง": "History",

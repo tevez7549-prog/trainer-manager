@@ -12,7 +12,9 @@ import { Card, Chips, H, Txt } from './index';
  */
 type Day = Totals & { logged: boolean };
 const WD = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
-const OK_BAND = 0.1;     // within ±10% of the calorie target counts as "on target"
+const OK_BAND = 0.1;
+/** 1,850 -> "1.9k" so the number fits over a bar on small phones */
+const short = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v)));     // within ±10% of the calorie target counts as "on target"
 
 export function FoodHistory({ userId, target, day, onPickDay, refresh }: {
   userId: string; target: Target | null; day: string; onPickDay: (iso: string) => void; refresh: unknown;
@@ -76,7 +78,6 @@ function KcalBars({ days, target, selected, onPick }: { days: (Day & { iso: stri
       <View style={{ height: H_ + 18, justifyContent: 'flex-end' }}>
         {target ? <>
           <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: y(target), borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: C.muted }} />
-          <Txt muted size={11} style={{ position: 'absolute', right: 0, bottom: y(target) + 2 }}>{`เป้า ${target.toLocaleString('en-US')}`}</Txt>
         </> : null}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: few ? 8 : 2, height: H_ }}
           accessibilityLabel={`แคลอรี ${days.map(d => `${thDate(d.iso)} ${Math.round(d.kcal)}`).join(', ')}`}>
@@ -85,7 +86,7 @@ function KcalBars({ days, target, selected, onPick }: { days: (Day & { iso: stri
             return (
               <Pressable key={d.iso} accessibilityRole="button" accessibilityLabel={`${thDate(d.iso)} ${Math.round(d.kcal)} kcal`} onPress={() => onPick(d.iso)}
                 style={{ flex: 1, height: H_, justifyContent: 'flex-end', alignItems: 'center' }}>
-                {few && d.logged ? <Txt size={10.5} muted={!on} bold={on} numberOfLines={1}>{Math.round(d.kcal).toLocaleString('en-US')}</Txt> : null}
+                {few && d.logged ? <Txt size={11} muted={!on} bold={on} numberOfLines={1}>{short(d.kcal)}</Txt> : null}
                 <View style={{ width: '100%', maxWidth: few ? 30 : 12, height: d.logged ? Math.max(4, y(d.kcal)) : 4, borderRadius: few ? 6 : 3,
                   backgroundColor: barColor(d, target), opacity: on || !d.logged ? 1 : 0.75, borderWidth: on ? 2 : 0, borderColor: C.fg }} />
               </Pressable>
@@ -107,6 +108,10 @@ function KcalBars({ days, target, selected, onPick }: { days: (Day & { iso: stri
             <Txt muted size={11.5}>วันนี้</Txt>
           </View>}
       <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
+        {target ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 14, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: C.muted }} />
+          <Txt muted size={12}>{`เป้า ${target.toLocaleString('en-US')} kcal`}</Txt>
+        </View> : null}
         <Legend color={C.accent} t={target ? 'อยู่ในเป้า / ต่ำกว่า' : 'มีบันทึก'} />
         {target ? <Legend color={C.over} t="เกินเป้า 10% ขึ้นไป" /> : null}
         <Legend color={C.surface2} t="ไม่ได้บันทึก" />
