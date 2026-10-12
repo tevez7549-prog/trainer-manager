@@ -39,7 +39,7 @@ export default function Groups() {
     if (pending) { join(pending); }
     const [gs, tc, inv] = await Promise.all([
       myGroups(profile.id),
-      supabase.from('trainer_clients').select(TC_COLS).eq('trainer_id', profile.id).eq('status', 'active').order('created_at', { ascending: false }),
+      supabase.from('trainer_clients').select(TC_COLS).eq('trainer_id', profile.id).eq('status', 'active').is('coach_id', null).order('created_at', { ascending: false }),
       supabase.rpc('my_sent_invites'),
     ]);
     const withStreak = await Promise.all(gs.map(async g => ({ ...g, streak: groupStreak(await groupDays(g.id), g.members.length) })));

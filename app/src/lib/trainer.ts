@@ -6,6 +6,7 @@ import { prettyPhone } from './phone';
 export type TC = {
   id: string; trainer_id: string; client_id: string | null; member_id: string | null; gym_id: string | null;
   goal: string | null; status: 'active' | 'removed'; client_name: string | null; client_phone: string | null; created_at: string;
+  coach_id?: string | null; coach?: { name: string } | null;
   client: { display_name: string; uid: number; phone: string | null } | null;
   member: { name: string; code: string; phone_norm: string | null; profile_id?: string | null } | null;
   trainer: { display_name: string; uid: number } | null;
@@ -18,15 +19,15 @@ export type Pkg = {
 export type ApptStatus = 'scheduled' | 'in_progress' | 'done' | 'noshow' | 'cancelled';
 export type Appt = {
   id: string; trainer_id: string; trainer_client_id: string; gym_id: string | null; starts_at: string; duration_min: number;
-  status: ApptStatus; note: string | null; program_id?: string | null; program?: { name: string } | null; tc?: Pick<TC, 'id' | 'client_name' | 'client' | 'member'> | null;
+  status: ApptStatus; note: string | null; coach_id?: string | null; program_id?: string | null; program?: { name: string } | null; tc?: Pick<TC, 'id' | 'client_name' | 'client' | 'member'> | null;
 };
 export type Leave = { id: string; start_at: string; end_at: string; reason: string | null };
 
-export const TC_COLS = 'id,trainer_id,client_id,member_id,gym_id,goal,status,client_name,client_phone,created_at,'
+export const TC_COLS = 'id,trainer_id,client_id,member_id,gym_id,goal,status,client_name,client_phone,created_at,coach_id,coach:gym_coaches(name),'
   + 'client:profiles!trainer_clients_client_id_fkey(display_name,uid,phone),'
   + 'trainer:profiles!trainer_clients_trainer_id_fkey(display_name,uid),'
   + 'member:members(name,code,phone_norm,profile_id),gym:gyms(name)';
-export const APPT_COLS = 'id,trainer_id,trainer_client_id,gym_id,starts_at,duration_min,status,note,program_id,program:programs!appt_program_fk(name),'
+export const APPT_COLS = 'id,trainer_id,trainer_client_id,gym_id,coach_id,starts_at,duration_min,status,note,program_id,program:programs!appt_program_fk(name),'
   + 'tc:trainer_clients(id,client_name,client:profiles!trainer_clients_client_id_fkey(display_name,uid,phone),member:members(name,code,phone_norm))';
 
 export const DURATIONS = [30, 45, 60, 90] as const;

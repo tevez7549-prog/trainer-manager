@@ -226,7 +226,7 @@ function BookForm({ tc, leaves, left, onClose }: { tc: TC; leaves: Leave[]; left
 
       {mode === 'once' ? <>
         <Btn kind="ghost" icon="calendar" label={showGrid ? 'ซ่อนตารางว่าง' : 'เลือกจากตารางว่าง'} onPress={() => setShowGrid(!showGrid)} />
-        {showGrid ? <WeekGrid trainerId={tc.trainer_id} onPick={(d, t) => { setDate(d); setTime(t); }} /> : null}
+        {showGrid ? <WeekGrid trainerId={tc.coach_id ? null : tc.trainer_id} coachId={tc.coach_id ?? undefined} onPick={(d, t) => { setDate(d); setTime(t); }} /> : null}
         <DateField label="วันที่" value={date} onChange={setDate} min={todayISO()} />
         <TimeField label="เวลาเริ่ม" value={time} onChange={setTime} />
       </> : <>

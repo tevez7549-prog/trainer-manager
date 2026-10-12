@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../../../src/lib/supabase';
+import { loadCoaches, type Coach } from '../../../../../src/lib/coaches';
 import { useAuth } from '../../../../../src/lib/auth';
 import { addDays, baht, daysBetween, gymCountry, todayISO, isDesk, isManager, PAY_TH, thDate, thDateTs, thTime, type Plan, type PtPlan, useGym } from '../../../../../src/lib/gym';
 import { enqueue, liveStatus, STATUS_TH, type Member } from '../../../../../src/lib/counter';
@@ -197,15 +198,14 @@ function EditMember({ m, country, onDone }: { m: Member; country: Country; onDon
   );
 }
 
-type PtLink = { id: string; trainer_id: string; trainer: { display_name: string } | null };
-type Staff = { user_id: string; role: string; profile: { display_name: string } | null };
+type PtLink = { id: string; trainer_id: string; trainer: { display_name: string } | null; coach: { name: string } | null };
 
 /** This member's PT: one row per trainer, sessions left; tap to book or mark sessions */
 function MemberPT({ m, reloadKey }: { m: Member; reloadKey: number }) {
   const [links, setLinks] = useState<PtLink[]>([]);
   const [left, setLeft] = useState<Record<string, number>>({});
   const load = useCallback(async () => {
-    const { data } = await supabase.from('trainer_clients').select('id,trainer_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)').eq('member_id', m.id).eq('status', 'active');
+    const { data } = await supabase.from('trainer_clients').select('id,trainer_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name),coach:gym_coaches(name)').eq('member_id', m.id).eq('status', 'active');
     const ls = ((data as any) ?? []) as PtLink[];
     setLinks(ls);
     setLeft(await sessionsLeft(ls.map(x => x.id)));
@@ -217,7 +217,7 @@ function MemberPT({ m, reloadKey }: { m: Member; reloadKey: number }) {
       {links.map(l => {
         const n = left[l.id] ?? 0;
         return (
-          <Row key={l.id} ic="dumbbell" title={`PT กับ ${l.trainer?.display_name ?? 'เทรนเนอร์'}`} sub="นัดเทรน · ดูครั้งที่ใช้"
+          <Row key={l.id} ic="dumbbell" title={`PT กับ ${l.coach?.name ?? l.trainer?.display_name ?? 'เทรนเนอร์'}`} sub="นัดเทรน · ดูครั้งที่ใช้"
             right={<Pill text={`เหลือ ${n} ครั้ง`} kind={n === 0 ? 'bad' : n <= 2 ? 'warn' : 'ok'} />}
             onPress={() => router.push(`/trainer/client/${l.id}` as any)} />
         );
@@ -230,7 +230,7 @@ function MemberPT({ m, reloadKey }: { m: Member; reloadKey: number }) {
 function PtSell({ gymId, m, onDone }: { gymId: string; m: Member; onDone: (msg: string) => void }) {
   const { profile } = useAuth();
   const [plans, setPlans] = useState<PtPlan[] | null>(null);
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const [staff, setStaff] = useState<Coach[]>([]);
   const [plan, setPlan] = useState<string | null>(null);
   const [trainer, setTrainer] = useState<string | null>(null);
   const [pay, setPay] = useState<'cash' | 'transfer' | 'qr' | 'free'>('cash');
@@ -241,14 +241,13 @@ function PtSell({ gymId, m, onDone }: { gymId: string; m: Member; onDone: (msg: 
   useEffect(() => {
     Promise.all([
       supabase.from('pt_plans').select('*').eq('gym_id', gymId).eq('active', true).order('sessions'),
-      supabase.from('gym_staff').select('user_id,role,profile:profiles(display_name)').eq('gym_id', gymId).eq('active', true).in('role', ['trainer', 'owner', 'admin']),
+      loadCoaches(gymId),
     ]).then(([p, s]) => {
       const ps = (p.data as PtPlan[]) ?? [];
       setPlans(ps);
       if (ps[0]) { setPlan(ps[0].id); setPrice(String(ps[0].price)); }
-      const st = (((s.data as any) ?? []) as Staff[]).sort((a, b) => (a.role === 'trainer' ? 0 : 1) - (b.role === 'trainer' ? 0 : 1));
-      setStaff(st);
-      if (st.length === 1) setTrainer(st[0].user_id);
+      setStaff(s);
+      if (s.length === 1) setTrainer(s[0].id);
     });
   }, [gymId]);
 
@@ -259,10 +258,10 @@ function PtSell({ gymId, m, onDone }: { gymId: string; m: Member; onDone: (msg: 
     const p = Number(price);
     if (price === '' || Number.isNaN(p) || p < 0) { setErr('ใส่จำนวนเงินเป็นตัวเลข'); return; }
     setBusy(true); setErr('');
-    const { error } = await supabase.rpc('sell_pt', { m: m.id, plan, trainer, pay, price_paid: p });
+    const { error } = await supabase.rpc('sell_pt_coach', { m: m.id, plan, coach: trainer, pay, price_paid: p });
     setBusy(false);
     if (error) { setErr(thError(error)); return; }
-    const tn = trainer === profile?.id ? 'คุณ' : staff.find(s => s.user_id === trainer)?.profile?.display_name ?? 'เทรนเนอร์';
+    const tn = staff.find(s => s.id === trainer)?.name ?? 'เทรนเนอร์';
     onDone(`ขาย ${pl?.name ?? 'PT'} กับ ${tn} แล้ว`);
   }
 
@@ -273,8 +272,8 @@ function PtSell({ gymId, m, onDone }: { gymId: string; m: Member; onDone: (msg: 
     <Chips label="แพ็กเกจ" options={plans.map(x => ({ v: x.id, t: `${x.name} · ${baht(x.price)}` }))} value={plan}
       onChange={v => { setPlan(v); setPrice(pay === 'free' ? '0' : String(plans.find(x => x.id === v)?.price ?? '')); }} />
     {staff.length ? (
-      <Chips label="เทรนเนอร์" options={staff.map(s => ({ v: s.user_id, t: s.user_id === profile?.id ? 'คุณ' : s.profile?.display_name ?? 'เทรนเนอร์' }))} value={trainer} onChange={setTrainer} />
-    ) : <Notice kind="info" text="ยังไม่มีเทรนเนอร์ในทีม เพิ่มได้ที่ เพิ่มเติม › ทีมงาน" />}
+      <Chips label="เทรนเนอร์" options={staff.map(s => ({ v: s.id, t: s.profile_id === profile?.id ? `${s.name} (คุณ)` : s.name }))} value={trainer} onChange={setTrainer} />
+    ) : <Notice kind="info" text="ยังไม่มีชื่อเทรนเนอร์ เพิ่มได้ที่ PT › จัดการรายชื่อเทรนเนอร์ (มีแอปหรือไม่มีก็ได้)" />}
     <Chips label="ชำระโดย" options={[{ v: 'cash', t: 'เงินสด' }, { v: 'transfer', t: 'โอน' }, { v: 'qr', t: 'QR' }, { v: 'free', t: 'ฟรี' }]} value={pay}
       onChange={v => { setPay(v); setPrice(v === 'free' ? '0' : price === '0' ? String(pl?.price ?? '') : price); }} />
     <Field label="รับเงิน (บาท)" value={price} onChangeText={v => setPrice(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad"

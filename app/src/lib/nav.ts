@@ -54,7 +54,8 @@ export async function landing(userId: string): Promise<{ to: string } | { member
     const last = await getJSON<string>(LAST);
     const rank = (r: Role) => (r === 'owner' ? 0 : r === 'admin' ? 1 : r === 'operator' ? 2 : 3);
     const pick = staff.find(x => x.gym_id === last) ?? [...staff].sort((a, b) => rank(a.role) - rank(b.role))[0];
-    if (pick.role === 'trainer') return { to: '/trainer' };
+    // gym trainers use the app for themselves; their PT schedule is a card on the home page
+    if (pick.role === 'trainer') return { member: true };
     if (pick.role === 'operator') return { to: `/gym/${pick.gym_id}/counter` };
     return { to: `/gym/${pick.gym_id}` };
   }

@@ -3,14 +3,15 @@ import { View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/lib/auth';
-import { isManager, useGym, type Role } from '../../../../src/lib/gym';
+import { isManager, useGym } from '../../../../src/lib/gym';
 import { APPT_COLS, sessionsLeft, TC_COLS, tcName, type Appt, type TC } from '../../../../src/lib/trainer';
 import { Card, Chips, Empty, Field, Header, Label, Notice, Pill, Row, Txt } from '../../../../src/ui';
 import { ApptCard } from '../../../../src/ui/Appt';
+import { C } from '../../../../src/lib/theme';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 import { WeekGrid } from '../../../../src/ui/WeekGrid';
+import { loadCoaches, type Coach } from '../../../../src/lib/coaches';
 
-type Staff = { user_id: string; role: Role; profile: { display_name: string; uid: number } | null };
 type Range = 'today' | 'week';
 
 /** Owner / Admin / Operator: every trainer's trainees, sessions left and appointments at this gym */
@@ -18,7 +19,7 @@ export default function GymPT() {
   const { id, low: low0 } = useLocalSearchParams<{ id: string; low?: string }>();
   const { gym, role } = useGym(id);
   const me = useAuth().profile?.id;
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
   const [tcs, setTcs] = useState<TC[] | null>(null);
   const [left, setLeft] = useState<Record<string, number>>({});
   const [appts, setAppts] = useState<Appt[]>([]);
@@ -30,11 +31,11 @@ export default function GymPT() {
 
   const load = useCallback(async () => {
     const [s, t] = await Promise.all([
-      supabase.from('gym_staff').select('user_id,role,profile:profiles(display_name,uid)').eq('gym_id', id).eq('active', true),
+      loadCoaches(id, true),
       supabase.from('trainer_clients').select(TC_COLS).eq('gym_id', id).eq('status', 'active').order('created_at', { ascending: false }),
     ]);
     const list = ((t.data as any) ?? []) as TC[];
-    setStaff(((s.data as any) ?? []) as Staff[]);
+    setCoaches(s);
     setTcs(list);
     setLeft(await sessionsLeft(list.map(x => x.id)));
     if (!list.length) { setAppts([]); return; }
@@ -46,26 +47,26 @@ export default function GymPT() {
   }, [id, range]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  // trainers = gym trainers + anyone (owner/admin) who has trainees here
+  // a PT link belongs to its gym coach; older links without one are shown under the trainer's account
+  const coachOf = (t: { coach_id?: string | null; trainer_id: string }) => t.coach_id ?? `u:${t.trainer_id}`;
   const trainers = useMemo(() => {
-    const ids = new Set<string>(staff.filter(s => s.role === 'trainer').map(s => s.user_id));
-    (tcs ?? []).forEach(t => ids.add(t.trainer_id));
-    return [...ids].map(uid => {
-      const st = staff.find(s => s.user_id === uid);
-      const mine = (tcs ?? []).filter(t => t.trainer_id === uid);
-      const name = uid === me ? 'คุณ' : st?.profile?.display_name || mine[0]?.trainer?.display_name || 'เทรนเนอร์';
-      return { id: uid, name, role: st?.role ?? null, count: mine.length,
-        today: appts.filter(a => a.trainer_id === uid && a.status !== 'cancelled').length,
-        low: mine.filter(t => (left[t.id] ?? 0) <= 2).length };
+    const ids = new Set<string>(coaches.filter(c => c.active).map(c => c.id));
+    (tcs ?? []).forEach(t => ids.add(coachOf(t)));
+    return [...ids].map(k => {
+      const c = coaches.find(x => x.id === k);
+      const mine = (tcs ?? []).filter(t => coachOf(t) === k);
+      const name = c ? (c.profile_id === me ? `${c.name} (คุณ)` : c.name) : mine[0]?.trainer?.display_name || 'เทรนเนอร์';
+      return { id: k, coach: c ?? null, name, count: mine.length };
     }).sort((a, b) => b.count - a.count);
-  }, [staff, tcs, appts, left, me]);
+  }, [coaches, tcs, me]);
 
   const nameOf = (uid: string) => trainers.find(t => t.id === uid)?.name ?? 'เทรนเนอร์';
   const shownTc = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return (tcs ?? []).filter(t => (who === 'all' || t.trainer_id === who) && (!low || (left[t.id] ?? 0) <= 2) && (!s || tcName(t).toLowerCase().includes(s) || (t.member?.code ?? '').toLowerCase().includes(s)));
+    return (tcs ?? []).filter(t => (who === 'all' || coachOf(t) === who) && (!low || (left[t.id] ?? 0) <= 2) && (!s || tcName(t).toLowerCase().includes(s) || (t.member?.code ?? '').toLowerCase().includes(s)));
   }, [tcs, who, q, low, left]);
-  const shownAppt = appts.filter(a => who === 'all' || a.trainer_id === who);
+  const shownAppt = appts.filter(a => who === 'all' || (a.coach_id ?? `u:${a.trainer_id}`) === who);
+  const picked = trainers.find(t => t.id === who);
   const total = tcs?.length ?? 0;
   const lowAll = (tcs ?? []).filter(t => (left[t.id] ?? 0) <= 2).length;
 
@@ -78,13 +79,14 @@ export default function GymPT() {
         <Chips options={[{ v: 'all', t: `ทุกคน (${total})` }, ...trainers.map(t => ({ v: t.id, t: `${t.name} (${t.count})` }))]} value={who} onChange={setWho} />
       ) : null}
       {tcs && !trainers.length ? (
-        <Card><Empty ic="dumbbell" title="ยังไม่มี PT" text="ขาย PT ได้ที่หน้าสมาชิก: กด ขาย / ต่ออายุ แล้วเลือก PT · เพิ่มเทรนเนอร์ได้ที่ เพิ่มเติม › ทีมงาน" /></Card>
+        <Card><Empty ic="dumbbell" title="ยังไม่มีเทรนเนอร์" text="เพิ่มชื่อเทรนเนอร์ก่อน (มีแอปหรือไม่มีก็ได้) แล้วขาย PT ที่หน้าสมาชิก" action="เพิ่มเทรนเนอร์" onAction={() => router.push(`/gym/${id}/coaches` as any)} /></Card>
       ) : null}
 
       {who !== 'all' ? <>
         <Label>ตารางว่างของ {nameOf(who)}</Label>
-        <Card><WeekGrid trainerId={who} closedDays={gym?.closed_weekdays ?? []} reloadKey={appts.length} /></Card>
-      </> : trainers.length ? <Txt muted size={13}>แตะชื่อเทรนเนอร์ด้านบนเพื่อดูตารางว่างทั้งสัปดาห์</Txt> : null}
+        <Card><WeekGrid coachId={picked?.coach ? who : undefined} trainerId={picked?.coach ? picked.coach.profile_id : who.replace(/^u:/, '')}
+          closedDays={gym?.closed_weekdays ?? []} reloadKey={appts.length} /></Card>
+      </> : trainers.length ? <Txt muted size={13}>แตะชื่อเทรนเนอร์ด้านบนเพื่อดูตารางว่างทั้งสัปดาห์ · <Txt size={13} style={{ color: C.accent }} onPress={() => router.push(`/gym/${id}/coaches` as any)}>จัดการรายชื่อเทรนเนอร์</Txt></Txt> : null}
 
       {tcs?.length ? <>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -95,7 +97,7 @@ export default function GymPT() {
           {!shownAppt.length ? <Txt muted style={{ paddingVertical: 14 }}>{range === 'today' ? 'วันนี้ไม่มีนัด' : 'ไม่มีนัดใน 7 วันนี้'}</Txt> : null}
           {shownAppt.map(a => (
             <View key={a.id}>
-              {who === 'all' ? <Txt muted size={12.5} style={{ paddingTop: 8 }}>กับ {nameOf(a.trainer_id)}</Txt> : null}
+              {who === 'all' ? <Txt muted size={12.5} style={{ paddingTop: 8 }}>กับ {nameOf(a.coach_id ?? `u:${a.trainer_id}`)}</Txt> : null}
               <ApptCard a={a} showDay={range === 'week'} canManage={isManager(role)} onDone={(t, ok) => { setMsg({ t, ok }); load(); }} />
             </View>
           ))}
@@ -112,7 +114,7 @@ export default function GymPT() {
             const n = left[t.id] ?? 0;
             return (
               <Row key={t.id} icon={tcName(t).slice(0, 2)} title={tcName(t)}
-                sub={[who === 'all' ? `กับ ${nameOf(t.trainer_id)}` : null, t.member?.code ?? null].filter(Boolean).join(' · ') || undefined}
+                sub={[who === 'all' ? `กับ ${nameOf(coachOf(t))}` : null, t.member?.code ?? null].filter(Boolean).join(' · ') || undefined}
                 right={<Pill text={`เหลือ ${n} ครั้ง`} kind={n === 0 ? 'bad' : n <= 2 ? 'warn' : 'ok'} />}
                 onPress={() => router.push(`/trainer/client/${t.id}` as any)} />
             );

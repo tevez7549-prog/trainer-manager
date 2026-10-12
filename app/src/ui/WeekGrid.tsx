@@ -21,8 +21,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
  * A trainer's week at a glance: one column per day, one row per hour.
  * Filled = has a session, grey = leave or gym closed, empty = free. Tap a free hour to book it (when onPick is given).
  */
-export function WeekGrid({ trainerId, closedDays = [], onPick, reloadKey }: {
-  trainerId: string; closedDays?: number[]; onPick?: (date: string, time: string) => void; reloadKey?: number;
+export function WeekGrid({ trainerId, coachId, closedDays = [], onPick, reloadKey }: {
+  /** a person's sessions (their own app) */ trainerId?: string | null;
+  /** a gym coach's sessions; their leave shows when the coach has the app (trainerId = their account) */ coachId?: string;
+  closedDays?: number[]; onPick?: (date: string, time: string) => void; reloadKey?: number;
 }) {
   const [week, setWeek] = useState(monday(todayISO()));
   const [busy, setBusy] = useState<Busy[]>([]);
@@ -31,12 +33,15 @@ export function WeekGrid({ trainerId, closedDays = [], onPick, reloadKey }: {
 
   useEffect(() => {
     const from = new Date(week + 'T00:00:00'), to = new Date(addDays(week, 7) + 'T00:00:00');
+    let aq = supabase.from('appointments').select('starts_at,duration_min,tc:trainer_clients(client_name,client:profiles!trainer_clients_client_id_fkey(display_name),member:members(name))')
+      .neq('status', 'cancelled').gte('starts_at', new Date(from.getTime() - 3 * 3600000).toISOString()).lt('starts_at', to.toISOString());
+    aq = coachId ? aq.eq('coach_id', coachId) : aq.eq('trainer_id', trainerId ?? '');
     Promise.all([
-      supabase.from('appointments').select('starts_at,duration_min,tc:trainer_clients(client_name,client:profiles!trainer_clients_client_id_fkey(display_name),member:members(name))')
-        .eq('trainer_id', trainerId).neq('status', 'cancelled').gte('starts_at', new Date(from.getTime() - 3 * 3600000).toISOString()).lt('starts_at', to.toISOString()),
-      supabase.from('trainer_leave').select('id,start_at,end_at,reason').eq('trainer_id', trainerId).lt('start_at', to.toISOString()).gt('end_at', from.toISOString()),
+      aq,
+      trainerId ? supabase.from('trainer_leave').select('id,start_at,end_at,reason').eq('trainer_id', trainerId).lt('start_at', to.toISOString()).gt('end_at', from.toISOString())
+        : Promise.resolve({ data: [] as Leave[] }),
     ]).then(([a, l]) => { setBusy(((a.data as any) ?? []) as Busy[]); setLeaves((l.data as Leave[]) ?? []); });
-  }, [trainerId, week, reloadKey]);
+  }, [trainerId, coachId, week, reloadKey]);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const today = todayISO();

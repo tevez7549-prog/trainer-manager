@@ -51,6 +51,7 @@ function MemberHome() {
   const [pending, setPending] = useState(false);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [nudges, setNudges] = useState<Nudge[]>([]);
+  const [coach, setCoach] = useState<{ today: number; next: string | null } | null>(null);
   const [food, setFood] = useState<{ t: Totals; target: Target | null } | null>(null);
   const [weight, setWeight] = useState<{ now: number; diff: number | null; on: string } | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
@@ -71,6 +72,14 @@ function MemberHome() {
       supabase.rpc('my_nudges'),
     ]);
     setNudges((nd.data as Nudge[]) ?? []);
+    // trainer at a gym: today's PT sessions
+    const co = await supabase.from('gym_coaches').select('id').eq('profile_id', profile.id).eq('active', true).limit(1);
+    if ((co.data as any[])?.length) {
+      const sc = await supabase.rpc('my_coach_schedule', { d_from: today, d_to: today });
+      const list = ((sc.data as { starts_at: string; status: string }[]) ?? []);
+      const nx = list.find(r => r.status !== 'done' && new Date(r.starts_at).getTime() > Date.now() - 3600000);
+      setCoach({ today: list.length, next: nx?.starts_at ?? null });
+    } else setCoach(null);
     const rows = ((m.data as any) ?? []) as Card_[];
     if (rows.length) {
       const g = await supabase.from('gyms').select('id,name').in('id', [...new Set(rows.map(r => r.gym_id))]);
@@ -147,6 +156,19 @@ function MemberHome() {
           </View>
         </Card>
       ))}
+
+      {coach ? (
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 40, height: 40, borderRadius: R.field, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={20} color={C.accent} /></View>
+            <View style={{ flex: 1 }}>
+              <Txt bold>งานที่ยิม · วันนี้ {coach.today} นัด</Txt>
+              <Txt muted size={13.5}>{coach.next ? `นัดถัดไป ${new Date(coach.next).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : coach.today ? 'วันนี้ครบแล้ว' : 'วันนี้ว่าง'}</Txt>
+            </View>
+            <Btn kind="ghost" label="ดูตาราง" onPress={() => router.push('/coach' as any)} />
+          </View>
+        </Card>
+      ) : null}
 
       {nudges.map(n => (
         <Card key={n.id}>

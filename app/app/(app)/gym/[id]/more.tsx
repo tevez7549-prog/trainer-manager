@@ -22,7 +22,8 @@ export default function More() {
         <Label>ตั้งค่ายิม</Label>
         <Card style={{ gap: 0, paddingVertical: 4 }}>
           <Row ic="tag" title="แพ็กเกจและราคา" sub="สมาชิกรายเดือน และ PT" onPress={() => go('plans')} />
-          <Row ic="id-card" title="ทีมงาน" sub="เทรนเนอร์ · พนักงานเคาน์เตอร์ · ผู้จัดการ" onPress={() => go('staff')} />
+          <Row ic="dumbbell" title="เทรนเนอร์" sub="รายชื่อ (มีแอปหรือไม่มีก็ได้) และตารางว่าง" onPress={() => go('coaches')} />
+          <Row ic="id-card" title="ทีมงาน" sub="ผู้จัดการ · พนักงานเคาน์เตอร์ (คนที่ใช้แอปทำงานที่ยิม)" onPress={() => go('staff')} />
           <Row ic="calendar-off" title="วันหยุดยิม" sub="ปิดพิเศษ เลื่อนวันหมดสมาชิกให้เอง" onPress={() => go('holidays')} />
           <Row ic="file-up" title="นำเข้าสมาชิกจาก Excel" sub="ย้ายจากระบบเดิม" onPress={() => go('import')} />
           <Row ic="settings" title="ข้อมูลยิม" sub="ชื่อ ราคาขาจร วันปิดประจำ" onPress={() => go('settings')} />
