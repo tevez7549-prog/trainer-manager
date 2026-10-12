@@ -3,8 +3,9 @@ import { supabase } from './supabase';
 import type { Exercise } from './me';
 
 /** Library rows as the picker needs them (no long how-to text; that loads when a move is opened) */
-export type LibEx = Exercise & { muscle: string | null; equipment: string | null; level: string | null; media_url: string | null; created_by: string | null };
-export const LIB_COLS = 'id,name_th,name_en,body_part,kind,muscle,equipment,level,media_url,created_by';
+export type LibEx = Exercise & { muscle: string | null; equipment: string | null; level: string | null; media_url: string | null; created_by: string | null;
+  mechanic?: string | null; category?: string | null };
+export const LIB_COLS = 'id,name_th,name_en,body_part,kind,muscle,equipment,level,media_url,created_by,mechanic,category';
 
 /** English name first (the app works in both languages); own moves may only have a Thai name */
 export const exName = (e: { name_en?: string | null; name_th: string } | null | undefined) => (e ? e.name_en || e.name_th : '–');

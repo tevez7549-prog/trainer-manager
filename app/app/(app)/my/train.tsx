@@ -15,6 +15,7 @@ import { C, R } from '../../../src/lib/theme';
 import { ExerciseInfo, ExercisePicker, Thumb } from '../../../src/ui/ExercisePicker';
 import { exName } from '../../../src/lib/exercise';
 import { shareCard } from '../../../src/lib/shareCard';
+import { RandomWorkout } from '../../../src/ui/RandomWorkout';
 
 type ProgEx = { position: number; sets: number | null; reps: number | null; weight_kg: number | null; note: string | null; exercise: Exercise | null };
 type Program = { id: string; name: string; planned_for: string | null; created_at: string; owner: { display_name: string } | null; items: ProgEx[] };
@@ -29,6 +30,7 @@ export default function TrainPage() {
   const [ptDone, setPtDone] = useState(0);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [rand, setRand] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -93,7 +95,15 @@ export default function TrainPage() {
       </View>
 
       {draft ? <Editor draft={draft} setDraft={setDraft} onDone={(t, ok) => { setDraft(null); if (t) { setMsg({ t, ok: ok ?? true }); load(); } }} />
-        : <Btn icon="plus" label="เริ่มบันทึกการเล่น" onPress={() => setDraft({ title: '', trainerId: null, ex: [] })} />}
+        : rand ? <RandomWorkout onClose={() => setRand(false)}
+            onSaved={t => { setRand(false); setMsg({ t, ok: true }); load(); }}
+            onStart={(title, rows) => { setRand(false); setDraft({ title, trainerId: null, ex: rows.map(r => ({ ex: r.ex, sets: Array.from({ length: r.sets }, () => ({ reps: r.reps, kg: '' })) })) }); }} />
+        : (
+          <View style={{ gap: 10 }}>
+            <Btn icon="repeat" label="สุ่มโปรแกรมวันนี้" onPress={() => { setMsg(null); setRand(true); }} />
+            <Btn kind="ghost" icon="plus" label="เริ่มบันทึกการเล่นเอง" onPress={() => setDraft({ title: '', trainerId: null, ex: [] })} />
+          </View>
+        )}
 
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Label style={{ flex: 1 }}>โปรแกรมของฉัน</Label>
