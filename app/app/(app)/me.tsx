@@ -77,6 +77,11 @@ export default function Me() {
           ))}
         </Card>
       ) : null}
+      {!(places ?? []).some(p => p.role === 'owner') ? (
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <Row ic="plus" title="สร้างยิมของฉัน" sub="สำหรับเจ้าของยิม: สมาชิก แพ็กเกจรายเดือน PT และเทรนเนอร์" onPress={() => router.push('/gym/new' as any)} />
+        </Card>
+      ) : null}
       {from === 'trainer' || from === 'desk' ? <Btn kind="ghost" icon="activity" label="ของฉัน: อาหาร น้ำหนัก การเล่น" onPress={() => router.replace('/?me=1' as any)} /> : null}
       {profile.is_super_admin ? <Btn kind="ghost" icon="shield" label="หลังบ้าน (Super Admin)" onPress={() => router.push('/admin' as any)} /> : null}
       <Btn kind="danger" icon="log-out" label="ออกจากระบบ" onPress={signOut} />
