@@ -14,6 +14,7 @@ import { SPLITS, type SplitKey } from '../../../src/lib/plan';
 import { C, R } from '../../../src/lib/theme';
 import { ExerciseInfo, ExercisePicker, Thumb } from '../../../src/ui/ExercisePicker';
 import { exName } from '../../../src/lib/exercise';
+import { shareCard } from '../../../src/lib/shareCard';
 
 type ProgEx = { position: number; sets: number | null; reps: number | null; weight_kg: number | null; note: string | null; exercise: Exercise | null };
 type Program = { id: string; name: string; planned_for: string | null; created_at: string; owner: { display_name: string } | null; items: ProgEx[] };
@@ -146,6 +147,7 @@ export default function TrainPage() {
 }
 
 function HistRow({ w, onDeleted }: { w: Workout; onDeleted: () => void }) {
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const vol = w.sets.reduce((s, x) => s + (Number(x.reps) || 0) * (Number(x.weight_kg) || 0), 0);
   const names = [...new Set(w.sets.map(s => s.exercise_name))];
@@ -166,6 +168,11 @@ function HistRow({ w, onDeleted }: { w: Workout; onDeleted: () => void }) {
         {names.map(n => (
           <Txt key={n} size={14}>{n}: <Txt muted size={14}>{w.sets.filter(s => s.exercise_name === n).map(s => `${s.reps ?? '–'}${s.weight_kg ? `×${fmt1(s.weight_kg)}` : ''}`).join(', ')}</Txt></Txt>
         ))}
+        <Btn kind="ghost" icon="share" label="แชร์ลงสตอรี่" onPress={() => shareCard({
+          who: profile?.display_name ?? '', big: String(names.length), bigLabel: 'ท่า วันนี้',
+          stats: [['เล่น', w.title || 'ออกกำลังกาย'], ['เซต', `${w.sets.length} เซต`], ...(vol ? [['ยกรวม', `${Math.round(vol).toLocaleString('en-US')} kg`] as [string, string]] : [])],
+          footer: 'บันทึกการออกกำลังกายด้วย Trainer Manager',
+        })} />
         <ConfirmBtn label="ลบบันทึกนี้" onConfirm={del} />
       </> : null}
     </View>
@@ -197,7 +204,7 @@ function Editor({ draft, setDraft, onDone }: { draft: Draft; setDraft: (d: Draft
     if (w.error) { setBusy(false); onDone(thError(w.error), false); return; }
     const { error } = await supabase.from('workout_sets').insert(sets.map(s => ({ ...s, workout_id: w.data!.id })));
     setBusy(false);
-    onDone(error ? thError(error) : `บันทึก ${title} · ${sets.length} เซตแล้ว`, !error);
+    onDone(error ? thError(error) : `บันทึก ${title} · ${sets.length} เซตแล้ว · เพื่อนในกลุ่มเห็นและเชียร์ได้ · แตะรายการในประวัติเพื่อแชร์ลงสตอรี่`, !error);
   }
 
   return (

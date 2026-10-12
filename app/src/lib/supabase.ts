@@ -38,6 +38,10 @@ export function thError(e: unknown): string {
   if (/Failed to fetch|Network request failed|NetworkError/i.test(m)) return 'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
   if (/provider is not enabled|Unsupported provider/i.test(m)) return 'ช่องทางนี้ยังไม่เปิดใช้ ลองใช้อีเมลไปก่อน';
   if (/banned/i.test(m)) return 'บัญชีนี้ถูกระงับ ติดต่อผู้ดูแลระบบ';
+  if (/group code not found/i.test(m)) return 'ไม่พบกลุ่มจากโค้ดนี้ ตรวจโค้ด 6 ตัวอีกครั้ง';
+  if (/group is full/i.test(m)) return 'กลุ่มนี้เต็มแล้ว (สูงสุด 20 คน)';
+  if (/too many groups/i.test(m)) return 'สร้างกลุ่มได้สูงสุด 20 กลุ่ม';
+  if (/cannot nudge yourself/i.test(m)) return 'สะกิดตัวเองไม่ได้';
   if (/uid not found/i.test(m)) return 'ไม่พบ UID นี้ ให้อีกฝ่ายเปิดหน้า "ฉัน" ในแอปแล้วบอก UID อีกครั้ง';
   if (/already the owner/i.test(m)) return 'คนนี้เป็นเจ้าของยิมอยู่แล้ว · เจ้าของรับลูกเทรนเองได้เลย ไม่ต้องเพิ่มเป็นเทรนเนอร์';
   if (/account suspended/i.test(m)) return 'บัญชีนี้ถูกระงับอยู่';
@@ -46,7 +50,7 @@ export function thError(e: unknown): string {
   if (/only the gym owner|not allowed|row-level security|permission denied/i.test(m)) return 'คุณไม่มีสิทธิ์ทำรายการนี้';
   if (/violates foreign key|Database error deleting user/i.test(m)) return 'ลบไม่ได้ เพราะยังมีข้อมูลอื่นผูกกับรายการนี้อยู่';
   if (/cannot invite yourself/i.test(m)) return 'เชิญตัวเองไม่ได้';
-  if (/already your trainee|trainer_clients_active_uq/i.test(m)) return 'คนนี้เป็นลูกเทรนของเทรนเนอร์คนนี้อยู่แล้ว';
+  if (/already your trainee|trainer_clients_active_uq/i.test(m)) return 'คุณดูแลคนนี้อยู่แล้ว';
   if (/invite expired/i.test(m)) return 'คำเชิญหมดอายุแล้ว ให้เทรนเนอร์ส่งใหม่';
   if (/invite already answered|invite not found/i.test(m)) return 'คำเชิญนี้ตอบไปแล้ว';
   if (/trainer_clients_check/i.test(m)) return 'ตอนนี้ยังเพิ่มลูกเทรนที่ไม่มีแอปไม่ได้ (รออัปเดตระบบ) · ใช้แบบเชิญด้วย UID ไปก่อน';

@@ -29,7 +29,7 @@ export default function AddTrainee() {
     const { data, error } = await supabase.rpc('invite_client', { client_uid: n });
     setBusy(false);
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
-    setMsg({ t: `ส่งคำเชิญถึง ${(data as any)?.display_name || 'UID ' + n} แล้ว · เมื่อเขากดรับในแอป จะขึ้นในรายชื่อลูกเทรนของคุณ`, ok: true });
+    setMsg({ t: `ส่งคำเชิญถึง ${(data as any)?.display_name || 'UID ' + n} แล้ว · เมื่อเขากดรับในแอป จะขึ้นใน กลุ่ม › คนที่ฉันดูแล`, ok: true });
     setUid('');
   }
 
@@ -47,26 +47,26 @@ export default function AddTrainee() {
 
   return (
     <Screen>
-      <Header title="เพิ่มลูกเทรน" back={() => (router.canGoBack() ? router.back() : router.replace('/trainer' as any))} />
+      <Header title="เพิ่มคนที่ฉันดูแล" back={() => (router.canGoBack() ? router.back() : router.replace('/groups' as any))} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
-      <Chips options={[{ v: 'app', t: 'มีแอปแล้ว (เชิญด้วย UID)' }, { v: 'noapp', t: 'ยังไม่มีแอป' }]} value={mode} onChange={v => { setMode(v); setMsg(null); }} />
+      <Chips options={[{ v: 'app', t: 'เขามีแอป (ใส่ UID)' }, { v: 'noapp', t: 'ยังไม่มีแอป' }]} value={mode} onChange={v => { setMode(v); setMsg(null); }} />
       {mode === 'app' ? (
         <Card>
-          <Txt muted size={13.5}>ให้ลูกเทรนเปิดหน้า "ฉัน" ในแอป แล้วบอก UID (ตัวเลข) · ลูกเทรนต้องกดรับก่อน คุณถึงจะเห็นข้อมูลของเขา</Txt>
-          <Field label="UID ของลูกเทรน" value={uid} onChangeText={setUid} keyboardType="number-pad" placeholder="เช่น 100002" />
+          <Txt muted size={13.5}>ให้เขาเปิดหน้า "ฉัน" ในแอป แล้วบอก UID (ตัวเลข) · เขาต้องกดรับก่อน คุณถึงจะเห็นข้อมูลของเขา · ถ้าอยู่กลุ่มเดียวกัน กด "ขอดูแล" ในหน้ากลุ่มได้เลย</Txt>
+          <Field label="UID ของเขา" value={uid} onChangeText={setUid} keyboardType="number-pad" placeholder="เช่น 100002" />
           <Btn label="ส่งคำเชิญ" onPress={invite} loading={busy} />
         </Card>
       ) : (
         <Card>
-          <Txt muted size={13.5}>สำหรับลูกเทรนที่ไม่ใช้แอป คุณจดนัดและแพ็กเกจให้เขาได้ตามปกติ</Txt>
+          <Txt muted size={13.5}>สำหรับคนที่ไม่ใช้แอป เช่น พ่อแม่ หรือลูกค้าเทรนส่วนตัว คุณบันทึกโปรแกรม การเล่น น้ำหนัก นัด และแพ็กเกจแทนได้ · ใส่เบอร์ไว้ วันที่เขาโหลดแอปด้วยเบอร์นี้ จะมีคำขอให้เขากดรับ แล้วข้อมูลไปอยู่ในแอปของเขา</Txt>
           <Field label="ชื่อ" value={name} onChangeText={setName} />
           <PhoneField label="เบอร์โทร (ไม่บังคับ)" country={country} onCountry={setCountry} value={phone} onChangeText={setPhone} />
           <Field label="เป้าหมาย (ไม่บังคับ)" value={goal} onChangeText={setGoal} placeholder="เช่น ลดไขมัน 5 กก. ใน 3 เดือน" />
           {gyms.length ? <>
-            <Chips label="ลูกเทรนของ" options={gymChoice(gyms)} value={gym} onChange={setGym} />
-            <Txt muted size={12.5}>เลือกยิม = เจ้าของและผู้จัดการ ของยิมนั้นเห็นลูกเทรนคนนี้ · ส่วนตัว = เห็นแค่คุณ</Txt>
+            <Chips label="ผูกกับยิม (ไม่บังคับ)" options={gymChoice(gyms)} value={gym} onChange={setGym} />
+            <Txt muted size={12.5}>เลือกยิม = เจ้าของและผู้จัดการ ของยิมนั้นเห็นคนนี้ · ส่วนตัว = เห็นแค่คุณ</Txt>
           </> : null}
-          <Btn label="เพิ่มลูกเทรน" onPress={addNoApp} loading={busy} />
+          <Btn label="เพิ่มคนที่ฉันดูแล" onPress={addNoApp} loading={busy} />
         </Card>
       )}
     </Screen>

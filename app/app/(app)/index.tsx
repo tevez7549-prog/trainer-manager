@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
+import { getJSON } from '../../src/lib/store';
 import { useAuth } from '../../src/lib/auth';
 import { addDays, thDate, todayISO } from '../../src/lib/gym';
 import { landing, MEMBER_TABS } from '../../src/lib/nav';
@@ -36,7 +37,8 @@ export default function Home() {
 
 type Tc = { id: string; member_id: string | null; trainer: { display_name: string } | null };
 type Next = { id: string; trainer_client_id: string; starts_at: string; duration_min: number };
-type Invite = { id: string; from_name: string; from_uid: number };
+type Invite = { id: string; from_name: string; from_uid: number; kind: string };
+type Nudge = { id: string; group_id: string; group_name: string; from_name: string };
 type Card_ = Member & { gym: { name: string } | null };
 
 function MemberHome() {
@@ -48,6 +50,7 @@ function MemberHome() {
   const [next, setNext] = useState<Next | null>(null);
   const [pending, setPending] = useState(false);
   const [invites, setInvites] = useState<Invite[]>([]);
+  const [nudges, setNudges] = useState<Nudge[]>([]);
   const [food, setFood] = useState<{ t: Totals; target: Target | null } | null>(null);
   const [weight, setWeight] = useState<{ now: number; diff: number | null; on: string } | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
@@ -57,13 +60,17 @@ function MemberHome() {
   const load = useCallback(async () => {
     if (!profile) return;
     const today = todayISO();
-    const [m, inv, meals, target, w] = await Promise.all([
+    // an invite link opened before signing in: finish joining on the groups page
+    if (await getJSON<string>('tm-join-code')) { router.push('/groups' as any); }
+    const [m, inv, meals, target, w, nd] = await Promise.all([
       supabase.from('member_status').select('*').eq('profile_id', profile.id),
       supabase.rpc('my_invites'),
       loadDay(profile.id, today),
       latestTarget(profile.id),
       supabase.from('body_measurements').select('measured_on,weight_kg').eq('user_id', profile.id).not('weight_kg', 'is', null).order('measured_on', { ascending: false }).limit(40),
+      supabase.rpc('my_nudges'),
     ]);
+    setNudges((nd.data as Nudge[]) ?? []);
     const rows = ((m.data as any) ?? []) as Card_[];
     if (rows.length) {
       const g = await supabase.from('gyms').select('id,name').in('id', [...new Set(rows.map(r => r.gym_id))]);
@@ -103,8 +110,13 @@ function MemberHome() {
 
   async function answer(i: Invite, accept: boolean) {
     const { error } = await supabase.rpc('answer_invite', { i: i.id, accept });
-    setMsg(error ? { t: thError(error), ok: false } : { t: accept ? `รับ ${i.from_name} เป็นเทรนเนอร์แล้ว` : 'ปฏิเสธคำเชิญแล้ว', ok: true });
+    setMsg(error ? { t: thError(error), ok: false } : { t: accept ? `${i.from_name} ดูแลคุณแล้ว · ปิดได้ทุกเมื่อที่หน้า ฉัน` : 'ปฏิเสธแล้ว', ok: true });
     load();
+  }
+  async function seeNudge(n: Nudge, go?: string) {
+    await supabase.from('group_nudges').update({ seen_at: new Date().toISOString() }).eq('id', n.id);
+    setNudges(nudges.filter(x => x.id !== n.id));
+    if (go) router.push(go as any);
   }
 
   const trainerOf = (tcId: string) => tcs.find(t => t.id === tcId)?.trainer?.display_name ?? 'เทรนเนอร์';
@@ -127,10 +139,22 @@ function MemberHome() {
 
       {invites.map(i => (
         <Card key={i.id}>
-          <Txt><Txt bold>{i.from_name}</Txt> เชิญคุณเป็นลูกเทรน</Txt>
+          <Txt><Txt bold>{i.from_name}</Txt> {i.kind === 'client' ? 'ขอดูแลคุณ' : 'เชิญคุณ'}</Txt>
+          {i.kind === 'client' ? <Txt muted size={13.5}>เขาจะส่งโปรแกรม ตั้งเป้า และเห็นการกินกับการเล่นของคุณได้ · ถ้าเขาเคยบันทึกข้อมูลแทนคุณไว้ จะย้ายมาอยู่ในแอปของคุณ</Txt> : null}
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Btn label="รับ" onPress={() => answer(i, true)} style={{ flex: 1 }} />
             <Btn kind="ghost" label="ไม่รับ" onPress={() => answer(i, false)} style={{ flex: 1 }} />
+          </View>
+        </Card>
+      ))}
+
+      {nudges.map(n => (
+        <Card key={n.id}>
+          <Txt><Txt bold>{n.from_name}</Txt> สะกิดชวนคุณไปออกกำลังกาย</Txt>
+          <Txt muted size={13.5}>จากกลุ่ม {n.group_name}</Txt>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Btn label="ไปเล่นเลย" onPress={() => seeNudge(n, '/my/train')} style={{ flex: 1 }} />
+            <Btn kind="ghost" label="ดูกลุ่ม" onPress={() => seeNudge(n, `/groups/${n.group_id}`)} style={{ flex: 1 }} />
           </View>
         </Card>
       ))}

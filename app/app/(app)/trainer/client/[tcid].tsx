@@ -35,7 +35,7 @@ export default function ClientPage() {
 
   const load = useCallback(async () => {
     const t = await supabase.from('trainer_clients').select(TC_COLS).eq('id', tcid).maybeSingle();
-    if (t.error || !t.data) { setErr('ไม่พบลูกเทรนนี้ หรือคุณไม่มีสิทธิ์ดู'); return; }
+    if (t.error || !t.data) { setErr('ไม่พบคนนี้ หรือคุณไม่มีสิทธิ์ดู'); return; }
     const x = t.data as any as TC;
     setTc(x);
     const [p, a, l, lv, role] = await Promise.all([
@@ -55,15 +55,15 @@ export default function ClientPage() {
   }, [tcid, profile]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  if (err) return <Screen><Header title="ลูกเทรน" back={() => router.replace('/trainer' as any)} /><Notice text={err} /></Screen>;
-  if (!tc) return <Screen><Header title="ลูกเทรน" back={() => router.back()} /><Txt muted>กำลังโหลด…</Txt></Screen>;
+  if (err) return <Screen><Header title="คนที่ฉันดูแล" back={() => router.replace('/groups' as any)} /><Notice text={err} /></Screen>;
+  if (!tc) return <Screen><Header title="คนที่ฉันดูแล" back={() => router.back()} /><Txt muted>กำลังโหลด…</Txt></Screen>;
 
   // scheduled ones from the last 12 hours count as upcoming, so today's session can still be marked
   const upcoming = appts.filter(a => a.status === 'scheduled' && new Date(a.starts_at).getTime() > Date.now() - 12 * 3600000).reverse();
   const past = appts.filter(a => !upcoming.includes(a));
   const totalLeft = pkgs.reduce((s, p) => s + Math.max(0, p.sessions_left), 0);
   const done = (t: string, ok: boolean) => { setMsg({ t, ok }); load(); };
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/trainer' as any));
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/groups' as any));
 
   async function cancelAll() {
     const ids = upcoming.filter(a => new Date(a.starts_at).getTime() > Date.now()).map(a => a.id);
@@ -76,7 +76,7 @@ export default function ClientPage() {
   async function remove() {
     const { error } = await supabase.from('trainer_clients').update({ status: 'removed', removed_at: new Date().toISOString() }).eq('id', tcid);
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
-    router.replace('/trainer' as any);
+    router.replace('/groups' as any);
   }
 
   return (
@@ -142,7 +142,7 @@ export default function ClientPage() {
       </Card>
 
       {tc.trainer_id === profile?.id ? (
-        <ConfirmBtn label="ลบออกจากรายชื่อลูกเทรน" confirmLabel="กดอีกครั้ง: ลบออกจากรายชื่อ (บัญชีและประวัติของเขายังอยู่)" onConfirm={remove} />
+        <ConfirmBtn label="เลิกดูแลคนนี้" confirmLabel="กดอีกครั้ง: ลบออกจากรายชื่อ (บัญชีและประวัติของเขายังอยู่)" onConfirm={remove} />
       ) : null}
     </Screen>
   );
