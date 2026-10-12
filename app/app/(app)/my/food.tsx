@@ -11,6 +11,7 @@ import {
 } from '../../../src/lib/me';
 import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Label, Notice, Row, Screen, Select, Toggle, Txt } from '../../../src/ui';
 import { DayTotals } from '../../../src/ui/Macro';
+import { FoodHistory } from '../../../src/ui/FoodHistory';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
 import { gramsOf, MacroSplit, STYLES, type Split } from '../../../src/ui/MacroSplit';
@@ -87,6 +88,7 @@ export default function FoodPage() {
         </Card>
       </Pressable>
       {setting ? <TargetForm current={target ?? null} onDone={(t) => { setSetting(false); if (t) done(t); }} /> : null}
+      {profile ? <FoodHistory userId={profile.id} target={target ?? null} day={day} onPickDay={setDay} refresh={meals} /> : null}
 
       <Label>{today ? 'มื้อวันนี้' : `มื้อวันที่ ${thDate(day)}`}</Label>
       <Card style={{ gap: 0, paddingVertical: 4 }}>

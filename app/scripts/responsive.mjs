@@ -24,6 +24,17 @@ MUSCLES.forEach((m, i) => { for (let k = 0; k < 6; k++) exercises.push({ id: `e$
 for (let k = 0; k < 4; k++) exercises.push({ id: `c${k}`, name_th: `คาร์ดิโอ ${k}`, name_en: `Jumping Jacks ${k}`, body_part: 'cardio', kind: 'cardio', muscle: 'quadriceps', equipment: 'body only', level: 'beginner', media_url: '/ex/none.webp', created_by: null, mechanic: null, category: 'cardio' });
 for (let k = 0; k < 6; k++) exercises.push({ id: `s${k}`, name_th: `ยืด ${k}`, name_en: `Stretch ${k}`, body_part: 'stretch', kind: 'strength', muscle: MUSCLES[k], equipment: 'body only', level: 'beginner', media_url: '/ex/none.webp', created_by: null, mechanic: null, category: 'stretching' });
 
+// two weeks of meals (some days skipped, some over the goal) so the food history has something to draw
+const target = { id: 't1', kcal: 2000, protein_g: 120, carb_g: 220, fat_g: 65, goal: 'maintain', style: 'balanced', target_weight: null, set_by: UID, created_at: '2026-01-01T00:00:00Z' };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const meals = [];
+[1800, 2100, 0, 2600, 1950, 2300, 1700, 2000, 0, 2450, 1900, 2050, 1600, 2200].forEach((k, i) => {
+  if (!k) return;
+  const d = new Date(); d.setDate(d.getDate() - i);
+  ['มื้อเช้า', 'มื้อกลางวัน', 'มื้อเย็น'].forEach((name, j) => meals.push({ id: `m${i}-${j}`, user_id: UID, eaten_on: iso(d), name, position: j,
+    items: [{ id: `i${i}-${j}`, meal_id: `m${i}-${j}`, name: 'ข้าวกะเพราไก่ไข่ดาวพิเศษเผ็ดน้อย', grams: 350, kcal: k / 3, protein_g: 35, carb_g: 70, fat_g: 20, from_ai: false, food_id: null }] }));
+});
+
 async function mock(page) {
   await page.route(`https://${REF}.supabase.co/**`, async route => {
     const req = route.request(); const url = new URL(req.url()); const p = url.pathname;
@@ -35,6 +46,12 @@ async function mock(page) {
     if (p === '/rest/v1/profiles') return json(one ? profile : [profile]);
     if (p === '/rest/v1/consents') return json(one ? { id: 'c1' } : [{ id: 'c1' }]);
     if (p === '/rest/v1/exercises') return json(one ? exercises[0] : exercises);
+    if (p === '/rest/v1/nutrition_targets') return json(one ? target : [target]);
+    if (p === '/rest/v1/meals') {
+      const eq = url.searchParams.get('eaten_on');
+      const rows = eq && eq.startsWith('eq.') ? meals.filter(m => m.eaten_on === eq.slice(3)) : meals;
+      return json(one ? rows[0] ?? null : rows);
+    }
     if (p.startsWith('/rest/v1')) return json(one ? null : []);
     return json({});
   });
