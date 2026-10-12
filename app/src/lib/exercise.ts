@@ -30,10 +30,13 @@ let cache: Promise<LibEx[]> | null = null;
 /** Whole library once per app session (≈900 rows); own moves are included by RLS */
 export function loadLibrary(fresh = false): Promise<LibEx[]> {
   if (!cache || fresh) {
-    cache = supabase.from('exercises').select(LIB_COLS).order('name_en', { nullsFirst: false }).limit(3000)
-      .then(({ data, error }) => { if (error) { cache = null; return []; } return (data as LibEx[]) ?? []; });
+    cache = (async () => {
+      const { data, error } = await supabase.from('exercises').select(LIB_COLS).order('name_en', { nullsFirst: false }).limit(3000);
+      if (error) { cache = null; return []; }
+      return (data as LibEx[]) ?? [];
+    })();
   }
-  return cache;
+  return cache as Promise<LibEx[]>;
 }
 
 /** Match English or Thai name, every word typed */
