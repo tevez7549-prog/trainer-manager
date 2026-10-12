@@ -1,5 +1,12 @@
 /** Thai -> English for every piece of text in the app. Generated from the source; {0} marks a value filled in at runtime. */
 export const EN: Record<string, string> = {
+ "บันทึก {0}/{1} วัน · เฉลี่ยคิดเฉพาะวันที่บันทึก · แตะแท่งเพื่อดูวันนั้น": "Logged {0}/{1} days \u00b7 averages count logged days only \u00b7 tap a bar to open that day",
+ "เฉลี่ย {0} / เป้า {1} {2}": "Avg {0} / goal {1} {2}",
+ "เฉลี่ย {0} {1}": "Avg {0} {1}",
+ "มากกว่าช่วงก่อน {0} {1}/วัน": "{0} {1}/day more than the period before",
+ "น้อยกว่าช่วงก่อน {0} {1}/วัน": "{0} {1}/day less than the period before",
+ "ตั้งเป้าที่การ์ดด้านบน แล้วกราฟจะมีเส้นเป้าให้เทียบ": "Set a goal in the card above to see goal lines",
+ "เป้า": "Goal",
  "เป้า {0} kcal": "Goal {0} kcal",
  "มีบันทึก": "Logged",
  "วันที่บันทึก": "Days logged",
