@@ -137,7 +137,7 @@ export default function Admin() {
             return (
               <Row key={g.id} icon={g.name.slice(0, 2)} title={`${g.name}${g.branch ? ' · ' + g.branch : ''}`}
                 sub={`เจ้าของ ${owner ? `${owner.display_name} (UID ${owner.uid})` : '–'} · ทีม ${staff} คน · สร้าง ${thDateTs(g.created_at)}`}
-                right={<Pill text={`สมาชิก ${g.members?.[0]?.count ?? 0}`} kind="info" />} onPress={() => router.push(`/gym/${g.id}` as any)} />
+                right={<Pill text={`สมาชิก ${g.members?.[0]?.count ?? 0}`} kind="info" />} />
             );
           })}
         </Card>
