@@ -16,7 +16,7 @@ export function QrCode({ value, size = 168, fg = '#0E0F10', bg = '#FFFFFF' }: { 
   }, [value]);
   return (
     <View accessibilityRole="image" accessibilityLabel={value} style={{ width: size, height: size, borderRadius: 12, overflow: 'hidden', backgroundColor: bg }}>
-      <Svg width={size} height={size} viewBox={`0 0 ${n} ${n}`} shapeRendering="crispEdges">
+      <Svg width={size} height={size} viewBox={`0 0 ${n} ${n}`} {...({ shapeRendering: "crispEdges" } as any)}>
         <Rect x={0} y={0} width={n} height={n} fill={bg} />
         <Path d={d} fill={fg} />
       </Svg>
