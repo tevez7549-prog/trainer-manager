@@ -5,7 +5,7 @@ import { supabase, thError } from '../../src/lib/supabase';
 import { getJSON } from '../../src/lib/store';
 import { useAuth } from '../../src/lib/auth';
 import { addDays, thDate, todayISO } from '../../src/lib/gym';
-import { landing, MEMBER_TABS } from '../../src/lib/nav';
+import { MEMBER_TABS } from '../../src/lib/nav';
 import { STATUS_TH, type Member } from '../../src/lib/counter';
 import { prettyPhone } from '../../src/lib/phone';
 import { apptRange, dayLabel, sessionsLeft, toTs } from '../../src/lib/trainer';
@@ -17,22 +17,9 @@ import { TabBar } from '../../src/ui/TabBar';
 import { TodayWorkout } from '../../src/ui/TodayWorkout';
 import { C, R } from '../../src/lib/theme';
 
-/** Opening the app: staff go straight to their job; everyone else gets their own home */
+/** Opening the app: everyone starts on their own home; gym and trainer work is one tap away in Me › Switch mode */
 export default function Home() {
-  const { profile } = useAuth();
-  const { me } = useLocalSearchParams<{ me?: string }>();
-  const [ready, setReady] = useState(false);
-  useFocusEffect(useCallback(() => {
-    if (!profile) return;
-    if (me === '1') { setReady(true); return; }   // staff opening their personal side
-    let alive = true;
-    landing(profile.id).then(r => {
-      if (!alive) return;
-      if ('to' in r) router.replace(r.to as any); else setReady(true);
-    });
-    return () => { alive = false; };
-  }, [profile, me]));
-  return ready ? <MemberHome /> : <Loading />;
+  return <MemberHome />;
 }
 
 type Tc = { id: string; member_id: string | null; trainer: { display_name: string } | null };
