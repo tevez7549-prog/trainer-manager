@@ -16,6 +16,8 @@ import { Pressable } from 'react-native';
 import { ROLE_TH } from '../../src/lib/gym';
 import { Row } from '../../src/ui';
 import { InstallApp } from '../../src/ui/InstallApp';
+import { QrCode } from '../../src/ui/QrCode';
+import { uidQrText } from '../../src/lib/qr';
 
 
 export default function Me() {
@@ -58,7 +60,10 @@ export default function Me() {
       <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 2, alignItems: 'center' }}>
         <Txt size={14} style={{ color: C.brandInk, opacity: 0.8 }}>UID ของฉัน</Txt>
         <H size={40} style={{ color: C.brandInk, letterSpacing: 2 }}>{profile.uid}</H>
-        <Txt size={14} style={{ color: C.brandInk, textAlign: 'center' }}>บอก UID นี้ให้ยิม เทรนเนอร์ หรือคนที่จะดูแลคุณ</Txt>
+        <View style={{ marginTop: 8, marginBottom: 6, padding: 6, borderRadius: 16, backgroundColor: '#FFFFFF' }}>
+          <QrCode value={uidQrText(profile.uid)} size={168} />
+        </View>
+        <Txt size={14} style={{ color: C.brandInk, textAlign: 'center' }}>ให้ยิม เทรนเนอร์ หรือคนที่จะดูแลคุณ สแกน QR นี้ หรือบอก UID</Txt>
       </View>
       {from === 'member' || !tabs ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>

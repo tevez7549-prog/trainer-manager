@@ -5,7 +5,8 @@ import { supabase, thError } from '../../../../src/lib/supabase';
 import { gymCountry, isManager, useGym } from '../../../../src/lib/gym';
 import { phoneError, prettyPhone, toE164, type Country } from '../../../../src/lib/phone';
 import { loadCoaches, type Coach } from '../../../../src/lib/coaches';
-import { Btn, Card, ConfirmBtn, Empty, Field, Header, Label, Notice, Pill, Row, Txt } from '../../../../src/ui';
+import { Btn, Card, Chips, ConfirmBtn, Empty, Field, Header, Label, Notice, Pill, Row, Txt } from '../../../../src/ui';
+import { UidField } from '../../../../src/ui/UidField';
 import { PhoneField } from '../../../../src/ui/PhoneField';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 import { WeekGrid } from '../../../../src/ui/WeekGrid';
@@ -20,6 +21,8 @@ export default function Coaches() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [mode, setMode] = useState<'uid' | 'name'>('uid');
+  const [uid, setUid] = useState('');
   const [country, setCountry] = useState<Country | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
@@ -50,6 +53,17 @@ export default function Coaches() {
     setMsg({ t: (data as any)?.profile_id ? `เพิ่ม ${name.trim()} แล้ว · เบอร์นี้มีแอปอยู่แล้ว เขาเห็นตารางเทรนของตัวเองทันที` : `เพิ่ม ${name.trim()} แล้ว`, ok: true });
     setName(''); setPhone(''); setAdding(false); setPick((data as any)?.id ?? null); load();
   }
+  async function addByUid() {
+    const n = Number(uid.replace(/\D/g, ''));
+    if (!n) { setMsg({ t: 'ใส่ UID (ตัวเลข) หรือกดกล้องสแกน QR', ok: false }); return; }
+    setBusy(true); setMsg(null);
+    const { data, error } = await supabase.rpc('gym_add_coach_uid', { g: id, person_uid: n, coach_name: name.trim() || null });
+    setBusy(false);
+    if (error) { setMsg({ t: thError(error), ok: false }); return; }
+    const d = data as { id: string; name: string; existing: boolean };
+    setMsg({ t: d.existing ? `${d.name} อยู่ในรายชื่อแล้ว · เชื่อมกับแอปของเขาแล้ว เห็นตารางเทรนของตัวเองทันที` : `เพิ่ม ${d.name} แล้ว · เขาเห็นตารางเทรนของตัวเองในแอปทันที`, ok: true });
+    setUid(''); setName(''); setAdding(false); setPick(d.id); load();
+  }
   async function setActive(c: Coach, active: boolean) {
     const { error } = await supabase.from('gym_coaches').update({ active }).eq('id', c.id);
     setMsg(error ? { t: thError(error), ok: false } : { t: active ? `เปิดใช้ ${c.name} แล้ว` : `ปิด ${c.name} แล้ว · ลูกค้าและประวัติเดิมยังอยู่`, ok: true });
@@ -63,7 +77,7 @@ export default function Coaches() {
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
       {list === null ? <Txt muted>กำลังโหลด…</Txt> : !list.length ? (
-        <Card><Empty ic="users" title="ยังไม่มีชื่อเทรนเนอร์" text="เพิ่มชื่อได้เลย ไม่ต้องมีแอป · ใส่เบอร์ไว้ ถ้าเขาใช้แอปด้วยเบอร์นี้ จะเห็นตารางเทรนของตัวเอง" /></Card>
+        <Card><Empty ic="users" title="ยังไม่มีชื่อเทรนเนอร์" text="มีแอป: เพิ่มด้วย UID หรือสแกน QR หน้า ฉัน ของเขา · ไม่มีแอป: ใส่แค่ชื่อก็ได้" /></Card>
       ) : (
         <Card style={{ gap: 0, paddingVertical: 4 }}>
           {list.map(x => (
@@ -78,10 +92,18 @@ export default function Coaches() {
       {can ? (adding ? (
         <Card>
           <Txt bold>เพิ่มเทรนเนอร์</Txt>
-          <Field label="ชื่อ" value={name} onChangeText={setName} placeholder="เช่น โค้ชแนน" maxLength={60} />
-          <PhoneField label="เบอร์โทร (ไม่บังคับ)" country={cc} onCountry={setCountry} value={phone} onChangeText={setPhone} />
-          <Txt muted size={12.5}>ไม่มีแอปก็เพิ่มได้ ใช้เป็นชื่อในแพ็กเกจ PT และตาราง · ถ้าเบอร์ตรงกับคนที่ใช้แอป (ตอนนี้หรือวันหลัง) เขาจะเห็นตารางเทรนของตัวเอง</Txt>
-          <Btn label="เพิ่ม" onPress={add} loading={busy} />
+          <Chips options={[{ v: 'uid', t: 'มีแอป (UID / QR)' }, { v: 'name', t: 'ไม่มีแอป' }]} value={mode} onChange={v => { setMode(v as 'uid' | 'name'); setMsg(null); }} />
+          {mode === 'uid' ? <>
+            <UidField label="UID ของเทรนเนอร์" value={uid} onChange={setUid} />
+            <Field label="ชื่อที่ใช้ในยิม (ไม่บังคับ)" value={name} onChangeText={setName} placeholder="ว่างไว้ = ใช้ชื่อในแอปของเขา" maxLength={60} />
+            <Txt muted size={12.5}>ให้เทรนเนอร์เปิดหน้า "ฉัน" ในแอป แล้วพิมพ์ UID หรือกดกล้องสแกน QR · เพิ่มแล้วเขาเห็นตารางเทรนของตัวเองทันที</Txt>
+            <Btn label="เพิ่ม" onPress={addByUid} loading={busy} />
+          </> : <>
+            <Field label="ชื่อ" value={name} onChangeText={setName} placeholder="เช่น โค้ชแนน" maxLength={60} />
+            <PhoneField label="เบอร์โทร (ไม่บังคับ)" country={cc} onCountry={setCountry} value={phone} onChangeText={setPhone} />
+            <Txt muted size={12.5}>ไม่มีแอปก็เพิ่มได้ ใช้เป็นชื่อในแพ็กเกจ PT และตาราง · ถ้าเบอร์ตรงกับคนที่ใช้แอป (ตอนนี้หรือวันหลัง) เขาจะเห็นตารางเทรนของตัวเอง</Txt>
+            <Btn label="เพิ่ม" onPress={add} loading={busy} />
+          </>}
           <Btn kind="ghost" label="ยกเลิก" onPress={() => setAdding(false)} />
         </Card>
       ) : <Btn kind="ghost" icon="plus" label="เพิ่มเทรนเนอร์" onPress={() => setAdding(true)} />) : null}

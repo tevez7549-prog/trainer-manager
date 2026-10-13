@@ -5,6 +5,7 @@ import { useAuth } from '../../../src/lib/auth';
 import { DEFAULT_COUNTRY, phoneError, toE164, type Country } from '../../../src/lib/phone';
 import { Btn, Card, Chips, Field, Header, Notice, Screen, Txt } from '../../../src/ui';
 import { PhoneField } from '../../../src/ui/PhoneField';
+import { UidField } from '../../../src/ui/UidField';
 import { gymChoice, useMyGyms } from '../../../src/lib/trainer';
 
 type Mode = 'app' | 'noapp';
@@ -52,8 +53,8 @@ export default function AddTrainee() {
       <Chips options={[{ v: 'app', t: 'เขามีแอป (ใส่ UID)' }, { v: 'noapp', t: 'ยังไม่มีแอป' }]} value={mode} onChange={v => { setMode(v); setMsg(null); }} />
       {mode === 'app' ? (
         <Card>
-          <Txt muted size={13.5}>ให้เขาเปิดหน้า "ฉัน" ในแอป แล้วบอก UID (ตัวเลข) · เขาต้องกดรับก่อน คุณถึงจะเห็นข้อมูลของเขา · ถ้าอยู่กลุ่มเดียวกัน กด "ขอดูแล" ในหน้ากลุ่มได้เลย</Txt>
-          <Field label="UID ของเขา" value={uid} onChangeText={setUid} keyboardType="number-pad" placeholder="เช่น 100002" />
+          <Txt muted size={13.5}>ให้เขาเปิดหน้า "ฉัน" ในแอป แล้วบอก UID หรือกดกล้องสแกน QR · เขาต้องกดรับก่อน คุณถึงจะเห็นข้อมูลของเขา · ถ้าอยู่กลุ่มเดียวกัน กด "ขอดูแล" ในหน้ากลุ่มได้เลย</Txt>
+          <UidField label="UID ของเขา" value={uid} onChange={setUid} />
           <Btn label="ส่งคำเชิญ" onPress={invite} loading={busy} />
         </Card>
       ) : (

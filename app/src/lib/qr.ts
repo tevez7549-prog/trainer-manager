@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
  * around 1200 px wide, and a close-up best smaller.
  */
 let lib: Promise<any> | null = null;
-function loadJsQR(): Promise<any> {
+export function loadJsQR(): Promise<any> {
   if (!lib) {
     lib = new Promise((ok, bad) => {
       const w = globalThis as any;
@@ -58,4 +58,13 @@ export async function readQrFromFile(file: Blob): Promise<string | null> {
     if (s === 1) break;   // photo already smaller than this; bigger sizes won't help
   }
   return null;
+}
+
+/** What a person's UID QR holds (shown on the Me page) */
+export const uidQrText = (uid: number) => `TMUID:${uid}`;
+/** A UID from a scanned QR: our own TMUID:… code, a link ending in /u/123456, or just the number */
+export function parseUid(text: string | null | undefined): number | null {
+  const t = (text ?? '').trim();
+  const m = t.match(/^TMUID:(\d{1,12})$/i) ?? t.match(/\/u\/(\d{1,12})\/?$/) ?? t.match(/^(\d{4,12})$/);
+  return m ? Number(m[1]) : null;
 }

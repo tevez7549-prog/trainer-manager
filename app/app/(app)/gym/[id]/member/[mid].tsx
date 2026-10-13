@@ -14,6 +14,7 @@ import { newSale, saleError, sell, SellForm, type Sale } from '../../../../../sr
 import { C } from '../../../../../src/lib/theme';
 import { sessionsLeft } from '../../../../../src/lib/trainer';
 import { Chips, DateField, Row } from '../../../../../src/ui';
+import { UidField } from '../../../../../src/ui/UidField';
 import { GymFrame } from '../../../../../src/ui/GymFrame';
 
 type Ms = { id: string; plan_name: string; start_date: string; end_date: string; price: number; pay_method: string | null; created_at: string };
@@ -360,7 +361,7 @@ function LinkUid({ mid, onDone }: { mid: string; onDone: (msg: string) => void }
   return (
     <View style={{ gap: 8 }}>
       {err ? <Notice text={err} /> : null}
-      <Field label="UID ของสมาชิก (หน้า ฉัน ในแอปของเขา)" value={uid} onChangeText={setUid} keyboardType="number-pad" />
+      <UidField label="UID ของสมาชิก (หน้า ฉัน ในแอปของเขา)" value={uid} onChange={setUid} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Btn label="เชื่อม" onPress={go} style={{ flex: 1 }} />
         <Btn kind="ghost" label="ยกเลิก" onPress={() => setOpen(false)} style={{ flex: 1 }} />

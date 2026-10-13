@@ -5,6 +5,7 @@ import { supabase, thError } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/lib/auth';
 import { ROLE_TH, type Role, useGym } from '../../../../src/lib/gym';
 import { Btn, Card, Chips, ConfirmBtn, Field, H, Header, Notice, Pill, Row, Screen, Txt } from '../../../../src/ui';
+import { UidField } from '../../../../src/ui/UidField';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 
 type Staff = { role: Role; user_id: string; active: boolean; profile: { display_name: string; uid: number } | null };
@@ -61,8 +62,8 @@ export default function StaffPage() {
       {owner ? (
         <Card>
           <H size={17}>เพิ่มคนเข้าทีม</H>
-          <Txt muted size={13.5}>ให้อีกฝ่ายสมัครแอปก่อน แล้วเปิดหน้า "ฉัน" จะเห็น UID (ตัวเลข)</Txt>
-          <Field label="UID" value={uid} onChangeText={setUid} keyboardType="number-pad" placeholder="เช่น 100002" />
+          <Txt muted size={13.5}>ให้อีกฝ่ายสมัครแอปก่อน แล้วเปิดหน้า "ฉัน" จะเห็น UID และ QR · พิมพ์ UID หรือกดกล้องเพื่อสแกน</Txt>
+          <UidField label="UID" value={uid} onChange={setUid} />
           <Chips label="ตำแหน่ง" options={ADDABLE} value={newRole} onChange={setNewRole} />
           <Txt muted size={12.5}>{ROLE_HINT[newRole]}</Txt>
           <Btn label="เพิ่มเข้าทีม" onPress={add} loading={busy} />
