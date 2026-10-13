@@ -154,7 +154,7 @@ function Tiles({ s, prev }: { s: Scan | InBody; prev: Scan | null }) {
         const diff = p != null ? Math.round((v - p) * 10) / 10 : null;
         const good = diff == null || diff === 0 || m.goodDown === undefined ? null : (diff < 0) === m.goodDown;
         return (
-          <View key={String(m.k)} style={{ flexGrow: 1, flexBasis: 130, backgroundColor: C.surface2, borderRadius: R.field, padding: 10, gap: 2 }}>
+          <View key={String(m.k)} style={{ flexGrow: 1, flexBasis: 110, backgroundColor: C.surface2, borderRadius: R.field, padding: 10, gap: 2 }}>
             <Txt muted size={12.5} numberOfLines={1}>{m.t}</Txt>
             <Txt bold size={17}>{`${m.d === 0 ? Math.round(v).toLocaleString('en-US') : fmt1(v)} ${m.unit}`}</Txt>
             {diff != null && diff !== 0 ? <Txt size={12} bold style={{ color: good === null ? C.muted : good ? C.accent : C.warnFg }}>{`${diff > 0 ? '+' : ''}${m.d === 0 ? Math.round(diff) : fmt1(diff)} จากครั้งก่อน`}</Txt> : null}
