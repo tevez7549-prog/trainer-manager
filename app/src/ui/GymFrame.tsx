@@ -13,10 +13,10 @@ import { TabBar } from './TabBar';
 export type GymTab = 'home' | 'counter' | 'members' | 'pt' | 'more' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
 
 const NAV: { k: GymTab; t: string; icon: IconName; show: (r: Role | null) => boolean }[] = [
-  { k: 'home', t: 'วันนี้', icon: 'house', show: isManager },
+  { k: 'home', t: 'ภาพรวม', icon: 'house', show: isManager },
   { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', show: isDesk },
   { k: 'members', t: 'สมาชิก', icon: 'users', show: isDesk },
-  { k: 'pt', t: 'PT', icon: 'dumbbell', show: isManager },
+  { k: 'pt', t: 'เทรนเนอร์และ PT', icon: 'dumbbell', show: isManager },
   { k: 'plans', t: 'แพ็กเกจและราคา', icon: 'tag', show: isManager },
   { k: 'staff', t: 'ทีมงาน', icon: 'id-card', show: isManager },
   { k: 'holidays', t: 'วันหยุดยิม', icon: 'calendar-off', show: isManager },
@@ -28,13 +28,14 @@ const NAV: { k: GymTab; t: string; icon: IconName; show: (r: Role | null) => boo
 const TAB_OF: Partial<Record<GymTab, string>> = { plans: 'more', staff: 'more', holidays: 'more', import: 'more', settings: 'more' };
 
 /** Gym pages: a side menu on computer screens, a bottom menu on phones */
-export function GymFrame({ id, gym, role, active, children }: { id: string; gym: Gym | null; role: Role | null; active: GymTab; children: ReactNode }) {
+export function GymFrame({ id, gym, role, active, desk, children }: { id: string; gym: Gym | null; role: Role | null; active: GymTab; /** counter mode menu */ desk?: boolean; children: ReactNode }) {
   const wide = useWide();
   useEffect(() => { if (role) rememberGym(id); }, [id, role]);
   if (role === 'trainer') return <Redirect href={'/trainer' as any} />;
   if (!wide) {
-    const tab = TAB_OF[active] ?? (role === 'operator' && active === 'more' ? 'me' : active);
-    return <Screen footer={<TabBar tabs={tabsFor(role, id)} active={tab} />}>{children}</Screen>;
+    const counter = desk || active === 'counter' || role === 'operator';
+    const tab = TAB_OF[active] ?? (counter && active === 'more' ? 'me' : active);
+    return <Screen footer={<TabBar tabs={tabsFor(role, id, counter)} active={tab} />}>{children}</Screen>;
   }
   const go = (k: GymTab) => router.replace((k === 'home' ? `/gym/${id}` : `/gym/${id}/${k}`) as any);
   return (

@@ -11,7 +11,7 @@ type Filter = 'all' | MemberStatus;
 const PAGE = 50;
 
 export default function Members() {
-  const { id, f: f0 } = useLocalSearchParams<{ id: string; f?: string }>();
+  const { id, f: f0, desk } = useLocalSearchParams<{ id: string; f?: string; desk?: string }>();
   const { gym, role } = useGym(id);
   const [rows, setRows] = useState<Member[] | null>(null);
   const [offline, setOffline] = useState(false);
@@ -40,7 +40,7 @@ export default function Members() {
   ];
 
   return (
-    <GymFrame id={id} gym={gym} role={role} active="members">
+    <GymFrame id={id} gym={gym} role={role} active="members" desk={desk === "1"}>
       <Header title="สมาชิก" sub={gym?.name} />
       {offline ? <Notice kind="info" text="ออฟไลน์ · แสดงรายชื่อที่บันทึกไว้ในเครื่อง" /> : null}
       <Btn icon="user-plus" label="เพิ่มสมาชิก" onPress={() => router.push(`/gym/${id}/member/new` as any)} />

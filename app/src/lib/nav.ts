@@ -9,17 +9,18 @@ export type Tab = { k: string; t: string; icon: string; href: string };
 
 /** One bottom menu per job. Things used rarely live under "เพิ่มเติม". */
 export const ownerTabs = (g: string): Tab[] => [
-  { k: 'home', t: 'วันนี้', icon: 'house', href: `/gym/${g}` },
-  { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', href: `/gym/${g}/counter` },
+  { k: 'home', t: 'ภาพรวม', icon: 'house', href: `/gym/${g}` },
+  { k: 'pt', t: 'เทรนเนอร์', icon: 'dumbbell', href: `/gym/${g}/pt` },
   { k: 'members', t: 'สมาชิก', icon: 'users', href: `/gym/${g}/members` },
-  { k: 'pt', t: 'PT', icon: 'dumbbell', href: `/gym/${g}/pt` },
   { k: 'more', t: 'เพิ่มเติม', icon: 'menu', href: `/gym/${g}/more` },
 ];
-export const operatorTabs = (g: string): Tab[] => [
+/** Counter mode: checking people in, walk-ins, selling. Separate from the owner's overview. */
+export const counterTabs = (g: string): Tab[] => [
   { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', href: `/gym/${g}/counter` },
-  { k: 'members', t: 'สมาชิก', icon: 'users', href: `/gym/${g}/members` },
+  { k: 'members', t: 'สมาชิก', icon: 'users', href: `/gym/${g}/members?desk=1` },
   { k: 'me', t: 'ฉัน', icon: 'user', href: `/me?from=desk&g=${g}` },
 ];
+export const operatorTabs = counterTabs;
 export const TRAINER_TABS: Tab[] = [
   { k: 'today', t: 'วันนี้', icon: 'calendar', href: '/trainer' },
   { k: 'calendar', t: 'ปฏิทิน', icon: 'calendar-days', href: '/trainer/calendar' },
@@ -35,8 +36,9 @@ export const MEMBER_TABS: Tab[] = [
   { k: 'me', t: 'ฉัน', icon: 'user', href: '/me?from=member' },
 ];
 
-export function tabsFor(role: Role | null | undefined, gymId?: string): Tab[] {
+export function tabsFor(role: Role | null | undefined, gymId?: string, desk = false): Tab[] {
   if (!gymId) return [];
+  if (desk && (role === 'owner' || role === 'admin' || role === 'operator')) return counterTabs(gymId);
   if (role === 'owner' || role === 'admin') return ownerTabs(gymId);
   if (role === 'operator') return operatorTabs(gymId);
   return [];

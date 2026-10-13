@@ -89,8 +89,12 @@ export default function Me() {
           {modes.isTrainer ? <ModeRow ic="dumbbell" title="โหมดเทรนเนอร์" sub="นัด ลูกเทรน ปฏิทิน คลังโปรแกรม" on={from === 'trainer'}
             onPress={() => router.replace('/trainer' as any)} /> : null}
           {modes.gyms.map(p => (
-            <ModeRow key={p.gym.id} ic="house" title={`ดูแลยิม ${p.gym.name}`} sub={ROLE_TH[p.role]} on={from === 'desk' && g === p.gym.id}
-              onPress={() => { rememberGym(p.gym.id); router.replace(gymHref(p) as any); }} />
+            <View key={p.gym.id}>
+              {p.role !== 'operator' ? <ModeRow ic="house" title={`ดูแลยิม ${p.gym.name}`} sub={`ภาพรวม เทรนเนอร์ สมาชิก · ${ROLE_TH[p.role]}`} on={false}
+                onPress={() => { rememberGym(p.gym.id); router.replace(gymHref(p) as any); }} /> : null}
+              <ModeRow ic="circle-check" title={`เคาน์เตอร์ ${p.gym.name}`} sub="เช็กอิน ขาจร ขาย และต่ออายุ" on={from === 'desk' && g === p.gym.id}
+                onPress={() => { rememberGym(p.gym.id); router.replace(`/gym/${p.gym.id}/counter` as any); }} />
+            </View>
           ))}
         </Card>
       ) : null}

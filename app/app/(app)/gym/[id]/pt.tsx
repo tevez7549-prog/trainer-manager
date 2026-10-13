@@ -16,14 +16,14 @@ type Range = 'today' | 'week';
 
 /** Owner / Admin / Operator: every trainer's trainees, sessions left and appointments at this gym */
 export default function GymPT() {
-  const { id, low: low0 } = useLocalSearchParams<{ id: string; low?: string }>();
+  const { id, low: low0, who: who0 } = useLocalSearchParams<{ id: string; low?: string; who?: string }>();
   const { gym, role } = useGym(id);
   const me = useAuth().profile?.id;
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [tcs, setTcs] = useState<TC[] | null>(null);
   const [left, setLeft] = useState<Record<string, number>>({});
   const [appts, setAppts] = useState<Appt[]>([]);
-  const [who, setWho] = useState<string>('all');
+  const [who, setWho] = useState<string>(who0 || 'all');
   const [range, setRange] = useState<Range>('today');
   const [q, setQ] = useState('');
   const [low, setLow] = useState(low0 === '1');
