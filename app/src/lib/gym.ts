@@ -8,7 +8,7 @@ import { COUNTRIES, DEFAULT_COUNTRY, type Country } from './phone';
 export type Role = 'owner' | 'admin' | 'operator' | 'trainer';
 export type Gym = {
   id: string; name: string; branch: string | null; phone: string | null; walkin_price: number;
-  closed_weekdays: number[]; country_code: string; address: string | null;
+  closed_weekdays: number[]; country_code: string; address: string | null; open_hours: { open?: string; close?: string } | null;
 };
 export type PtPlan = { id: string; gym_id: string; name: string; sessions: number; months: number; price: number; active: boolean; sort: number };
 export type Plan = { id: string; gym_id: string; name: string; months: number; days: number; price: number; active: boolean; sort: number };
@@ -26,7 +26,7 @@ export const isManager = (r?: Role | null) => r === 'owner' || r === 'admin';
 export const gymCountry = (g?: Pick<Gym, 'country_code'> | null): Country =>
   COUNTRIES.find(c => c.dial === (g?.country_code || '66')) ?? DEFAULT_COUNTRY;
 
-const GYM_COLS = 'id,name,branch,phone,walkin_price,closed_weekdays,country_code,address';
+const GYM_COLS = 'id,name,branch,phone,walkin_price,closed_weekdays,country_code,address,open_hours';
 
 /** The gym and my role in it; reloads when the screen comes back into view */
 export function useGym(id: string | undefined) {

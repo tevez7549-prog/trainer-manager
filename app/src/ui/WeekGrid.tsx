@@ -9,7 +9,7 @@ import { Icon } from './Icon';
 
 const WD = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 const MON = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-const FIRST = 6, LAST = 22;            // rows 06:00 … 21:00
+const FIRST = 6, LAST = 22;            // default rows 06:00 … 21:00 when the gym's hours aren't known
 const ROW = 30;
 
 type Busy = { starts_at: string; duration_min: number; tc: { client_name: string | null; client: { display_name: string } | null; member: { name: string } | null } | null };
@@ -21,10 +21,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
  * A trainer's week at a glance: one column per day, one row per hour.
  * Filled = has a session, grey = leave or gym closed, empty = free. Tap a free hour to book it (when onPick is given).
  */
-export function WeekGrid({ trainerId, coachId, closedDays = [], onPick, reloadKey }: {
+export function WeekGrid({ trainerId, coachId, closedDays = [], openHours, onPick, reloadKey }: {
   /** a person's sessions (their own app) */ trainerId?: string | null;
   /** a gym coach's sessions; their leave shows when the coach has the app (trainerId = their account) */ coachId?: string;
-  closedDays?: number[]; onPick?: (date: string, time: string) => void; reloadKey?: number;
+  closedDays?: number[]; /** the gym's opening time range; rows follow it */ openHours?: { open?: string; close?: string } | null; onPick?: (date: string, time: string) => void; reloadKey?: number;
 }) {
   const [week, setWeek] = useState(monday(todayISO()));
   const [busy, setBusy] = useState<Busy[]>([]);
@@ -46,7 +46,9 @@ export function WeekGrid({ trainerId, coachId, closedDays = [], onPick, reloadKe
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const today = todayISO();
   const now = Date.now();
-  const hours = Array.from({ length: LAST - FIRST }, (_, i) => FIRST + i);
+  const first = openHours?.open ? Number(openHours.open.slice(0, 2)) : FIRST;
+  const last = openHours?.close ? Math.min(24, Math.ceil(Number(openHours.close.slice(0, 2)) + Number(openHours.close.slice(3, 5)) / 60)) : LAST;
+  const hours = Array.from({ length: Math.max(1, last - first) }, (_, i) => first + i);
 
   function cell(day: string, h: number) {
     const s = new Date(`${day}T${pad(h)}:00:00`).getTime(), e = s + 3600000;

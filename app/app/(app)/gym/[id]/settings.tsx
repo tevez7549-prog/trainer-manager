@@ -8,31 +8,34 @@ import { Btn, Card, ConfirmBtn, Field, Header, Notice, Screen, Txt } from '../..
 import { useAuth } from '../../../../src/lib/auth';
 import { C, R } from '../../../../src/lib/theme';
 import { GymFrame } from '../../../../src/ui/GymFrame';
+import { DEFAULT_HOURS, hoursError, hoursFromGym, hoursToGym, OpenHours, type Hours } from '../../../../src/ui/OpenHours';
 
 export default function GymSettings() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { gym, role, reload } = useGym(id);
   const { profile } = useAuth();
-  const [f, setF] = useState({ name: '', branch: '', phone: '', address: '', walkin: '', cc: '66', closed: [] as number[] });
+  const [f, setF] = useState({ name: '', branch: '', phone: '', address: '', walkin: '', cc: '66' });
+  const [hours, setHours] = useState<Hours>(DEFAULT_HOURS);
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (gym) setF({ name: gym.name, branch: gym.branch ?? '', phone: gym.phone ?? '', address: gym.address ?? '', walkin: String(gym.walkin_price), cc: gym.country_code || '66', closed: gym.closed_weekdays ?? [] });
+    if (gym) setF({ name: gym.name, branch: gym.branch ?? '', phone: gym.phone ?? '', address: gym.address ?? '', walkin: String(gym.walkin_price), cc: gym.country_code || '66' });
+    if (gym) setHours(hoursFromGym(gym));
   }, [gym]);
 
   const country = gymCountry({ country_code: f.cc });
-  const toggle = (d: number) => setF(x => ({ ...x, closed: x.closed.includes(d) ? x.closed.filter(y => y !== d) : [...x.closed, d].sort() }));
 
   async function save() {
     const price = Number(f.walkin || 0);
     if (!f.name.trim()) { setMsg({ t: 'ใส่ชื่อยิม', ok: false }); return; }
     if (Number.isNaN(price) || price < 0) { setMsg({ t: 'ราคาขาจรต้องเป็นตัวเลข', ok: false }); return; }
+    const he = hoursError(hours); if (he) { setMsg({ t: he, ok: false }); return; }
     setBusy(true);
     const { error } = await supabase.from('gyms').update({
       name: f.name.trim(), branch: f.branch.trim() || null, phone: f.phone.trim() || null, address: f.address.trim() || null,
-      walkin_price: price, country_code: f.cc, closed_weekdays: f.closed,
+      walkin_price: price, country_code: f.cc, ...hoursToGym(hours),
     }).eq('id', id);
     setBusy(false);
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
@@ -80,21 +83,7 @@ export default function GymSettings() {
           <Txt muted size={12}>ใช้เติมรหัสประเทศให้เบอร์ที่พิมพ์ที่เคาน์เตอร์ เช่น 081… เป็น +66 81…</Txt>
         </View>
 
-        <View style={{ gap: 8 }}>
-          <Txt bold size={13.5}>วันปิดประจำ</Txt>
-          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-            {DAYS_SHORT.map((d, i) => {
-              const on = f.closed.includes(i);
-              return (
-                <Pressable key={i} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => toggle(i)}
-                  style={{ minWidth: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accentSoft : C.surface2, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt bold style={{ color: on ? C.accent : C.fg }}>{d}</Txt>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Txt muted size={12}>มีผลกับแพ็กเกจที่ขายหลังจากนี้ (วันปิดไม่นับอายุ)</Txt>
-        </View>
+        <OpenHours value={hours} onChange={setHours} hint="วันที่ไม่เปิดไม่นับอายุสมาชิกและแพ็ก PT · มีผลกับแพ็กเกจที่ขายหลังจากนี้" />
         {isManager(role) ? <Btn label="บันทึก" onPress={save} loading={busy} /> : null}
       </Card>
       {profile?.is_super_admin ? (

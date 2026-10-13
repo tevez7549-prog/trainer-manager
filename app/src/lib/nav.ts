@@ -74,3 +74,21 @@ export function usePlaces() {
   }, [profile]));
   return places;
 }
+
+/** Everything this person can switch to: trainer mode (own trainer account or a gym's trainer) and each gym they run or work the desk at */
+export function useModes() {
+  const { profile } = useAuth();
+  const places = usePlaces();
+  const [trainer, setTrainer] = useState<boolean | null>(null);
+  useFocusEffect(useCallback(() => {
+    if (!profile) return;
+    supabase.from('trainer_profiles').select('user_id').eq('user_id', profile.id).maybeSingle()
+      .then(({ data }) => setTrainer(!!data));
+  }, [profile]));
+  const isTrainer = !!trainer || (places ?? []).some(p => p.role === 'trainer');
+  const gyms = (places ?? []).filter(p => p.role !== 'trainer');
+  return { ready: trainer !== null && places !== null, isTrainer, hasOwnTrainerAccount: !!trainer, gyms, places };
+}
+
+/** Where a gym role lands */
+export const gymHref = (p: Place) => (p.role === 'operator' ? `/gym/${p.gym.id}/counter` : `/gym/${p.gym.id}`);

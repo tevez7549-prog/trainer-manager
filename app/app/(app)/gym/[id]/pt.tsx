@@ -85,7 +85,7 @@ export default function GymPT() {
       {who !== 'all' ? <>
         <Label>ตารางว่างของ {nameOf(who)}</Label>
         <Card><WeekGrid coachId={picked?.coach ? who : undefined} trainerId={picked?.coach ? picked.coach.profile_id : who.replace(/^u:/, '')}
-          closedDays={gym?.closed_weekdays ?? []} reloadKey={appts.length} /></Card>
+          closedDays={gym?.closed_weekdays ?? []} openHours={gym?.open_hours} reloadKey={appts.length} /></Card>
       </> : trainers.length ? <Txt muted size={13}>แตะชื่อเทรนเนอร์ด้านบนเพื่อดูตารางว่างทั้งสัปดาห์ · <Txt size={13} style={{ color: C.accent }} onPress={() => router.push(`/gym/${id}/coaches` as any)}>จัดการรายชื่อเทรนเนอร์</Txt></Txt> : null}
 
       {tcs?.length ? <>

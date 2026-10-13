@@ -88,7 +88,7 @@ export default function Coaches() {
 
       {c ? <>
         <Label>ตารางว่าง {c.name}</Label>
-        <Card><WeekGrid coachId={c.id} trainerId={c.profile_id} closedDays={gym?.closed_weekdays ?? []} /></Card>
+        <Card><WeekGrid coachId={c.id} trainerId={c.profile_id} closedDays={gym?.closed_weekdays ?? []} openHours={gym?.open_hours} /></Card>
         <Txt muted size={12.5}>นัดใหม่ทำที่หน้าสมาชิก (PT กับ {c.name}) · ช่องลา ขึ้นเมื่อเทรนเนอร์มีแอปและแจ้งลาในแอป</Txt>
         {can ? (c.active
           ? <ConfirmBtn label={`ปิด ${c.name} (เลิกจ้าง/ย้ายออก)`} confirmLabel="ยืนยัน ปิดเทรนเนอร์คนนี้" onConfirm={() => setActive(c, false)} />
