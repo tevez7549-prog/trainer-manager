@@ -24,6 +24,9 @@ export default function Login() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState<'' | 'email' | 'google' | 'line'>('');
   const [showEmail, setShowEmail] = useState(false);
+  // Phone browsers (Safari, Chrome) can be stopped by LINE's own security check; inside the LINE app login always works
+  const lineHint = Platform.OS === 'web' && typeof navigator !== 'undefined'
+    && /iPhone|iPad|Android/i.test(navigator.userAgent) && !/ Line\//i.test(navigator.userAgent);
   const { lang, setLang } = useLang();
 
   // Google / LINE send errors back in the address bar
@@ -68,6 +71,7 @@ export default function Login() {
         <Txt muted size={13.5}>ครั้งแรกกดแล้วสมัครให้อัตโนมัติ</Txt>
         {err ? <Notice text={err} /> : null}
         <ProviderBtn label="ดำเนินการต่อด้วย LINE" bg={LINE_GREEN} fg={LINE_INK} onPress={() => oauth('line')} busy={busy === 'line'} />
+        {lineHint ? <Txt muted size={13} style={{ marginTop: -4 }}>ถ้าล็อกอิน LINE ไม่ผ่าน ในหน้า LINE ให้เลือก เข้าสู่ระบบด้วยแอป LINE หรือสแกน QR (ไม่ต้องพิมพ์รหัส LINE) หรือเปิดลิงก์นี้จากในแอป LINE · ใช้ Google หรืออีเมลแทนก็ได้</Txt> : null}
         <ProviderBtn label="ดำเนินการต่อด้วย Google" bg={C.surface} fg={C.fg} border={C.line} onPress={() => oauth('google')} busy={busy === 'google'} />
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 2 }}>

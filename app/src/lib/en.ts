@@ -1,5 +1,6 @@
 /** Thai -> English for every piece of text in the app. Generated from the source; {0} marks a value filled in at runtime. */
 export const EN: Record<string, string> = {
+ "ถ้าล็อกอิน LINE ไม่ผ่าน ในหน้า LINE ให้เลือก เข้าสู่ระบบด้วยแอป LINE หรือสแกน QR (ไม่ต้องพิมพ์รหัส LINE) หรือเปิดลิงก์นี้จากในแอป LINE · ใช้ Google หรืออีเมลแทนก็ได้": "If LINE login fails, choose Log in with the LINE app or scan the QR on LINE's page (don't type your LINE password), or open this link inside the LINE app \u00b7 or use Google or email",
  "{0} จากครั้งก่อน": "{0} vs last time",
  "%ไขมัน": "Body fat %",
  "QR นี้ไม่ใช่ผลจากเครื่อง InBody": "This QR isn't from an InBody machine",
