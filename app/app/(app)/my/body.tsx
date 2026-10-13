@@ -10,6 +10,7 @@ import { ANGLE_TH, fmt1, type Body, type Photo } from '../../../src/lib/me';
 import { Btn, Card, Chips, ConfirmBtn, DateField, Field, H, Header, Label, Notice, Screen, Txt } from '../../../src/ui';
 import { MiniChart } from '../../../src/ui/Macro';
 import { TabBar } from '../../../src/ui/TabBar';
+import { InBodyCard } from '../../../src/ui/InBodyCard';
 import { C, R } from '../../../src/lib/theme';
 
 type Key = 'weight_kg' | 'waist_cm' | 'hip_cm' | 'arm_cm' | 'thigh_cm';
@@ -81,6 +82,8 @@ export default function BodyPage() {
         <H size={17}>{meta.t} ({meta.unit})</H>
         {rows === null ? <Txt muted>กำลังโหลด…</Txt> : <MiniChart points={series.map(r => ({ label: thDate(r.measured_on), v: Number(r[key]) }))} unit={meta.unit} />}
       </Card>
+
+      <InBodyCard onSaved={load} />
 
       <Label>รูปความคืบหน้า</Label>
       <PhotoBox photos={photos} onDone={(t, ok) => done(t, ok)} />

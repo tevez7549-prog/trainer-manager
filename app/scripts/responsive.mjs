@@ -35,6 +35,12 @@ const meals = [];
     items: [{ id: `i${i}-${j}`, meal_id: `m${i}-${j}`, name: 'ข้าวกะเพราไก่ไข่ดาวพิเศษเผ็ดน้อย', grams: 350, kcal: k / 3, protein_g: 35, carb_g: 70, fat_g: 20, from_ai: false, food_id: null }] }));
 });
 
+const seg = (a, t, l) => ({ ra: [a, 104], la: [a - 0.05, 103], tr: [t, 102], rl: [l, 107], ll: [l + 0.02, 107.3] });
+const scans = [[81.4, 37.7, 15.6, 19.2, 79, '2026-10-07'], [80.8, 38.6, 13.8, 17.1, 81, '2026-06-19'], [82.4, 38.9, 14.6, 17.7, 81, '2026-04-10']]
+  .map(([w, m, f, p, sc, d], i) => ({ id: `s${i}`, measured_at: `${d}T15:08:00+07:00`, model: '270', height_cm: 183, weight_kg: w, smm_kg: m, fat_kg: f, pbf: p, bmi: 24.3, score: sc,
+    tbw_l: 48.2, protein_kg: 13.1, mineral_kg: 4.49, ffm_kg: 65.8, bmr: 1790, whr: 0.9, visceral: 6, target_weight: 77.4, weight_ctrl: -4, fat_ctrl: -4, muscle_ctrl: 0,
+    seg_lean: seg(3.8, 29.3, 10.73), seg_fat: seg(0.8, 8.3, 2.3), created_by: UID }));
+
 async function mock(page) {
   await page.route(`https://${REF}.supabase.co/**`, async route => {
     const req = route.request(); const url = new URL(req.url()); const p = url.pathname;
@@ -47,6 +53,7 @@ async function mock(page) {
     if (p === '/rest/v1/consents') return json(one ? { id: 'c1' } : [{ id: 'c1' }]);
     if (p === '/rest/v1/exercises') return json(one ? exercises[0] : exercises);
     if (p === '/rest/v1/nutrition_targets') return json(one ? target : [target]);
+    if (p === '/rest/v1/body_scans') return json(one ? scans[0] : scans);
     if (p === '/rest/v1/meals') {
       const eq = url.searchParams.get('eaten_on');
       const rows = eq && eq.startsWith('eq.') ? meals.filter(m => m.eaten_on === eq.slice(3)) : meals;
