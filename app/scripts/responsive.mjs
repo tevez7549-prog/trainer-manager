@@ -75,7 +75,7 @@ const errs = new Set();
 const br = await chromium.launch();
 for (const lang of ['th', 'en']) {
   for (const w of WIDTHS) {
-    const ctx = await br.newContext({ viewport: { width: w, height: 1400 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    const ctx = await br.newContext({ viewport: { width: w, height: 1400 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Mobile/15E148 Safari/604.1' });
     for (const [name, path, auth] of ROUTES) {
       const page = await ctx.newPage();
       page.on('pageerror', e => errs.add(`${name}: ${e.message}`.slice(0, 200)));
