@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth';
 import { Btn, Card, Chips, Field, H, Notice, Screen, Txt } from '../../src/ui';
@@ -10,7 +10,8 @@ import { C, R } from '../../src/lib/theme';
 import { phoneError, splitE164, toE164 } from '../../src/lib/phone';
 import { PhoneField } from '../../src/ui/PhoneField';
 import { TabBar } from '../../src/ui/TabBar';
-import { MEMBER_TABS } from '../../src/lib/nav';
+import { MEMBER_TABS, operatorTabs, rememberGym, TRAINER_TABS, usePlaces } from '../../src/lib/nav';
+import { ROLE_TH } from '../../src/lib/gym';
 import { Row } from '../../src/ui';
 
 
@@ -18,7 +19,9 @@ export default function Me() {
   const { profile, refresh, signOut } = useAuth();
   const { mode, setMode } = useThemeMode();
   const { lang, setLang } = useLang();
-  const tabs = MEMBER_TABS;
+  const { from, g } = useLocalSearchParams<{ from?: string; g?: string }>();
+  const places = usePlaces();
+  const tabs = from === 'trainer' ? TRAINER_TABS : from === 'member' ? MEMBER_TABS : from === 'desk' && g ? operatorTabs(g) : null;
   const [name, setName] = useState(profile?.display_name ?? '');
   const init = splitE164(profile?.phone);
   const [country, setCountry] = useState(init.country);
@@ -45,9 +48,9 @@ export default function Me() {
       <View style={{ backgroundColor: C.brand, borderRadius: R.card, padding: 20, gap: 2, alignItems: 'center' }}>
         <Txt size={14} style={{ color: C.brandInk, opacity: 0.8 }}>UID ของฉัน</Txt>
         <H size={40} style={{ color: C.brandInk, letterSpacing: 2 }}>{profile.uid}</H>
-        <Txt size={14} style={{ color: C.brandInk, textAlign: 'center' }}>บอก UID นี้ให้คนที่จะดูแลคุณ หรือใช้โค้ดกลุ่มชวนเข้ากลุ่ม</Txt>
+        <Txt size={14} style={{ color: C.brandInk, textAlign: 'center' }}>บอก UID นี้ให้ยิม เทรนเนอร์ หรือคนที่จะดูแลคุณ</Txt>
       </View>
-      {true ? (
+      {from === 'member' || !tabs ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>
           <Row ic="scale" title="ร่างกาย" sub="น้ำหนัก สัดส่วน รูปความคืบหน้า" onPress={() => router.push('/my/body' as any)} />
         </Card>
@@ -68,6 +71,21 @@ export default function Me() {
         <Chips options={[{ v: 'dark', t: 'มืด' }, { v: 'light', t: 'สว่าง' }, { v: 'system', t: 'ตามเครื่อง' }]} value={mode} onChange={v => setMode(v as ThemeMode)} />
         <Chips label={KEEP + 'ภาษา / Language'} options={[{ v: 'th', t: KEEP + 'ไทย' }, { v: 'en', t: 'English' }]} value={lang} onChange={v => setLang(v as Lang)} />
       </Card>
+      {tabs && (places ?? []).some(p => p.role !== 'trainer' || from !== 'trainer') ? (
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <H size={17} style={{ paddingTop: 8 }}>ยิมของฉัน</H>
+          {(places ?? []).filter(p => !(p.role === 'trainer' && from === 'trainer')).map(p => (
+            <Row key={p.gym.id} icon={p.gym.name.slice(0, 2)} title={p.gym.name} sub={ROLE_TH[p.role]}
+              onPress={() => { rememberGym(p.gym.id); router.replace((p.role === 'trainer' ? '/trainer' : p.role === 'operator' ? `/gym/${p.gym.id}/counter` : `/gym/${p.gym.id}`) as any); }} />
+          ))}
+        </Card>
+      ) : null}
+      {!(places ?? []).some(p => p.role === 'owner') ? (
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <Row ic="plus" title="สร้างยิมของฉัน" sub="สำหรับเจ้าของยิม: สมาชิก แพ็กเกจรายเดือน PT และเทรนเนอร์" onPress={() => router.push('/gym/new' as any)} />
+        </Card>
+      ) : null}
+      {from === 'trainer' || from === 'desk' ? <Btn kind="ghost" icon="activity" label="ของฉัน: อาหาร น้ำหนัก การเล่น" onPress={() => router.replace('/?me=1' as any)} /> : null}
       {profile.is_super_admin ? <Btn kind="ghost" icon="shield" label="หลังบ้าน (Super Admin)" onPress={() => router.push('/admin' as any)} /> : null}
       <Btn kind="danger" icon="log-out" label="ออกจากระบบ" onPress={signOut} />
     </Screen>

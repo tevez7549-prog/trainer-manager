@@ -1,33 +1,49 @@
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../src/lib/supabase';
 import { getJSON } from '../../src/lib/store';
 import { useAuth } from '../../src/lib/auth';
 import { addDays, thDate, todayISO } from '../../src/lib/gym';
-import { MEMBER_TABS } from '../../src/lib/nav';
+import { landing, MEMBER_TABS } from '../../src/lib/nav';
+import { STATUS_TH, type Member } from '../../src/lib/counter';
+import { prettyPhone } from '../../src/lib/phone';
 import { apptRange, dayLabel, sessionsLeft, toTs } from '../../src/lib/trainer';
 import { fmt1, latestTarget, loadDay, totals, type Target, type Totals } from '../../src/lib/me';
-import { Btn, Card, DateField, Field, H, Loading, Notice, Screen, TimeField, Txt } from '../../src/ui';
+import { Btn, Card, DateField, Field, H, Label, Loading, Notice, Pill, Screen, TimeField, Txt } from '../../src/ui';
 import { DayTotals } from '../../src/ui/Macro';
 import { Icon } from '../../src/ui/Icon';
 import { TabBar } from '../../src/ui/TabBar';
 import { TodayWorkout } from '../../src/ui/TodayWorkout';
 import { C, R } from '../../src/lib/theme';
 
-/** Opening the app: everyone gets their own home */
+/** Opening the app: staff go straight to their job; everyone else gets their own home */
 export default function Home() {
   const { profile } = useAuth();
-  return profile ? <MemberHome /> : <Loading />;
+  const { me } = useLocalSearchParams<{ me?: string }>();
+  const [ready, setReady] = useState(false);
+  useFocusEffect(useCallback(() => {
+    if (!profile) return;
+    if (me === '1') { setReady(true); return; }   // staff opening their personal side
+    let alive = true;
+    landing(profile.id).then(r => {
+      if (!alive) return;
+      if ('to' in r) router.replace(r.to as any); else setReady(true);
+    });
+    return () => { alive = false; };
+  }, [profile, me]));
+  return ready ? <MemberHome /> : <Loading />;
 }
 
 type Tc = { id: string; member_id: string | null; trainer: { display_name: string } | null };
 type Next = { id: string; trainer_client_id: string; starts_at: string; duration_min: number };
 type Invite = { id: string; from_name: string; from_uid: number; kind: string };
 type Nudge = { id: string; group_id: string; group_name: string; from_name: string };
+type Card_ = Member & { gym: { name: string } | null };
 
 function MemberHome() {
   const { profile } = useAuth();
+  const [cards, setCards] = useState<Card_[] | null>(null);
   const [tcs, setTcs] = useState<Tc[]>([]);
   const [tcsLoaded, setTcsLoaded] = useState(false);
   const [left, setLeft] = useState<Record<string, number>>({});
@@ -35,17 +51,20 @@ function MemberHome() {
   const [pending, setPending] = useState(false);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [nudges, setNudges] = useState<Nudge[]>([]);
+  const [coach, setCoach] = useState<{ today: number; next: string | null } | null>(null);
   const [food, setFood] = useState<{ t: Totals; target: Target | null } | null>(null);
   const [weight, setWeight] = useState<{ now: number; diff: number | null; on: string } | null>(null);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
   const [ask, setAsk] = useState(false);
+  const [showOld, setShowOld] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
     const today = todayISO();
     // an invite link opened before signing in: finish joining on the groups page
     if (await getJSON<string>('tm-join-code')) { router.push('/groups' as any); }
-    const [inv, meals, target, w, nd] = await Promise.all([
+    const [m, inv, meals, target, w, nd] = await Promise.all([
+      supabase.from('member_status').select('*').eq('profile_id', profile.id),
       supabase.rpc('my_invites'),
       loadDay(profile.id, today),
       latestTarget(profile.id),
@@ -53,6 +72,21 @@ function MemberHome() {
       supabase.rpc('my_nudges'),
     ]);
     setNudges((nd.data as Nudge[]) ?? []);
+    // trainer at a gym: today's PT sessions
+    const co = await supabase.from('gym_coaches').select('id').eq('profile_id', profile.id).eq('active', true).limit(1);
+    if ((co.data as any[])?.length) {
+      const sc = await supabase.rpc('my_coach_schedule', { d_from: today, d_to: today });
+      const list = ((sc.data as { starts_at: string; status: string }[]) ?? []);
+      const nx = list.find(r => r.status !== 'done' && new Date(r.starts_at).getTime() > Date.now() - 3600000);
+      setCoach({ today: list.length, next: nx?.starts_at ?? null });
+    } else setCoach(null);
+    const rows = ((m.data as any) ?? []) as Card_[];
+    if (rows.length) {
+      const g = await supabase.from('gyms').select('id,name').in('id', [...new Set(rows.map(r => r.gym_id))]);
+      const names = Object.fromEntries(((g.data as { id: string; name: string }[]) ?? []).map(x => [x.id, x.name]));
+      rows.forEach(r => { r.gym = names[r.gym_id] ? { name: names[r.gym_id] } : null; });
+    }
+    setCards(rows);
     setInvites((inv.data as Invite[]) ?? []);
     setFood({ t: totals(meals.flatMap(x => x.items)), target });
     const ws = (w.data as { measured_on: string; weight_kg: number }[]) ?? [];
@@ -61,8 +95,9 @@ function MemberHome() {
       setWeight({ now: Number(ws[0].weight_kg), diff: old !== ws[0] ? Number(ws[0].weight_kg) - Number(old.weight_kg) : null, on: ws[0].measured_on });
     } else setWeight(null);
 
+    const ids = rows.map(r => r.id);
     const t = await supabase.from('trainer_clients').select('id,member_id,trainer:profiles!trainer_clients_trainer_id_fkey(display_name)')
-      .eq('status', 'active').eq('client_id', profile.id);
+      .eq('status', 'active').or(ids.length ? `client_id.eq.${profile.id},member_id.in.(${ids.join(',')})` : `client_id.eq.${profile.id}`);
     const list = ((t.data as any) ?? []) as Tc[];
     setTcs(list); setTcsLoaded(true);
     if (list.length) {
@@ -94,8 +129,14 @@ function MemberHome() {
   }
 
   const trainerOf = (tcId: string) => tcs.find(t => t.id === tcId)?.trainer?.display_name ?? 'เทรนเนอร์';
+  const ptLeft = (memberId?: string) => tcs.filter(t => !memberId || t.member_id === memberId).reduce((s, t) => s + (left[t.id] ?? 0), 0);
   const go = (p: string) => router.replace(p as any);
   const ptToday = !!next && next.starts_at.slice(0, 10) <= todayISO() && new Date(next.starts_at).toDateString() === new Date().toDateString();
+  // a card is "old" when it ran out more than 30 days ago (or never had a plan) and has no PT left: moved gyms, quit …
+  const cutoff = addDays(todayISO(), -30);
+  const isOld = (m: Card_) => (m.status === 'expired' || m.status === 'none') && (!m.end_date || m.end_date < cutoff) && ptLeft(m.id) === 0;
+  const current = (cards ?? []).filter(m => !isOld(m));
+  const old = (cards ?? []).filter(isOld);
 
   return (
     <Screen footer={<TabBar tabs={MEMBER_TABS} active="home" />}>
@@ -115,6 +156,19 @@ function MemberHome() {
           </View>
         </Card>
       ))}
+
+      {coach ? (
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 40, height: 40, borderRadius: R.field, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}><Icon name="calendar" size={20} color={C.accent} /></View>
+            <View style={{ flex: 1 }}>
+              <Txt bold>งานที่ยิม · วันนี้ {coach.today} นัด</Txt>
+              <Txt muted size={13.5}>{coach.next ? `นัดถัดไป ${new Date(coach.next).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : coach.today ? 'วันนี้ครบแล้ว' : 'วันนี้ว่าง'}</Txt>
+            </View>
+            <Btn kind="ghost" label="ดูตาราง" onPress={() => router.push('/coach' as any)} />
+          </View>
+        </Card>
+      ) : null}
 
       {nudges.map(n => (
         <Card key={n.id}>
@@ -174,6 +228,48 @@ function MemberHome() {
         </Card>
       </Pressable>
 
+      {current.length ? <Label>บัตรสมาชิก</Label> : null}
+      {current.map(m => {
+        const st = STATUS_TH[m.status];
+        return (
+          <Card key={m.id} style={{ gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <H size={18} style={{ flex: 1 }}>{m.gym?.name ?? 'ยิม'}</H>
+              <Pill text={st.t} kind={st.k} />
+            </View>
+            <View style={{ alignItems: 'center', paddingVertical: 12, borderRadius: R.field, backgroundColor: C.surface2 }}>
+              <Txt muted size={13}>แสดงรหัสนี้ที่เคาน์เตอร์</Txt>
+              <H size={36} style={{ letterSpacing: 2 }}>{m.code}</H>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}><Txt muted size={13}>หมดอายุ</Txt><Txt bold>{m.status === 'frozen' ? `พักถึง ${thDate(m.frozen_until)}` : thDate(m.end_date)}</Txt></View>
+              <View style={{ flex: 1 }}><Txt muted size={13}>PT เหลือ</Txt><Txt bold>{ptLeft(m.id)} ครั้ง</Txt></View>
+            </View>
+          </Card>
+        );
+      })}
+      {old.length ? (
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <Pressable accessibilityRole="button" onPress={() => setShowOld(!showOld)} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 48 }}>
+            <Txt bold style={{ flex: 1 }}>บัตรยิมเก่า ({old.length})</Txt>
+            <Icon name={showOld ? 'chevron-down' : 'chevron-right'} size={18} color={C.muted} />
+          </Pressable>
+          {showOld ? old.map(m => (
+            <View key={m.id} style={{ flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, borderTopColor: C.line }}>
+              <Txt style={{ flex: 1 }}>{m.gym?.name ?? 'ยิม'} · {m.code}</Txt>
+              <Txt muted size={14}>{m.end_date ? `หมด ${thDate(m.end_date)}` : 'ไม่มีแพ็กเกจ'}</Txt>
+            </View>
+          )) : null}
+        </Card>
+      ) : null}
+      {cards && !current.length ? (
+        <Card>
+          <H size={17}>บัตรสมาชิกยิม</H>
+          <Txt muted size={14}>ถ้ายิมของคุณใช้ Trainer Manager บัตร วันหมดอายุ และนัด PT จะขึ้นที่นี่เอง เมื่อยิมบันทึกเบอร์ <Txt bold>{prettyPhone(profile?.phone ?? '')}</Txt> ของคุณ · ไม่มียิมก็ใช้บันทึกอาหาร น้ำหนัก และการเล่นได้ตามปกติ</Txt>
+          <Txt muted size={13}>ยิมใช้เบอร์อื่น? บอก UID {profile?.uid} ให้เคาน์เตอร์เชื่อมให้</Txt>
+          <Txt size={14} style={{ color: C.accent }} onPress={() => router.push('/gym/new' as any)}>เป็นเจ้าของยิม? สร้างยิม</Txt>
+        </Card>
+      ) : null}
     </Screen>
   );
 }
