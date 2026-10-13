@@ -216,8 +216,8 @@ function AddSheet({ mode: mode0, meal: meal0, day, bare, onDone }: { mode: Mode;
       {bare ? <Chips options={[{ v: 'ai', t: '✦ AI' }, { v: 'search', t: 'ค้นหา' }, { v: 'fav', t: 'โปรด' }, { v: 'recent', t: 'ล่าสุด' }, { v: 'custom', t: 'สร้างเอง' }, { v: 'photo', t: '✦ ถ่ายรูป' }] as { v: Mode; t: string }[]} value={mode} onChange={setMode} />
         : <Chips options={MEAL_NAMES.map(n => ({ v: n, t: SHORT[n] ?? n }))} value={meal} onChange={setMeal} />}
       {err ? <Notice text={err} /> : null}
-      {mode === 'search' ? <SearchFoods onPick={(f, x) => save(scaled(f, x))} busy={busy} /> : null}
-      {mode === 'fav' ? <Favorites onPick={(f, x) => save(scaled(f, x))} busy={busy} /> : null}
+      {mode === 'search' ? <SearchFoods onPick={save} busy={busy} /> : null}
+      {mode === 'fav' ? <Favorites onPick={save} busy={busy} /> : null}
       {mode === 'recent' ? <Recent onPick={save} /> : null}
       {mode === 'custom' ? <Custom onSave={save} busy={busy} /> : null}
       {mode === 'photo' ? <AiText photo onSave={save} busy={busy} /> : null}
@@ -268,8 +268,8 @@ const SERVING_TH: [RegExp, string][] = [[/\btbsp\b/i, 'ช้อนโต๊ะ'
   [/\bservings?\b/i, 'ที่'], [/\boz\b/i, 'ออนซ์'], [/\blb\b/i, 'ปอนด์'], [/\bfl oz\b/i, 'fl oz']];
 const servingLabel = (s: string) => SERVING_TH.reduce((t, [re, th]) => t.replace(re, th), s);
 
-/** Pick a food, then how much: quick portion sizes from the library, ×½ ×1 ×2, or the real grams eaten */
-function Portion({ f, onAdd, onBack, busy }: { f: Food; onAdd: (x: number) => void; onBack: () => void; busy: boolean }) {
+/** Pick a food, then how much: quick portion sizes from the library, ×½ ×1 ×2, or the real grams eaten — or edit the values by hand */
+function Portion({ f, onAdd, onBack, busy }: { f: Food; onAdd: (i: NewItem) => void; onBack: () => void; busy: boolean }) {
   const byWeight = f.serving_g > 0;
   const base = byWeight ? `${fmt1(f.serving_g)} กรัม` : `1 ${f.unit || 'ที่'}`;
   // weight foods: portions are grams (x = grams / serving_g); per-item foods: portions are multipliers
@@ -283,13 +283,33 @@ function Portion({ f, onAdd, onBack, busy }: { f: Food; onAdd: (x: number) => vo
   const [g, setG] = useState('');
   // a typed amount (what you really ate) wins over the buttons
   const mult = byWeight && Number(g) > 0 ? Number(g) / f.serving_g : x;
+  const [editing, setEditing] = useState(false);
+  const [own, setOwn] = useState<NewItem | null>(null);   // values typed over by hand
+  const item = own ?? scaled(f, mult);
+  if (editing) {
+    const asAi: AiItem = { name: item.name, amount: byWeight ? (item.grams ?? 0) : +mult.toFixed(2), unit: byWeight ? 'กรัม' : (f.unit || 'ที่'),
+      grams: item.grams, kcal: item.kcal, protein_g: item.protein_g, carb_g: item.carb_g, fat_g: item.fat_g };
+    return <AiEdit item={asAi} onCancel={() => setEditing(false)} onDone={e => {
+      setOwn({ name: e.name, grams: e.grams, kcal: Math.round(e.kcal), protein_g: e.protein_g, carb_g: e.carb_g, fat_g: e.fat_g, from_ai: false, food_id: null });
+      setEditing(false);
+    }} />;
+  }
   return <>
-    <Txt bold>{f.name_th}</Txt>
-    <Txt muted size={13}>ค่าในระบบต่อ {base} = {Math.round(f.kcal)} kcal</Txt>
-    <Chips label="ปริมาณ" options={opts.slice(0, 7)} value={g ? null : x} onChange={v => { setX(v); setG(''); }} />
-    {byWeight ? <Field label="หรือกรอกที่กินจริง (กรัม)" value={g} onChangeText={v => setG(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder={`เช่น ${Math.round(f.serving_g * 1.5)}`} /> : null}
-    <Txt muted size={14}>{macroLine(scaled(f, mult))}{byWeight ? ` · ${Math.round(f.serving_g * mult)} ก.` : ''}</Txt>
-    <Btn label="เพิ่ม" onPress={() => onAdd(mult)} loading={busy} />
+    <Txt bold>{own ? own.name : f.name_th}</Txt>
+    {own ? <>
+      <Txt muted size={13}>แก้ค่าเองแล้ว · ค่าในระบบต่อ {base} = {Math.round(f.kcal)} kcal</Txt>
+      <Txt muted size={14}>{macroLine(own)}{own.grams ? ` · ${Math.round(own.grams)} ก.` : ''}</Txt>
+      <Btn kind="ghost" label="กลับไปใช้ค่าในระบบ" onPress={() => setOwn(null)} />
+    </> : <>
+      <Txt muted size={13}>ค่าในระบบต่อ {base} = {Math.round(f.kcal)} kcal</Txt>
+      <Chips label="ปริมาณ" options={opts.slice(0, 7)} value={g ? null : x} onChange={v => { setX(v); setG(''); }} />
+      {byWeight ? <Field label="หรือกรอกที่กินจริง (กรัม)" value={g} onChangeText={v => setG(v.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder={`เช่น ${Math.round(f.serving_g * 1.5)}`} /> : null}
+      <Txt muted size={14}>{macroLine(item)}{byWeight ? ` · ${Math.round(f.serving_g * mult)} ก.` : ''}</Txt>
+    </>}
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      <Btn kind="ghost" icon="pencil" label="แก้ไข" onPress={() => setEditing(true)} style={{ flex: 1 }} />
+      <Btn label="เพิ่ม" onPress={() => onAdd(item)} loading={busy} style={{ flex: 2 }} />
+    </View>
     <Btn kind="ghost" label="เลือกอย่างอื่น" onPress={onBack} />
   </>;
 }
@@ -316,7 +336,7 @@ function FoodList({ foods, onPick, fav }: { foods: Food[]; onPick: (f: Food) => 
   );
 }
 
-function SearchFoods({ onPick, busy }: { onPick: (f: Food, x: number) => void; busy: boolean }) {
+function SearchFoods({ onPick, busy }: { onPick: (i: NewItem) => void; busy: boolean }) {
   const fav = useFavIds();
   const [q, setQ] = useState('');
   const [pick, setPick] = useState<Food | null>(null);
@@ -324,7 +344,7 @@ function SearchFoods({ onPick, busy }: { onPick: (f: Food, x: number) => void; b
   // nothing listed until the user types; the server sends the closest matches, my favourites go first
   const { list, loading } = useFoodSearch(term);
   const found = useMemo(() => [...list].sort((a, b) => Number(!fav.ids.has(a.id)) - Number(!fav.ids.has(b.id))), [list, fav.ids]);
-  if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
+  if (pick) return <Portion f={pick} onAdd={onPick} onBack={() => setPick(null)} busy={busy} />;
   return <>
     <Field label="ค้นหา" value={q} onChangeText={setQ} placeholder="พิมพ์ชื่ออาหาร เช่น กะเพรา อกไก่" icon="search" autoFocus />
     {term && found.length ? <Txt muted size={12.5}>พบ {found.length}{found.length >= 20 ? '+' : ''} รายการ{found.length > 5 ? ' · เลื่อนในกรอบเพื่อดูเพิ่ม' : ''}</Txt> : null}
@@ -335,11 +355,11 @@ function SearchFoods({ onPick, busy }: { onPick: (f: Food, x: number) => void; b
   </>;
 }
 
-function Favorites({ onPick, busy }: { onPick: (f: Food, x: number) => void; busy: boolean }) {
+function Favorites({ onPick, busy }: { onPick: (i: NewItem) => void; busy: boolean }) {
   const fav = useFavIds();
   const [pick, setPick] = useState<Food | null>(null);
   const list = useFavFoods(fav.ids);
-  if (pick) return <Portion f={pick} onAdd={(x) => onPick(pick, x)} onBack={() => setPick(null)} busy={busy} />;
+  if (pick) return <Portion f={pick} onAdd={onPick} onBack={() => setPick(null)} busy={busy} />;
   if (list === null) return <Txt muted>กำลังโหลด…</Txt>;
   return list.length ? <FoodList foods={list} onPick={setPick} fav={fav} />
     : <Txt muted>ยังไม่มีเมนูโปรด · ตอนค้นหาแตะรูปดาวข้างอาหาร หรือสร้างเมนูเองแล้วเลือก "เก็บเป็นเมนูโปรด"</Txt>;

@@ -1588,5 +1588,7 @@ export const EN: Record<string, string> = {
  "ใส่ UID (ตัวเลข) หรือกดกล้องสแกน QR": "Enter the UID (numbers) or tap the camera to scan the QR",
  "{0} อยู่ในรายชื่อแล้ว · เชื่อมกับแอปของเขาแล้ว เห็นตารางเทรนของตัวเองทันที": "{0} is already on the list · now linked to their app, they see their own schedule right away",
  "เพิ่ม {0} แล้ว · เขาเห็นตารางเทรนของตัวเองในแอปทันที": "Added {0} · they see their own schedule in the app right away",
- "มีแอป: เพิ่มด้วย UID หรือสแกน QR หน้า ฉัน ของเขา · ไม่มีแอป: ใส่แค่ชื่อก็ได้": "Has the app: add by UID or scan the QR on their Me page · no app: a name is enough"
+ "มีแอป: เพิ่มด้วย UID หรือสแกน QR หน้า ฉัน ของเขา · ไม่มีแอป: ใส่แค่ชื่อก็ได้": "Has the app: add by UID or scan the QR on their Me page · no app: a name is enough",
+ "แก้ค่าเองแล้ว · ค่าในระบบต่อ {0} = {1} kcal": "Edited by hand · library value per {0} = {1} kcal",
+ "กลับไปใช้ค่าในระบบ": "Use the library values again"
 };
