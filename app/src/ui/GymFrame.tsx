@@ -10,13 +10,14 @@ import { Icon, type IconName } from './Icon';
 import { Lockup } from './Logo';
 import { TabBar } from './TabBar';
 
-export type GymTab = 'home' | 'counter' | 'members' | 'pt' | 'more' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
+export type GymTab = 'home' | 'counter' | 'members' | 'pt' | 'classes' | 'more' | 'plans' | 'staff' | 'holidays' | 'import' | 'settings';
 
 const NAV: { k: GymTab; t: string; icon: IconName; show: (r: Role | null) => boolean }[] = [
   { k: 'home', t: 'ภาพรวม', icon: 'house', show: isManager },
   { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', show: isDesk },
   { k: 'members', t: 'สมาชิก', icon: 'users', show: isDesk },
   { k: 'pt', t: 'เทรนเนอร์และ PT', icon: 'dumbbell', show: isManager },
+  { k: 'classes', t: 'คลาส', icon: 'calendar-days', show: isDesk },
   { k: 'plans', t: 'แพ็กเกจและราคา', icon: 'tag', show: isManager },
   { k: 'staff', t: 'ทีมงาน', icon: 'id-card', show: isManager },
   { k: 'holidays', t: 'วันหยุดยิม', icon: 'calendar-off', show: isManager },

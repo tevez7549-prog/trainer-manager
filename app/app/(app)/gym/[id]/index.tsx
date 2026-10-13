@@ -6,6 +6,7 @@ import { useAuth } from '../../../../src/lib/auth';
 import { baht, thDate, todayISO, todayRange, useGym } from '../../../../src/lib/gym';
 import { APPT_COLS, APPT_TH, apptRange, sessionsLeft, tcName, TC_COLS, type Appt, type TC } from '../../../../src/lib/trainer';
 import { loadCoaches, type Coach } from '../../../../src/lib/coaches';
+import { isFull, loadClasses, seats, type ClassSession } from '../../../../src/lib/classes';
 import { Card, Header, Label, Notice, Pill, Row, Txt } from '../../../../src/ui';
 import { GymFrame } from '../../../../src/ui/GymFrame';
 import { Icon } from '../../../../src/ui/Icon';
@@ -34,6 +35,7 @@ export default function GymOverview() {
   const [today, setToday] = useState<Appt[]>([]);
   const [month, setMonth] = useState<Appt[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [classes, setClasses] = useState<ClassSession[]>([]);
 
   useFocusEffect(useCallback(() => {
     if (role !== 'owner' && role !== 'admin') return;
@@ -57,13 +59,14 @@ export default function GymOverview() {
       const sum = (r: any) => ((r.data as { price: number }[]) ?? []).reduce((a, x) => a + Number(x.price), 0);
       const list = ((t.data as any) ?? []) as TC[];
       const ids = list.map(x => x.id);
-      const [lf, ap, lv] = await Promise.all([
+      const [lf, ap, lv, cl] = await Promise.all([
         sessionsLeft(ids),
         ids.length ? supabase.from('appointments').select(APPT_COLS).in('trainer_client_id', ids).gte('starts_at', since.toISOString()).lt('starts_at', to).order('starts_at')
           : Promise.resolve({ data: [] }),
         supabase.from('trainer_leave').select('trainer_id,start_at,end_at')
           .in('trainer_id', [...new Set([...co.map(c => c.profile_id).filter(Boolean), ...list.map(x => x.trainer_id)])] as string[])
           .lt('start_at', to).gt('end_at', from),
+        loadClasses(id, from, to),
       ]);
       if (!alive) return;
       const all = ((ap.data as any) ?? []) as Appt[];
@@ -73,6 +76,7 @@ export default function GymOverview() {
       setToday(all.filter(a => a.starts_at >= from && a.status !== 'cancelled'));
       setMonth(all.filter(a => a.starts_at < from));
       setLeaves((lv.data as Leave[]) ?? []);
+      setClasses(cl);
     })();
     return () => { alive = false; };
   }, [id, role]));
@@ -158,6 +162,30 @@ export default function GymOverview() {
                 </View>
                 <Pill text={APPT_TH[a.status].t} kind={APPT_TH[a.status].k} />
               </View>
+            );
+          })}
+        </Card>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Label style={{ flex: 1 }}>คลาสวันนี้</Label>
+          <Txt size={14} style={{ color: C.accent }} onPress={() => router.replace(`/gym/${id}/classes` as any)}>+ เพิ่มคลาส / คน</Txt>
+        </View>
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          {!classes.length ? <Txt muted style={{ paddingVertical: 14 }}>วันนี้ไม่มีคลาส</Txt> : null}
+          {classes.map(c => {
+            const d = new Date(c.starts_at);
+            return (
+              <Pressable key={c.id} accessibilityRole="button" onPress={() => router.replace(`/gym/${id}/classes` as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, borderBottomWidth: 1, borderBottomColor: C.line }}>
+                <Txt bold style={{ width: 52, color: C.accent }}>{`${pad(d.getHours())}:${pad(d.getMinutes())}`}</Txt>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Txt bold numberOfLines={1}>{c.name}</Txt>
+                  <Txt muted size={13} numberOfLines={1}>{c.coach?.name ? `ครู ${c.coach.name}` : 'ยังไม่ระบุผู้สอน'}</Txt>
+                </View>
+                <Pill text={seats(c)} kind={isFull(c) ? 'warn' : 'mute'} />
+              </Pressable>
             );
           })}
         </Card>

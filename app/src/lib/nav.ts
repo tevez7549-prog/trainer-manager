@@ -11,12 +11,14 @@ export type Tab = { k: string; t: string; icon: string; href: string };
 export const ownerTabs = (g: string): Tab[] => [
   { k: 'home', t: 'ภาพรวม', icon: 'house', href: `/gym/${g}` },
   { k: 'pt', t: 'เทรนเนอร์', icon: 'dumbbell', href: `/gym/${g}/pt` },
+  { k: 'classes', t: 'คลาส', icon: 'calendar-days', href: `/gym/${g}/classes` },
   { k: 'members', t: 'สมาชิก', icon: 'users', href: `/gym/${g}/members` },
   { k: 'more', t: 'เพิ่มเติม', icon: 'menu', href: `/gym/${g}/more` },
 ];
 /** Counter mode: checking people in, walk-ins, selling. Separate from the owner's overview. */
 export const counterTabs = (g: string): Tab[] => [
   { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', href: `/gym/${g}/counter` },
+  { k: 'classes', t: 'คลาส', icon: 'calendar-days', href: `/gym/${g}/classes?desk=1` },
   { k: 'members', t: 'สมาชิก', icon: 'users', href: `/gym/${g}/members?desk=1` },
   { k: 'me', t: 'ฉัน', icon: 'user', href: `/me?from=desk&g=${g}` },
 ];
