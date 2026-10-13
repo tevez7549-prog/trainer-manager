@@ -41,6 +41,14 @@ const scans = [[81.4, 37.7, 15.6, 19.2, 79, '2026-10-07'], [80.8, 38.6, 13.8, 17
     tbw_l: 48.2, protein_kg: 13.1, mineral_kg: 4.49, ffm_kg: 65.8, bmr: 1790, whr: 0.9, visceral: 6, target_weight: 77.4, weight_ctrl: -4, fat_ctrl: -4, muscle_ctrl: 0,
     seg_lean: seg(3.8, 29.3, 10.73), seg_fat: seg(0.8, 8.3, 2.3), created_by: UID }));
 
+const gym = { id: 'g1', name: 'Build Up Gym พัทยากลาง', branch: 'พัทยา', phone: null, walkin_price: 100, closed_weekdays: [], country_code: '66', address: null, open_hours: { open: '06:00', close: '22:00' } };
+const coachesMock = [['c1', 'โค้ชต้อม'], ['c2', 'โค้ชแนนซี่ ใจดีมาก']].map(([id, name]) => ({ id, gym_id: 'g1', name, phone: null, profile_id: null, active: true, created_at: '2026-01-01T00:00:00Z' }));
+const at = h => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toISOString(); };
+const classesMock = [['k1', 'บอดี้คอมแบท ระดับเริ่มต้น', 18, 20], ['k2', 'โยคะเช้า', 7, null]].map(([id, name, h, cap]) => ({ id, gym_id: 'g1', name, coach_id: 'c1', starts_at: at(h), duration_min: 60,
+  capacity: cap, note: null, status: 'scheduled', series_id: null, coach: { name: 'โค้ชต้อม' },
+  bookings: [{ id: 'b1', member_id: 'm1', guest_name: null, status: 'attended', member: { name: 'สมชาย ใจดี', code: 'M-0001' } }, { id: 'b2', member_id: null, guest_name: 'คนนอก ทดลองเล่น', status: 'booked', member: null }] }));
+const membersMock = [['m1', 'สมชาย ใจดีมากเป็นพิเศษ', 3], ['m2', 'มานี มีนา', -5]].map(([id, name, d]) => ({ id, name, plan_name: 'รายเดือน', days_left: d, code: 'M-0001', status: d < 0 ? 'expired' : 'expiring' }));
+
 async function mock(page) {
   await page.route(`https://${REF}.supabase.co/**`, async route => {
     const req = route.request(); const url = new URL(req.url()); const p = url.pathname;
@@ -53,6 +61,11 @@ async function mock(page) {
     if (p === '/rest/v1/consents') return json(one ? { id: 'c1' } : [{ id: 'c1' }]);
     if (p === '/rest/v1/exercises') return json(one ? exercises[0] : exercises);
     if (p === '/rest/v1/nutrition_targets') return json(one ? target : [target]);
+    if (p === '/rest/v1/gyms') return json(one ? gym : [gym]);
+    if (p === '/rest/v1/gym_staff') return json(one ? { role: 'owner' } : [{ role: 'owner', gym_id: gym.id, gym }]);
+    if (p === '/rest/v1/gym_coaches') return json(one ? coachesMock[0] : coachesMock);
+    if (p === '/rest/v1/class_sessions') return json(one ? classesMock[0] : classesMock);
+    if (p === '/rest/v1/member_status') return json(one ? membersMock[0] : membersMock, 200, { 'content-range': `0-${membersMock.length - 1}/${membersMock.length}` });
     if (p === '/rest/v1/body_scans') return json(one ? scans[0] : scans);
     if (p === '/rest/v1/meals') {
       const eq = url.searchParams.get('eaten_on');
@@ -66,7 +79,7 @@ async function mock(page) {
 
 const ROUTES = [
   ['login', '/login', false], ['signup', '/signup', false],
-  ['home', '/?me=1', true], ['train', '/my/train', true], ['random', '/my/train#random', true], ['food', '/my/food', true], ['food-history', '/my/food#history', true], ['body', '/my/body', true],
+  ['home', '/?me=1', true], ['train', '/my/train', true], ['random', '/my/train#random', true], ['food', '/my/food', true], ['food-history', '/my/food#history', true], ['body', '/my/body', true], ['gym-overview', '/gym/g1', true], ['gym-classes', '/gym/g1/classes', true], ['gym-new', '/gym/new', true],
   ['groups', '/groups', true], ['group-new', '/groups/new', true], ['me', '/me', true], ['care-add', '/trainer/add', true],
 ];
 
