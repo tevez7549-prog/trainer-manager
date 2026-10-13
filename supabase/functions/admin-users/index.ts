@@ -39,6 +39,13 @@ Deno.serve(async (req) => {
         const password = String(body.password || "");
         if (!email) return json({ error: "ต้องมีอีเมล" }, 400);
         if (password.length < 8) return json({ error: "รหัสผ่านต้องยาวอย่างน้อย 8 ตัว" }, 400);
+        // one phone = one account: say who already has it, instead of the database's bare "Database error creating new user"
+        if (body.phone) {
+          const { data: dup } = await admin.from("profiles").select("uid,display_name").eq("phone", String(body.phone)).maybeSingle();
+          if (dup) return json({ error: `เบอร์นี้เป็นของบัญชี UID ${dup.uid} (${dup.display_name || "ไม่มีชื่อ"}) อยู่แล้ว · เปิดบัญชีนั้นแล้วตั้งอีเมลและรหัสผ่านแทนการสร้างใหม่` }, 400);
+        }
+        const { data: dupMail } = await admin.from("profiles").select("uid,display_name").eq("email", email).maybeSingle();
+        if (dupMail) return json({ error: `อีเมลนี้เป็นของบัญชี UID ${dupMail.uid} (${dupMail.display_name || "ไม่มีชื่อ"}) อยู่แล้ว` }, 400);
         const { data, error } = await admin.auth.admin.createUser({
           email, password, email_confirm: true,
           user_metadata: { display_name: body.display_name || "", phone: body.phone || null },
