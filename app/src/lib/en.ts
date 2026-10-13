@@ -1557,5 +1557,15 @@ export const EN: Record<string, string> = {
  "แตะช่องว่างเพื่อเลือกวันและเวลานัด": "Tap an empty slot to pick the appointment day and time",
  "กลับ": "Back",
  "เลือก": "Select",
- "กดอีกครั้งเพื่อยืนยัน: {0}": "Tap again to confirm: {0}"
+ "กดอีกครั้งเพื่อยืนยัน: {0}": "Tap again to confirm: {0}",
+ "ติดตั้งแอพ": "Install app",
+ "เพิ่ม Trainer Manager ไว้ที่หน้าจอโฮม เปิดได้ทันทีแบบเต็มจอเหมือนแอพทั่วไป": "Add Trainer Manager to your home screen and open it full screen like any other app",
+ "กดปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบล่างของ Safari": "Tap the Share button (square with an up arrow) in Safari's toolbar",
+ "เลื่อนลงแล้วเลือก \"เพิ่มไปยังหน้าจอโฮม\"": "Scroll down and choose \"Add to Home Screen\"",
+ "กด \"เพิ่ม\" แล้วเปิดแอพจากไอคอน Trainer": "Tap \"Add\", then open the app from the Trainer icon",
+ "กดเมนู ⋯ แล้วเลือก \"เปิดใน Safari\" ก่อน": "First tap the ⋯ menu and choose \"Open in Safari\"",
+ "ใน Safari กดปุ่มแชร์ → \"เพิ่มไปยังหน้าจอโฮม\"": "In Safari tap Share → \"Add to Home Screen\"",
+ "เปิดลิงก์นี้ใน Chrome": "Open this link in Chrome",
+ "กดเมนู ⋮ มุมขวาบน": "Tap the ⋮ menu at the top right",
+ "เลือก \"ติดตั้งแอป\" หรือ \"เพิ่มลงในหน้าจอหลัก\"": "Choose \"Install app\" or \"Add to Home screen\""
 };

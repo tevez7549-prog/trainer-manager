@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th" style="background:#0E0F10">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Trainer Manager</title>
+    <meta name="description" content="จัดการลูกค้า ตารางเทรน โปรแกรม อาหาร และยิม" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0E0F10" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+
+    <!-- iPhone / iPad (Safari "Add to Home Screen") -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Trainer" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <style id="expo-reset">
+      html, body { height: 100%; background-color: #0E0F10; color-scheme: dark; }
+      body { overflow: hidden; margin: 0; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+      #root { display: flex; height: 100%; flex: 1; }
+      /* shown until the app has loaded (React replaces the contents of #root) */
+      .tm-boot { flex: 1; display: flex; align-items: center; justify-content: center;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+      .tm-boot img { width: 72px; height: 72px; border-radius: 18px; opacity: .92; }
+    </style>
+    <script>
+      // Catch Chrome's install prompt as early as possible; the Me page shows the button.
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__tmInstall = e;
+        window.dispatchEvent(new Event('tm-install-ready'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__tmInstall = null;
+        window.dispatchEvent(new Event('tm-install-ready'));
+      });
+      // Offline support + fast start
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(function (reg) {
+            // check for a new deploy whenever the app comes back to the front
+            document.addEventListener('visibilitychange', function () {
+              if (document.visibilityState === 'visible') reg.update().catch(function () {});
+            });
+          }).catch(function () {});
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>ต้องเปิด JavaScript เพื่อใช้งานแอพนี้</noscript>
+    <div id="root"><div class="tm-boot"><img src="/icon-192.png" alt="" /></div></div>
+  </body>
+</html>

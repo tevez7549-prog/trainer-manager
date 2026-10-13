@@ -72,7 +72,7 @@ export default function GymClasses() {
               <Txt muted size={12}>{`ถึง ${endOf(s)}`}</Txt>
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Txt bold size={16} numberOfLines={1}>{s.name}</Txt>
+              <Txt bold size={16} numberOfLines={2}>{s.name}</Txt>
               <Txt muted size={13} numberOfLines={1}>{s.coach?.name ? `ครู ${s.coach.name}` : 'ยังไม่ระบุผู้สอน'}</Txt>
             </View>
             <Pill text={seats(s)} kind={isFull(s) ? 'warn' : 'mute'} />

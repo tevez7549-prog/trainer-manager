@@ -15,6 +15,7 @@ import { Icon } from '../../src/ui/Icon';
 import { Pressable } from 'react-native';
 import { ROLE_TH } from '../../src/lib/gym';
 import { Row } from '../../src/ui';
+import { InstallApp } from '../../src/ui/InstallApp';
 
 
 export default function Me() {
@@ -80,6 +81,7 @@ export default function Me() {
         <Chips options={[{ v: 'dark', t: 'มืด' }, { v: 'light', t: 'สว่าง' }, { v: 'system', t: 'ตามเครื่อง' }]} value={mode} onChange={v => setMode(v as ThemeMode)} />
         <Chips label={KEEP + 'ภาษา / Language'} options={[{ v: 'th', t: KEEP + 'ไทย' }, { v: 'en', t: 'English' }]} value={lang} onChange={v => setLang(v as Lang)} />
       </Card>
+      <InstallApp />
       {/* switch between personal, trainer and gym modes (only the ones this person has) */}
       {modes.isTrainer || modes.gyms.length ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>

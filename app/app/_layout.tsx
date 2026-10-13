@@ -20,10 +20,8 @@ function WebChrome({ scheme, lang }: { scheme: Scheme; lang: Lang }) {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     document.documentElement.lang = lang;
+    // icon, manifest and iPhone tags are in public/index.html (they must be there before any script runs)
     headLink('tm-fonts', 'stylesheet', 'https://fonts.googleapis.com/css2?family=Anuphan:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap');
-    headLink('tm-icon', 'icon', '/icon-192.png', { type: 'image/png' });
-    headLink('tm-apple', 'apple-touch-icon', '/apple-touch-icon.png');
-    headLink('tm-manifest', 'manifest', '/manifest.webmanifest');
     document.documentElement.style.colorScheme = scheme;
     document.body.style.backgroundColor = C.bg;
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;

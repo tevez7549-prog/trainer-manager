@@ -1,0 +1,2 @@
+# Old/common manifest name → the real file (otherwise the SPA fallback would answer with index.html)
+/manifest.json /manifest.webmanifest 301
