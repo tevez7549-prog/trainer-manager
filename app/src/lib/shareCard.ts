@@ -31,11 +31,11 @@ export async function drawCard(d: CardData): Promise<Blob | null> {
   ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
   // ring in the corner
   ctx.strokeStyle = SOFT; ctx.lineWidth = 90; ctx.beginPath(); ctx.arc(W - 40, 120, 300, 0, Math.PI * 2); ctx.stroke();
-  // tally mark + name
-  ctx.lineCap = 'round'; ctx.strokeStyle = VOLT; ctx.lineWidth = 12;
-  [110, 140, 170, 200].forEach(x => { ctx.beginPath(); ctx.moveTo(x, 150); ctx.lineTo(x, 230); ctx.stroke(); });
-  ctx.beginPath(); ctx.moveTo(95, 220); ctx.lineTo(215, 160); ctx.stroke();
-  ctx.fillStyle = MUTED; ctx.font = display(600, 44); ctx.fillText(d.who, 250, 208);
+  // Dogfits mark + name
+  const logo = await new Promise<HTMLImageElement | null>(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = '/logo-dark.png?v=3'; });
+  if (logo) ctx.drawImage(logo, 90, 130, 96, 122);
+  ctx.fillStyle = INK; ctx.font = display(700, 56); ctx.fillText('Dogfits', 206, 196);
+  ctx.fillStyle = MUTED; ctx.font = display(600, 40); ctx.fillText(d.who, 208, 246);
 
   ctx.fillStyle = VOLT; ctx.font = display(700, 360); ctx.fillText(d.big, 90, 700);
   ctx.fillStyle = INK; ctx.font = display(700, 84); ctx.fillText(tr(d.bigLabel), 96, 820);
@@ -63,7 +63,7 @@ export async function drawCard(d: CardData): Promise<Blob | null> {
 }
 
 /** Share the card through the phone's share sheet (IG Story, Facebook, LINE …), or save it when sharing files isn't supported */
-export async function shareCard(d: CardData, fileName = 'trainer-manager.png'): Promise<'shared' | 'saved' | 'none'> {
+export async function shareCard(d: CardData, fileName = 'dogfits.png'): Promise<'shared' | 'saved' | 'none'> {
   const blob = await drawCard(d);
   if (!blob) return 'none';
   const file = new File([blob], fileName, { type: 'image/png' });

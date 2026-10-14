@@ -108,3 +108,22 @@ export const ago = (iso: string | null) => {
   return d <= 0 ? 'วันนี้' : d === 1 ? 'เมื่อวาน' : `${d} วันก่อน`;
 };
 export const daysSince = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 999);
+
+/** A sharing member's food on one day, with their latest target (group_food) */
+export type FoodDay = {
+  user_id: string; display_name: string; day: string; kcal: number; protein_g: number; carb_g: number; fat_g: number; items: number;
+  t_kcal: number | null; t_protein: number | null; t_carb: number | null; t_fat: number | null;
+};
+export async function groupFood(g: string, from: string, to: string): Promise<FoodDay[]> {
+  const { data } = await supabase.rpc('group_food', { g, d_from: from, d_to: to });
+  return ((data as any[]) ?? []).map(r => ({ ...r, kcal: Number(r.kcal), protein_g: Number(r.protein_g), carb_g: Number(r.carb_g), fat_g: Number(r.fat_g) }));
+}
+/** On target = calories within ±10% of the goal. Today is still going, so being under is "left", not a miss. */
+export type FoodState = 'on' | 'under' | 'over' | 'left' | 'free';
+export function foodState(kcal: number, target: number | null, today: boolean): FoodState {
+  if (!target) return 'free';
+  const r = kcal / target;
+  if (r > 1.1) return 'over';
+  if (r >= 0.9) return 'on';
+  return today ? 'left' : 'under';
+}

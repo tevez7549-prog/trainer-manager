@@ -4,19 +4,20 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../src/lib/supabase';
 import { useAuth } from '../../../src/lib/auth';
 import { MEMBER_TABS } from '../../../src/lib/nav';
-import { thDateTs, thTime, todayISO } from '../../../src/lib/gym';
+import { addDays, thDateTs, thTime, todayISO } from '../../../src/lib/gym';
 import {
-  ago, daysSince, groupDays, groupStreak, inviteUrl, KIND, MAX_MEMBERS, weekBoard,
-  type Day, type FeedItem, type Group, type Person,
+  ago, daysSince, foodState, groupDays, groupFood, groupStreak, inviteUrl, KIND, MAX_MEMBERS, weekBoard,
+  type Day, type FeedItem, type FoodDay, type Group, type Person,
 } from '../../../src/lib/groups';
 import { shareCard } from '../../../src/lib/shareCard';
 import { Btn, Card, ConfirmBtn, Empty, H, Header, Label, Notice, Pill, Row, Screen, Txt } from '../../../src/ui';
 import { Icon } from '../../../src/ui/Icon';
 import { TabBar } from '../../../src/ui/TabBar';
 import { GroupInvite } from '../../../src/ui/GroupInvite';
+import { GroupFood } from '../../../src/ui/GroupFood';
 import { C, R } from '../../../src/lib/theme';
 
-type Tab = 'feed' | 'board' | 'people';
+type Tab = 'feed' | 'food' | 'board' | 'people';
 const mins = (a: string, b: string | null) => (b ? Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60000)) : 0);
 
 export default function GroupPage() {
@@ -29,15 +30,21 @@ export default function GroupPage() {
   const [tab, setTab] = useState<Tab>('feed');
   const [inviting, setInviting] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
+  const [food, setFood] = useState<FoodDay[]>([]);
+  const [sharing, setSharing] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [gr, p, f, d] = await Promise.all([
+    const [gr, p, f, d, fd, sh] = await Promise.all([
       supabase.from('groups').select('*').eq('id', id).maybeSingle(),
       supabase.rpc('group_people', { g: id }),
       supabase.rpc('group_feed', { g: id, lim: 40 }),
       groupDays(id),
+      groupFood(id, addDays(todayISO(), -6), todayISO()),
+      supabase.from('group_members').select('user_id').eq('group_id', id).eq('share_food', true),
     ]);
+    setFood(fd);
+    setSharing(new Set(((sh.data as { user_id: string }[]) ?? []).map(x => x.user_id)));
     setG((gr.data as Group) ?? null);
     setPeople((p.data as Person[]) ?? []);
     setFeed((f.data as FeedItem[]) ?? []);
@@ -77,6 +84,33 @@ export default function GroupPage() {
     if (error) { setMsg({ t: thError(error), ok: false }); return; }
     router.replace('/groups' as any);
   }
+  async function setShare(on: boolean) {
+    const next = new Set(sharing); if (on) next.add(me!); else next.delete(me!);
+    setSharing(next);
+    const { error } = await supabase.rpc('set_group_food_share', { g: g!.id, share: on });
+    if (error) { setMsg({ t: thError(error), ok: false }); load(); return; }
+    setMsg({ t: on ? 'แชร์อาหารให้กลุ่มนี้แล้ว' : 'เลิกแชร์อาหารกับกลุ่มนี้แล้ว', ok: true });
+    load();
+  }
+  // this week (Monday on): days trained, kg lifted, food days on target
+  const weekFeed = feed.filter(f => f.started_at.slice(0, 10) >= board.monday);
+  const volume = weekFeed.reduce((s, f) => s + Number(f.volume || 0), 0);
+  const foodHits = food.filter(x => x.day >= board.monday && foodState(x.kcal, x.t_kcal, x.day === todayISO()) === 'on').length;
+  async function shareWeek() {
+    const top = ranked[0] && board.count[ranked[0].user_id] ? ranked[0] : null;
+    const r = await shareCard({
+      who: g!.name, big: String(done), bigLabel: 'วันที่เล่น สัปดาห์นี้', week: streak.last7,
+      stats: [
+        ...(volume ? [['ยกรวมทั้งกลุ่ม', `${Math.round(volume).toLocaleString('en-US')} kg`] as [string, string]] : []),
+        ...(sharing.size ? [['กินตามเป้า', `${foodHits} วัน`] as [string, string]] : []),
+        ...(top ? [['ขยันสุด', `${top.display_name} ${board.count[top.user_id]} วัน`] as [string, string]] : []),
+        ...(streak.n ? [['เล่นด้วยกันติดกัน', `${streak.n} วัน`] as [string, string]] : []),
+      ].slice(0, 3),
+      footer: `เล่นด้วยกันไหม? ${inviteUrl(g!.code).replace(/^https?:\/\//, '')}`,
+    }, 'dogfits-week.png');
+    if (r === 'saved') setMsg({ t: 'บันทึกรูปแล้ว เอาไปลงสตอรี่หรือส่งใน LINE ได้เลย', ok: true });
+  }
+
   async function share(f: FeedItem) {
     const r = await shareCard({
       who: f.display_name, big: String(mins(f.started_at, f.ended_at) || f.sets), bigLabel: mins(f.started_at, f.ended_at) ? 'นาที วันนี้' : 'เซต วันนี้',
@@ -97,7 +131,7 @@ export default function GroupPage() {
       {inviting || people.length <= 1 ? <Card><Txt bold>ชวนเข้ากลุ่ม</Txt><GroupInvite name={g.name} code={g.code} /></Card> : null}
 
       <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: C.surface, borderRadius: R.field, padding: 4, gap: 4 }}>
-        {([['feed', 'ฟีด'], ['board', 'อันดับ'], ['people', 'สมาชิก']] as [Tab, string][]).map(([k, t]) => (
+        {([['feed', 'ฟีด'], ['food', 'อาหาร'], ['board', 'อันดับ'], ['people', 'สมาชิก']] as [Tab, string][]).map(([k, t]) => (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)}
             style={{ flex: 1, height: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: tab === k ? C.accentSoft : 'transparent' }}>
             <Txt bold={tab === k} size={14} style={{ color: tab === k ? C.accent : C.muted }}>{t}</Txt>
@@ -115,6 +149,11 @@ export default function GroupPage() {
           <View style={{ width: `${Math.min(100, (done / goal) * 100)}%`, height: 8, borderRadius: R.pill, backgroundColor: C.accent }} />
         </View>
         <Txt muted size={13}>{streak.n ? `เล่นด้วยกัน ${streak.n} วันติด · ` : ''}เหลือ {board.daysLeft} วัน{ranked[0] && board.count[ranked[0].user_id] ? ` · นำอยู่: ${nameOf(ranked[0].user_id)} ${board.count[ranked[0].user_id]} ครั้ง` : ''}</Txt>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {volume ? <Pill kind="mute" text={`ยกรวม ${Math.round(volume).toLocaleString('en-US')} kg`} /> : null}
+          {sharing.size ? <Pill kind="mute" text={`กินตามเป้า ${foodHits} วัน`} /> : null}
+        </View>
+        <Btn kind="ghost" icon="share" label="แชร์สรุปสัปดาห์" onPress={shareWeek} />
       </Card>
 
       {tab === 'feed' ? (
@@ -158,6 +197,10 @@ export default function GroupPage() {
               </Card>
             );
           })
+      ) : null}
+
+      {tab === 'food' ? (
+        <GroupFood groupId={g.id} me={me} people={people} sharing={sharing} myShare={!!me && sharing.has(me)} rows={food} onShare={setShare} />
       ) : null}
 
       {tab === 'board' ? (
