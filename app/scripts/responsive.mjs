@@ -43,6 +43,12 @@ const scans = [[93.4, 42.9, 19.5, 20.9, 79, '2026-10-14'], [94.9, 43.8, 19.4, 20
     tbw_l: 48.2, protein_kg: 13.1, mineral_kg: 4.49, ffm_kg: 65.8, bmr: 1790, whr: 0.9, visceral: 6, target_weight: 77.4, weight_ctrl: -4, fat_ctrl: -4, muscle_ctrl: 0,
     seg_lean: seg(3.8, 29.3, 10.73), seg_fat: seg(0.8, 8.3, 2.3), created_by: UID }));
 
+const groupMock = { id: 'gr1', name: 'แก๊งยิมเย็นวันพฤหัส', kind: 'friends', code: 'ABC123', owner_id: UID, created_at: '2026-01-01T00:00:00Z' };
+const peopleMock = [[UID, 'สมชายใจดีมากเป็นพิเศษ'], ['u2', 'มิ้นท์'], ['u3', 'บอส']].map(([user_id, display_name], i) => ({ user_id, uid: 100001 + i, display_name, is_owner: i === 0, joined_at: '2026-01-01T00:00:00Z', last_workout: null, i_care: false }));
+const isoAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const foodMock = [];
+peopleMock.forEach((p, k) => { for (let i = 0; i < 6; i++) foodMock.push({ user_id: p.user_id, display_name: p.display_name, day: isoAgo(i), kcal: [1980, 1450, 2620][k] - i * 30, protein_g: 110, carb_g: 210, fat_g: 60, items: 7, t_kcal: 2000, t_protein: 120, t_carb: 220, t_fat: 65 }); });
+
 const gym = { id: 'g1', name: 'Build Up Gym พัทยากลาง', branch: 'พัทยา', phone: null, walkin_price: 100, closed_weekdays: [], country_code: '66', address: null, open_hours: { open: '06:00', close: '22:00' } };
 const coachesMock = [['c1', 'โค้ชต้อม'], ['c2', 'โค้ชแนนซี่ ใจดีมาก']].map(([id, name]) => ({ id, gym_id: 'g1', name, phone: null, profile_id: null, active: true, created_at: '2026-01-01T00:00:00Z' }));
 const at = h => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toISOString(); };
@@ -69,6 +75,11 @@ async function mock(page) {
     if (p === '/rest/v1/class_sessions') return json(one ? classesMock[0] : classesMock);
     if (p === '/rest/v1/member_status') return json(one ? membersMock[0] : membersMock, 200, { 'content-range': `0-${membersMock.length - 1}/${membersMock.length}` });
     if (p === '/rest/v1/body_scans') return json(one ? scans[0] : scans);
+    if (p === '/rest/v1/groups') return json(one ? groupMock : [groupMock]);
+    if (p === '/rest/v1/rpc/group_people') return json(peopleMock);
+    if (p === '/rest/v1/rpc/group_food') return json(foodMock);
+    if (p === '/rest/v1/rpc/group_food_items') return json([{ meal: 'มื้อเช้า', name: 'ไก่ต้มติดหนัง 150 กรัม', grams: 150, kcal: 210, protein_g: 30, carb_g: 0, fat_g: 10 }, { meal: 'มื้อกลางวัน', name: 'ข้าวสวย', grams: 165, kcal: 215, protein_g: 5, carb_g: 47, fat_g: 1 }]);
+    if (p === '/rest/v1/group_members') return json(peopleMock.map(x => ({ user_id: x.user_id })));
     if (p === '/rest/v1/meals') {
       const eq = url.searchParams.get('eaten_on');
       const rows = eq && eq.startsWith('eq.') ? meals.filter(m => m.eaten_on === eq.slice(3)) : meals;
@@ -82,7 +93,7 @@ async function mock(page) {
 const ROUTES = [
   ['login', '/login', false], ['signup', '/signup', false],
   ['home', '/?me=1', true], ['train', '/my/train', true], ['random', '/my/train#random', true], ['food', '/my/food', true], ['food-history', '/my/food#history', true], ['body', '/my/body', true], ['gym-overview', '/gym/g1', true], ['gym-classes', '/gym/g1/classes', true], ['gym-new', '/gym/new', true],
-  ['groups', '/groups', true], ['group-new', '/groups/new', true], ['me', '/me', true], ['care-add', '/trainer/add', true],
+  ['groups', '/groups', true], ['group-new', '/groups/new', true], ['group-food', '/groups/gr1#food', true], ['me', '/me', true], ['care-add', '/trainer/add', true],
 ];
 
 const report = [];
@@ -107,6 +118,12 @@ for (const lang of ['th', 'en']) {
         if (await h.count()) { await h.click(); await page.waitForTimeout(800); }
         await page.evaluate(() => { const els = [...document.querySelectorAll('div')].filter(d => getComputedStyle(d).overflowY === 'auto' || getComputedStyle(d).overflowY === 'scroll'); els.forEach(d => { d.scrollTop = d.scrollHeight; }); });
         await page.waitForTimeout(300);
+      }
+      if (path.endsWith('#food')) {
+        const t = page.getByRole('tab', { name: lang === 'th' ? 'อาหาร' : 'Food' }).first();
+        if (await t.count()) { await t.click(); await page.waitForTimeout(800); }
+        const row = page.getByText('มิ้นท์').first();
+        if (await row.count()) { await row.click(); await page.waitForTimeout(600); }
       }
       if (path.endsWith('#random')) {
         const btn = page.getByText(lang === 'th' ? 'สุ่มโปรแกรมวันนี้' : /random/i).first();
