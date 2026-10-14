@@ -1630,5 +1630,6 @@ export const EN: Record<string, string> = {
  "กินจริง": "Actually eaten",
  "ปริมาณที่กิน ({0})": "Amount eaten ({0})",
  "กิน {0} {1} จาก {2} {3} = ×{4}": "Ate {0} {1} of {2} {3} = ×{4}",
- "เท่ากับค่าโภชนาการด้านบน": "Same as the nutrition values above"
+ "เท่ากับค่าโภชนาการด้านบน": "Same as the nutrition values above",
+ "ให้เจ้าของหรือผู้จัดการเพิ่มรายชื่อเทรนเนอร์ก่อน": "Ask the owner or a manager to add the trainers first"
 };

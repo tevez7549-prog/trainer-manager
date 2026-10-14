@@ -16,7 +16,7 @@ const NAV: { k: GymTab; t: string; icon: IconName; show: (r: Role | null) => boo
   { k: 'home', t: 'ภาพรวม', icon: 'house', show: isManager },
   { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', show: isDesk },
   { k: 'members', t: 'สมาชิก', icon: 'users', show: isDesk },
-  { k: 'pt', t: 'เทรนเนอร์และ PT', icon: 'dumbbell', show: isManager },
+  { k: 'pt', t: 'เทรนเนอร์และ PT', icon: 'dumbbell', show: isDesk },
   { k: 'classes', t: 'คลาส', icon: 'calendar-days', show: isDesk },
   { k: 'plans', t: 'แพ็กเกจและราคา', icon: 'tag', show: isManager },
   { k: 'staff', t: 'ทีมงาน', icon: 'id-card', show: isManager },

@@ -18,6 +18,7 @@ export const ownerTabs = (g: string): Tab[] => [
 /** Counter mode: checking people in, walk-ins, selling. Separate from the owner's overview. */
 export const counterTabs = (g: string): Tab[] => [
   { k: 'counter', t: 'เช็กอิน', icon: 'circle-check', href: `/gym/${g}/counter` },
+  { k: 'pt', t: 'เทรนเนอร์', icon: 'dumbbell', href: `/gym/${g}/pt?desk=1` },
   { k: 'classes', t: 'คลาส', icon: 'calendar-days', href: `/gym/${g}/classes?desk=1` },
   { k: 'members', t: 'สมาชิก', icon: 'users', href: `/gym/${g}/members?desk=1` },
   { k: 'me', t: 'ฉัน', icon: 'user', href: `/me?from=desk&g=${g}` },

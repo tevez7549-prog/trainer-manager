@@ -16,7 +16,7 @@ type Range = 'today' | 'week';
 
 /** Owner / Admin / Operator: every trainer's trainees, sessions left and appointments at this gym */
 export default function GymPT() {
-  const { id, low: low0, who: who0 } = useLocalSearchParams<{ id: string; low?: string; who?: string }>();
+  const { id, low: low0, who: who0, desk } = useLocalSearchParams<{ id: string; low?: string; who?: string; desk?: string }>();
   const { gym, role } = useGym(id);
   const me = useAuth().profile?.id;
   const [coaches, setCoaches] = useState<Coach[]>([]);
@@ -71,7 +71,7 @@ export default function GymPT() {
   const lowAll = (tcs ?? []).filter(t => (left[t.id] ?? 0) <= 2).length;
 
   return (
-    <GymFrame id={id} gym={gym} role={role} active="pt">
+    <GymFrame id={id} gym={gym} role={role} active="pt" desk={desk === '1'}>
       <Header title="PT" sub={gym?.name} />
       {msg ? <Notice text={msg.t} kind={msg.ok ? 'ok' : 'bad'} /> : null}
 
@@ -79,14 +79,14 @@ export default function GymPT() {
         <Chips options={[{ v: 'all', t: `ทุกคน (${total})` }, ...trainers.map(t => ({ v: t.id, t: `${t.name} (${t.count})` }))]} value={who} onChange={setWho} />
       ) : null}
       {tcs && !trainers.length ? (
-        <Card><Empty ic="dumbbell" title="ยังไม่มีเทรนเนอร์" text="เพิ่มชื่อเทรนเนอร์ก่อน (มีแอปหรือไม่มีก็ได้) แล้วขาย PT ที่หน้าสมาชิก" action="เพิ่มเทรนเนอร์" onAction={() => router.push(`/gym/${id}/coaches` as any)} /></Card>
+        <Card><Empty ic="dumbbell" title="ยังไม่มีเทรนเนอร์" text={isManager(role) ? "เพิ่มชื่อเทรนเนอร์ก่อน (มีแอปหรือไม่มีก็ได้) แล้วขาย PT ที่หน้าสมาชิก" : "ให้เจ้าของหรือผู้จัดการเพิ่มรายชื่อเทรนเนอร์ก่อน"} {...(isManager(role) ? { action: "เพิ่มเทรนเนอร์", onAction: () => router.push(`/gym/${id}/coaches` as any) } : {})} /></Card>
       ) : null}
 
       {who !== 'all' ? <>
         <Label>ตารางว่างของ {nameOf(who)}</Label>
         <Card><WeekGrid coachId={picked?.coach ? who : undefined} trainerId={picked?.coach ? picked.coach.profile_id : who.replace(/^u:/, '')}
           closedDays={gym?.closed_weekdays ?? []} openHours={gym?.open_hours} reloadKey={appts.length} /></Card>
-      </> : trainers.length ? <Txt muted size={13}>แตะชื่อเทรนเนอร์ด้านบนเพื่อดูตารางว่างทั้งสัปดาห์ · <Txt size={13} style={{ color: C.accent }} onPress={() => router.push(`/gym/${id}/coaches` as any)}>จัดการรายชื่อเทรนเนอร์</Txt></Txt> : null}
+      </> : trainers.length ? <Txt muted size={13}>แตะชื่อเทรนเนอร์ด้านบนเพื่อดูตารางว่างทั้งสัปดาห์{isManager(role) ? <> · <Txt size={13} style={{ color: C.accent }} onPress={() => router.push(`/gym/${id}/coaches` as any)}>จัดการรายชื่อเทรนเนอร์</Txt></> : null}</Txt> : null}
 
       {tcs?.length ? <>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
