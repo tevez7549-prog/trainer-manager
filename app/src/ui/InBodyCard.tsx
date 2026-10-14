@@ -7,22 +7,13 @@ import { fmt1 } from '../lib/me';
 import { parseInBody, type InBody, type Seg } from '../lib/inbody';
 import { readQrFromFile } from '../lib/qr';
 import { C, R } from '../lib/theme';
-import { Btn, Card, Chips, ConfirmBtn, H, Notice, Txt } from './index';
+import { Btn, Card, ConfirmBtn, DateField, Field, H, Notice, Txt } from './index';
 import { Icon } from './Icon';
-import { MiniChart } from './Macro';
+import { InBodyTrend } from './InBodyTrend';
 
 /** Saved InBody result (body_scans row) */
 type Scan = Omit<InBody, 'age' | 'sex' | 'raw'> & { id: string; created_by: string | null };
 const COLS = 'id,measured_at,model,height_cm,weight_kg,smm_kg,fat_kg,pbf,bmi,score,tbw_l,protein_kg,mineral_kg,ffm_kg,bmr,whr,visceral,target_weight,weight_ctrl,fat_ctrl,muscle_ctrl,seg_lean,seg_fat,created_by';
-
-type ChartKey = 'weight_kg' | 'smm_kg' | 'pbf' | 'fat_kg' | 'score';
-const CHARTS: { k: ChartKey; t: string; unit: string; goodDown: boolean }[] = [
-  { k: 'weight_kg', t: 'น้ำหนัก', unit: 'kg', goodDown: true },
-  { k: 'smm_kg', t: 'กล้ามเนื้อ', unit: 'kg', goodDown: false },
-  { k: 'pbf', t: '%ไขมัน', unit: '%', goodDown: true },
-  { k: 'fat_kg', t: 'มวลไขมัน', unit: 'kg', goodDown: true },
-  { k: 'score', t: 'คะแนน', unit: '', goodDown: false },
-];
 
 /**
  * InBody on the body page: scan the QR on the printout, check the numbers, save. Then the latest result,
@@ -34,7 +25,7 @@ export function InBodyCard({ onSaved }: { onSaved?: () => void }) {
   const [found, setFound] = useState<InBody | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
-  const [chart, setChart] = useState<ChartKey>('smm_kg');
+  const [manual, setManual] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
@@ -95,10 +86,6 @@ export function InBodyCard({ onSaved }: { onSaved?: () => void }) {
   }
 
   const latest = scans?.[0] ?? null, prev = scans?.[1] ?? null;
-  const meta = CHARTS.find(c => c.k === chart)!;
-  const series = (scans ?? []).filter(s => s[chart] != null).slice(0, 12).reverse()
-    .map(s => ({ label: thDate(isoDate(new Date(s.measured_at))), v: Number(s[chart]) }));
-
   return (
     <Card>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -123,12 +110,13 @@ export function InBodyCard({ onSaved }: { onSaved?: () => void }) {
           <Txt bold size={14}>{`ล่าสุด · ${thDate(isoDate(new Date(latest.measured_at)))}${prev ? ` · เทียบกับ ${thDate(isoDate(new Date(prev.measured_at)))}` : ''}`}</Txt>
           <Tiles s={latest} prev={prev} />
         </View>
-        {scans && scans.length > 1 ? <>
-          <Chips options={CHARTS.map(c => ({ v: c.k, t: c.t }))} value={chart} onChange={setChart} />
-          <MiniChart points={series} unit={meta.unit} />
-        </> : <Txt muted size={12.5}>สแกนครั้งต่อไปแล้วจะเห็นกราฟเทียบกัน</Txt>}
+        {scans && scans.length > 1 ? <InBodyTrend scans={scans} />
+          : <Txt muted size={12.5}>สแกนครั้งต่อไปแล้วจะเห็นกราฟเทียบกัน · หรือพิมพ์ผลครั้งก่อน ๆ จากตาราง "ประวัติการวัด" บนใบลงไปเองด้านล่าง</Txt>}
         <History scans={scans ?? []} onDelete={del} />
       </> : null}
+      {!found ? (manual
+        ? <ManualPast onCancel={() => setManual(false)} onSaved={(t) => { setMsg({ t, ok: true }); load(); onSaved?.(); }} onError={(t) => setMsg({ t, ok: false })} />
+        : <Btn kind="ghost" icon="plus" label="เพิ่มผลเก่าเอง (จากตารางประวัติบนใบ)" onPress={() => { setManual(true); setMsg(null); }} />) : null}
     </Card>
   );
 }
@@ -215,7 +203,7 @@ function History({ scans, onDelete }: { scans: Scan[]; onDelete: (s: Scan) => vo
         <View key={s.id} style={{ borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 8, gap: 6 }}>
           <Pressable accessibilityRole="button" onPress={() => setOpen(open === s.id ? null : s.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Txt bold size={14}>{thDate(isoDate(new Date(s.measured_at)))}</Txt>
+              <Txt bold size={14}>{`${thDate(isoDate(new Date(s.measured_at)))}${s.model === 'manual' ? ' · พิมพ์เอง' : ''}`}</Txt>
               <Txt muted size={13}>{`${fmt1(s.weight_kg)} kg · กล้ามเนื้อ ${fmt1(s.smm_kg)} · ไขมัน ${fmt1(s.pbf)}%${s.score ? ` · ${s.score} คะแนน` : ''}`}</Txt>
             </View>
             <Icon name={open === s.id ? 'chevron-down' : 'chevron-right'} size={18} color={C.muted} />
@@ -226,6 +214,55 @@ function History({ scans, onDelete }: { scans: Scan[]; onDelete: (s: Scan) => vo
           </> : null}
         </View>
       ))}
+    </View>
+  );
+}
+
+/**
+ * Older tests from the "history" table on the printout (date, weight, muscle, body-fat %), typed by hand,
+ * so the chart starts with the whole history instead of only the scans made in the app.
+ */
+function ManualPast({ onSaved, onCancel, onError }: { onSaved: (msg: string) => void; onCancel: () => void; onError: (msg: string) => void }) {
+  const { profile } = useAuth();
+  const [day, setDay] = useState(isoDate(new Date()));
+  const [time, setTime] = useState('07:00');
+  const [w, setW] = useState(''); const [m, setM] = useState(''); const [f, setF] = useState('');
+  const [busy, setBusy] = useState(false);
+  const num = (v: string) => v.replace(/[^\d.]/g, '');
+  async function save() {
+    const wk = Number(w), mk = Number(m), fp = Number(f);
+    if (!(wk > 20 && wk < 400)) { onError('ใส่น้ำหนัก (kg) ให้ถูกต้อง'); return; }
+    if (m && !(mk > 5 && mk < 150)) { onError('มวลกล้ามเนื้อดูไม่ถูก (kg)'); return; }
+    if (f && !(fp > 1 && fp < 80)) { onError('%ไขมันดูไม่ถูก'); return; }
+    const [hh, mm] = (/^\d{1,2}:\d{2}$/.test(time) ? time : '07:00').split(':').map(Number);
+    const at = new Date(`${day}T00:00:00`); at.setHours(hh, mm, 0, 0);
+    setBusy(true);
+    const { error } = await supabase.from('body_scans').insert({ user_id: profile!.id, created_by: profile!.id, measured_at: at.toISOString(), model: 'manual',
+      weight_kg: wk, smm_kg: m ? mk : null, pbf: f ? fp : null, fat_kg: f ? Math.round(wk * fp) / 100 : null });
+    if (!error) {
+      const { data: ex } = await supabase.from('body_measurements').select('id').eq('user_id', profile!.id).eq('measured_on', day).limit(1);
+      if (!ex?.length) await supabase.from('body_measurements').insert({ user_id: profile!.id, measured_on: day, weight_kg: wk, created_by: profile!.id });
+    }
+    setBusy(false);
+    if (error) { onError(error.code === '23505' ? 'วันเวลานี้มีผลอยู่แล้ว' : thError(error)); return; }
+    setW(''); setM(''); setF('');
+    onSaved(`เพิ่มผลวันที่ ${thDate(day)} แล้ว · ใส่ครั้งต่อไปได้เลย`);
+  }
+  return (
+    <View style={{ gap: 10, borderWidth: 1.5, borderColor: C.accent, borderRadius: R.field, padding: 12 }}>
+      <Txt bold>เพิ่มผลเก่าเอง</Txt>
+      <Txt muted size={12.5}>ดูจากตาราง "ประวัติการวัดองค์ประกอบของร่างกาย" บนใบ InBody ใส่ทีละวัน</Txt>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 2, minWidth: 0 }}><DateField label="วันที่วัด" value={day} onChange={setDay} max={isoDate(new Date())} /></View>
+        <View style={{ flex: 1, minWidth: 0 }}><Field label="เวลา" value={time} onChangeText={setTime} placeholder="07:00" /></View>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 1, minWidth: 0 }}><Field label="น้ำหนัก kg" value={w} onChangeText={v => setW(num(v))} keyboardType="decimal-pad" placeholder="93.4" /></View>
+        <View style={{ flex: 1, minWidth: 0 }}><Field label="กล้ามเนื้อ kg" value={m} onChangeText={v => setM(num(v))} keyboardType="decimal-pad" placeholder="42.9" /></View>
+        <View style={{ flex: 1, minWidth: 0 }}><Field label="%ไขมัน" value={f} onChangeText={v => setF(num(v))} keyboardType="decimal-pad" placeholder="20.9" /></View>
+      </View>
+      <Btn icon="check" label="บันทึก" onPress={save} loading={busy} />
+      <Btn kind="ghost" label="ปิด" onPress={onCancel} />
     </View>
   );
 }
