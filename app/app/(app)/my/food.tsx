@@ -236,7 +236,7 @@ function AddSheet({ mode: mode0, meal: meal0, day, bare, onDone }: { mode: Mode;
         <Pressable accessibilityRole="button" accessibilityLabel="ปิด" onPress={() => onDone()} hitSlop={8}><Icon name="x" size={20} color={C.muted} /></Pressable>
       </View> : null}
       {bare ? <Chips options={[{ v: 'ai', t: '✦ AI' }, { v: 'search', t: 'ค้นหา' }, { v: 'fav', t: 'โปรด' }, { v: 'recent', t: 'ล่าสุด' }, { v: 'custom', t: 'สร้างเอง' }, { v: 'photo', t: '✦ ถ่ายรูป' }] as { v: Mode; t: string }[]} value={mode} onChange={setMode} />
-        : making ? null : <Chips options={MEAL_NAMES.map(n => ({ v: n, t: SHORT[n] ?? n }))} value={meal} onChange={setMeal} />}
+        : making ? null : <Txt muted size={13}>{`เพิ่มลง${meal} · มื้ออื่นกด + ที่มื้อนั้นด้านบน`}</Txt>}
       {err ? <Notice text={err} /> : null}
       {mode === 'search' ? <SearchFoods onPick={save} busy={busy} /> : null}
       {mode === 'fav' ? <Favorites onPick={save} busy={busy} onMaking={setMaking} /> : null}
