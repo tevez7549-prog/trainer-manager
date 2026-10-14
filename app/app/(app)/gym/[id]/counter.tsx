@@ -10,6 +10,7 @@ import { expiryText, MemberRow } from '../../../../src/ui/MemberRow';
 import { C, F, R } from '../../../../src/lib/theme';
 import { Icon } from '../../../../src/ui/Icon';
 import { GymFrame } from '../../../../src/ui/GymFrame';
+import { CopyLink } from '../../../../src/ui/CopyLink';
 
 type LogCheckin = { id: string; member_id: string; kind: string; checked_at: string; member: { name: string; code: string } | null };
 type LogWalkin = { id: string; at: string; price: number; pay_method: string; note: string | null };
@@ -182,6 +183,8 @@ export default function Counter() {
                 : <LogLine key={x.w.id} time={x.at} text={`ขาจร ${baht(x.w.price)} · ${PAY_TH[x.w.pay_method]}${x.w.note ? ' · ' + x.w.note : ''}`} onUndo={() => undo('walkins', x.w.id)} />)}
             {!checkins.length && !walkins.length && !pending.length ? <Txt muted>ยังไม่มีรายการวันนี้</Txt> : null}
           </Card>
+          <CopyLink path={`/gym/${id}/counter`} title="เปิดหน้าเคาน์เตอร์บนคอม"
+            hint="คัดลอกลิงก์ไปเปิดในคอมที่เคาน์เตอร์ ล็อกอินด้วยบัญชีที่ดูแลยิมนี้ แล้วกดดาว (บุ๊กมาร์ก) หรือติดตั้งเป็นแอปไว้ เปิดครั้งหน้าเข้าหน้านี้ได้เลย" />
         </>}
       />
     </GymFrame>

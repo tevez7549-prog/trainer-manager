@@ -1613,5 +1613,11 @@ export const EN: Record<string, string> = {
  "บันทึก \"{0}\" เป็นเมนูโปรดแล้ว · แตะเพื่อเพิ่มลงมื้อนี้": "Saved \"{0}\" to favourites · tap it to add to this meal",
  "ยังไม่มีเมนูโปรด · สร้างเมนูที่กินประจำเก็บไว้ได้เลย หรือตอนค้นหาแตะรูปดาวข้างอาหาร": "No favourites yet · create the menus you eat often, or tap the star next to a food when searching",
  "{0} kcal · P {1} C {2} F {3} ต่อ {4} {5} · ตอนเพิ่มลงมื้อ ค่อยเลือกปริมาณที่กินจริง": "{0} kcal · P {1} C {2} F {3} per {4} {5} · pick the amount you really ate when adding it to a meal",
- "บันทึกเป็นเมนูโปรด": "Save to favourites"
+ "บันทึกเป็นเมนูโปรด": "Save to favourites",
+ "เปิดหน้าเคาน์เตอร์บนคอม": "Open the counter on a computer",
+ "คัดลอกลิงก์ไปเปิดในคอมที่เคาน์เตอร์ ล็อกอินด้วยบัญชีที่ดูแลยิมนี้ แล้วกดดาว (บุ๊กมาร์ก) หรือติดตั้งเป็นแอปไว้ เปิดครั้งหน้าเข้าหน้านี้ได้เลย": "Copy the link and open it on the counter computer, log in with an account that runs this gym, then bookmark it or install it as an app to come straight back here",
+ "คัดลอกแล้ว": "Copied",
+ "คัดลอกลิงก์": "Copy link",
+ "ส่งต่อ": "Share",
+ "คัดลอกอัตโนมัติไม่ได้ · กดค้างที่ลิงก์ด้านบนเพื่อคัดลอกเอง": "Couldn't copy automatically · press and hold the link above to copy it"
 };
