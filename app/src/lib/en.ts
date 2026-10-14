@@ -1608,5 +1608,10 @@ export const EN: Record<string, string> = {
  "%ไขมันดูไม่ถูก": "Body fat % looks wrong",
  "วันเวลานี้มีผลอยู่แล้ว": "There's already a result at this date and time",
  "เพิ่มผลวันที่ {0} แล้ว · ใส่ครั้งต่อไปได้เลย": "Added the result for {0} · enter the next one",
- "{0} · พิมพ์เอง": "{0} · typed in"
+ "{0} · พิมพ์เอง": "{0} · typed in",
+ "สร้างเมนูของฉัน": "Create my menu",
+ "บันทึก \"{0}\" เป็นเมนูโปรดแล้ว · แตะเพื่อเพิ่มลงมื้อนี้": "Saved \"{0}\" to favourites · tap it to add to this meal",
+ "ยังไม่มีเมนูโปรด · สร้างเมนูที่กินประจำเก็บไว้ได้เลย หรือตอนค้นหาแตะรูปดาวข้างอาหาร": "No favourites yet · create the menus you eat often, or tap the star next to a food when searching",
+ "{0} kcal · P {1} C {2} F {3} ต่อ {4} {5} · ตอนเพิ่มลงมื้อ ค่อยเลือกปริมาณที่กินจริง": "{0} kcal · P {1} C {2} F {3} per {4} {5} · pick the amount you really ate when adding it to a meal",
+ "บันทึกเป็นเมนูโปรด": "Save to favourites"
 };

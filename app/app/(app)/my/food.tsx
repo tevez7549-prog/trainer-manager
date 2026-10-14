@@ -261,7 +261,7 @@ function useFavIds() {
     else await supabase.from('food_favorites').insert({ user_id: profile!.id, food_id: id });
     load();
   }
-  return { ids, toggle };
+  return { ids, toggle, reload: load };
 }
 
 const SERVING_TH: [RegExp, string][] = [[/\btbsp\b/i, 'ช้อนโต๊ะ'], [/\btsp\b/i, 'ช้อนชา'], [/\bcups?\b/i, 'ถ้วย'], [/\bslices?\b/i, 'แผ่น'], [/\bpieces?\b/i, 'ชิ้น'],
@@ -359,10 +359,21 @@ function Favorites({ onPick, busy }: { onPick: (i: NewItem) => void; busy: boole
   const fav = useFavIds();
   const [pick, setPick] = useState<Food | null>(null);
   const list = useFavFoods(fav.ids);
+  const [making, setMaking] = useState(false);
+  const [made, setMade] = useState('');
   if (pick) return <Portion f={pick} onAdd={onPick} onBack={() => setPick(null)} busy={busy} />;
+  if (making) return <>
+    <Txt bold>สร้างเมนูของฉัน</Txt>
+    <Custom saveOnly busy={false} onSave={() => {}} onCreated={n => { setMaking(false); setMade(`บันทึก "${n}" เป็นเมนูโปรดแล้ว · แตะเพื่อเพิ่มลงมื้อนี้`); fav.reload(); }} />
+    <Btn kind="ghost" label="ยกเลิก" onPress={() => setMaking(false)} />
+  </>;
   if (list === null) return <Txt muted>กำลังโหลด…</Txt>;
-  return list.length ? <FoodList foods={list} onPick={setPick} fav={fav} />
-    : <Txt muted>ยังไม่มีเมนูโปรด · ตอนค้นหาแตะรูปดาวข้างอาหาร หรือสร้างเมนูเองแล้วเลือก "เก็บเป็นเมนูโปรด"</Txt>;
+  return <>
+    {made ? <Notice text={made} kind="ok" /> : null}
+    {list.length ? <FoodList foods={list} onPick={setPick} fav={fav} />
+      : <Txt muted>ยังไม่มีเมนูโปรด · สร้างเมนูที่กินประจำเก็บไว้ได้เลย หรือตอนค้นหาแตะรูปดาวข้างอาหาร</Txt>}
+    <Btn kind="ghost" icon="plus" label="สร้างเมนูของฉัน" onPress={() => { setMaking(true); setMade(''); }} />
+  </>;
 }
 
 /** Things eaten in the last 30 days, newest first, one row per name: tap to add again */
@@ -399,7 +410,7 @@ const UNITS = ['กรัม', 'มล.', 'ขวด', 'กล่อง', 'ช�
  * Own menu from a nutrition label: the label's amount and macros, then how much was really eaten
  * (e.g. label per 100 g, ate 150 g → ×1.5). Calories: typed from the label, or worked out from the macros (4 / 4 / 9).
  */
-function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean }) {
+function Custom({ onSave, busy, saveOnly, onCreated }: { onSave: (i: NewItem) => void; busy: boolean; saveOnly?: boolean; onCreated?: (name: string) => void }) {
   const { profile } = useAuth();
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('กรัม');
@@ -408,6 +419,7 @@ function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean 
   const [kcal, setKcal] = useState('');            // label kcal; empty = from macros
   const [ate, setAte] = useState('');              // amount really eaten; empty = same as label
   const [keep, setKeep] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const num = (v: string) => v.replace(/[^\d.]/g, '');
   const macroKcal = Math.round(Number(p || 0) * 4 + Number(c || 0) * 4 + Number(f || 0) * 9);
@@ -422,6 +434,16 @@ function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean 
     if (!labelKcal) { setErr('ใส่แคลอรี หรือโปรตีน คาร์บ ไขมันอย่างน้อย 1 ช่อง'); return; }
     const grams = unit === 'กรัม' || unit === 'มล.';
     let foodId: string | null = null;
+    if (saveOnly) {
+      setSaving(true); setErr('');
+      const nm = grams ? name.trim() : `${name.trim()} (${fmt1(perN)} ${unit})`;
+      const r = await supabase.from('foods').insert({ name_th: nm, serving_g: grams ? perN : 0,
+        kcal: labelKcal, protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0), created_by: profile!.id }).select('id').single();
+      if (!r.error) await supabase.from('food_favorites').insert({ user_id: profile!.id, food_id: r.data.id });
+      setSaving(false);
+      if (r.error) { setErr(thError(r.error)); return; }
+      onCreated?.(nm); return;
+    }
     if (keep) {
       // saved per the label amount; weight-based units can be scaled later by grams
       const r = await supabase.from('foods').insert({ name_th: grams ? name.trim() : `${name.trim()} (${fmt1(perN)} ${unit})`, serving_g: grams ? perN : 0,
@@ -451,6 +473,10 @@ function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean 
     </View>
     <Txt muted size={12.5}>ว่างไว้ = ใช้ค่าจาก Macro (โปรตีน×4 + คาร์บ×4 + ไขมัน×9) · ฉลากบอกแคลไว้ก็กรอกตามฉลาก</Txt>
 
+    {saveOnly ? <>
+      <Txt muted size={12.5}>{`${labelKcal.toLocaleString('en-US')} kcal · P ${fmt1(Number(p || 0))} C ${fmt1(Number(c || 0))} F ${fmt1(Number(f || 0))} ต่อ ${fmt1(perN)} ${unit} · ตอนเพิ่มลงมื้อ ค่อยเลือกปริมาณที่กินจริง`}</Txt>
+      <Btn icon="star" label="บันทึกเป็นเมนูโปรด" onPress={go} loading={saving} />
+    </> : <>
     <Field label={`กินจริง (${unit})`} value={ate} onChangeText={v => setAte(num(v))} keyboardType="decimal-pad" placeholder={per ? `${per} = ตามฉลาก` : ''} />
     <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface2, gap: 2 }}>
       <Txt bold>{out.kcal.toLocaleString('en-US')} kcal · P {fmt1(out.protein_g)} C {fmt1(out.carb_g)} F {fmt1(out.fat_g)}</Txt>
@@ -458,6 +484,7 @@ function Custom({ onSave, busy }: { onSave: (i: NewItem) => void; busy: boolean 
     </View>
     <Toggle label="เก็บเป็นเมนูโปรด" value={keep} onChange={setKeep} hint="ครั้งหน้ากดจาก เมนูโปรด แล้วกรอกปริมาณที่กินได้เลย" />
     <Btn label="เพิ่ม" onPress={go} loading={busy} />
+    </>}
   </>;
 }
 
