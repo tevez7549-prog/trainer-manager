@@ -64,6 +64,11 @@ export default function FoodPage() {
     const { error } = await supabase.from('meal_items').delete().eq('id', i.id);
     if (error) done(thError(error), false); else done(`ลบ ${i.name} แล้ว`);
   }
+  async function edit(i: MealItem, e: AiItem) {
+    const patch = { name: e.name, grams: e.grams, kcal: Math.round(e.kcal), protein_g: e.protein_g, carb_g: e.carb_g, fat_g: e.fat_g, from_ai: false };
+    const { error } = await supabase.from('meal_items').update(patch).eq('id', i.id);
+    if (error) done(thError(error), false); else done(`แก้ ${e.name} แล้ว`);
+  }
   const today = day === todayISO();
 
 
@@ -118,7 +123,7 @@ export default function FoodPage() {
               </View>
               {adding ? <View style={{ paddingBottom: 12 }}><AddSheet bare mode={sheet!.mode} meal={name} day={day} onDone={(tt) => { setSheet(null); if (tt) done(tt); }} /></View> : null}
               {on ? <View style={{ paddingBottom: 10, gap: 6 }}>
-                {items.map(i => <ItemRow key={i.id} i={i} onDelete={() => del(i)} />)}
+                {items.map(i => <ItemRow key={i.id} i={i} onDelete={() => del(i)} onEdit={e => edit(i, e)} />)}
                 {cs.map(c => (
                   <View key={c.id} style={{ flexDirection: 'row', gap: 8, padding: 10, borderRadius: R.field, backgroundColor: C.infoBg }}>
                     <Icon name="message" size={18} color={C.infoFg} />
@@ -176,8 +181,19 @@ function Tile({ icon, label, sub, onPress, primary, on, ai }: { icon: string; la
   );
 }
 
-function ItemRow({ i, onDelete }: { i: MealItem; onDelete: () => void }) {
+function ItemRow({ i, onDelete, onEdit }: { i: MealItem; onDelete: () => void; onEdit: (e: AiItem) => void }) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    // the amount is the grams when known (changing it scales everything), otherwise 1 portion
+    const asAi: AiItem = { name: i.name, amount: i.grams ? Number(i.grams) : 1, unit: i.grams ? 'กรัม' : 'ที่', grams: i.grams,
+      kcal: i.kcal, protein_g: i.protein_g, carb_g: i.carb_g, fat_g: i.fat_g };
+    return (
+      <View style={{ paddingLeft: 56 }}>
+        <AiEdit item={asAi} onCancel={() => setEditing(false)} onDone={e => { setEditing(false); setOpen(false); onEdit(e); }} />
+      </View>
+    );
+  }
   return (
     <View style={{ gap: 6, paddingLeft: 56 }}>
       <Pressable accessibilityRole="button" onPress={() => setOpen(!open)} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -186,7 +202,12 @@ function ItemRow({ i, onDelete }: { i: MealItem; onDelete: () => void }) {
           <Txt muted size={12.5}>{macroLine(i)}</Txt>
         </View>
       </Pressable>
-      {open ? <ConfirmBtn label="ลบรายการนี้" onConfirm={onDelete} /> : null}
+      {open ? (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Btn kind="ghost" icon="pencil" label="แก้ไข" onPress={() => setEditing(true)} style={{ flex: 1 }} />
+          <View style={{ flex: 1 }}><ConfirmBtn label="ลบ" confirmLabel="ยืนยันลบ" onConfirm={onDelete} /></View>
+        </View>
+      ) : null}
     </View>
   );
 }

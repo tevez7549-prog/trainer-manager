@@ -1619,5 +1619,7 @@ export const EN: Record<string, string> = {
  "คัดลอกแล้ว": "Copied",
  "คัดลอกลิงก์": "Copy link",
  "ส่งต่อ": "Share",
- "คัดลอกอัตโนมัติไม่ได้ · กดค้างที่ลิงก์ด้านบนเพื่อคัดลอกเอง": "Couldn't copy automatically · press and hold the link above to copy it"
+ "คัดลอกอัตโนมัติไม่ได้ · กดค้างที่ลิงก์ด้านบนเพื่อคัดลอกเอง": "Couldn't copy automatically · press and hold the link above to copy it",
+ "แก้ {0} แล้ว": "Updated {0}",
+ "ยืนยันลบ": "Confirm delete"
 };
