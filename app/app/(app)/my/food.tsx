@@ -397,10 +397,12 @@ function Favorites({ onPick, busy }: { onPick: (i: NewItem) => void; busy: boole
   </>;
 }
 
-/** Things eaten in the last 30 days, newest first, one row per name: tap to add again */
+/** Things eaten in the last 30 days, newest first, one row per name: tap to add again, star to keep as a favourite */
 function Recent({ onPick }: { onPick: (i: NewItem) => void }) {
   const { profile } = useAuth();
+  const fav = useFavIds();
   const [list, setList] = useState<NewItem[] | null>(null);
+  const [starring, setStarring] = useState<string | null>(null);
   useEffect(() => {
     if (!profile) return;
     supabase.from('meal_items').select('name,grams,kcal,protein_g,carb_g,fat_g,food_id,created_at').eq('user_id', profile.id)
@@ -411,16 +413,39 @@ function Recent({ onPick }: { onPick: (i: NewItem) => void }) {
         setList(out.slice(0, 20));
       });
   }, [profile]);
+  // AI / one-off items have no library entry yet: starring saves one (for this amount) and stars it
+  async function star(i: NewItem) {
+    if (i.food_id) { await fav.toggle(i.food_id); return; }
+    setStarring(i.name);
+    const g = i.grams ? Number(i.grams) : 0;
+    const r = await supabase.from('foods').insert({ name_th: i.name, serving_g: g, kcal: i.kcal, protein_g: i.protein_g, carb_g: i.carb_g, fat_g: i.fat_g,
+      created_by: profile!.id }).select('id').single();
+    if (!r.error) {
+      await supabase.from('food_favorites').insert({ user_id: profile!.id, food_id: r.data.id });
+      setList(l => (l ?? []).map(x => (x.name === i.name ? { ...x, food_id: r.data.id } : x)));
+      fav.reload();
+    }
+    setStarring(null);
+  }
   if (list === null) return <Txt muted>กำลังโหลด…</Txt>;
   if (!list.length) return <Txt muted>ยังไม่มีประวัติ 30 วันล่าสุด</Txt>;
   return (
     <View>
-      {list.map(i => (
-        <Pressable key={i.name} accessibilityRole="button" onPress={() => onPick({ ...i })} style={({ pressed }) => ({ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.line, opacity: pressed ? 0.6 : 1 })}>
-          <Txt>{i.name}</Txt>
-          <Txt muted size={13}>{macroLine(i)}</Txt>
-        </Pressable>
-      ))}
+      {list.map(i => {
+        const on = !!i.food_id && fav.ids.has(i.food_id);
+        return (
+          <View key={i.name} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: C.line }}>
+            <Pressable accessibilityRole="button" onPress={() => onPick({ ...i })} style={({ pressed }) => ({ flex: 1, paddingVertical: 12, opacity: pressed ? 0.6 : 1 })}>
+              <Txt>{i.name}{i.grams ? ` · ${fmt1(Number(i.grams))} g` : ''}</Txt>
+              <Txt muted size={13}>{macroLine(i)}</Txt>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={on ? `เอา ${i.name} ออกจากเมนูโปรด` : `เพิ่ม ${i.name} เป็นเมนูโปรด`}
+              disabled={starring === i.name} onPress={() => star(i)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: starring === i.name ? 0.4 : 1 }}>
+              <Icon name="star" size={20} color={on ? C.cautionFg : C.muted} />
+            </Pressable>
+          </View>
+        );
+      })}
     </View>
   );
 }
