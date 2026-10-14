@@ -60,7 +60,7 @@ export function InBodyTrend({ scans }: { scans: TrendScan[] }) {
                       <Circle key={`c${i}`} cx={xs(i)} cy={y(v)} r={i === n - 1 ? 4.5 : 3.5} fill={i === n - 1 ? color : C.surface} stroke={color} strokeWidth={2} />
                     ))}
                     {vals.map((v, i) => v == null ? null : (
-                      <SvgText key={`t${i}`} x={xs(i)} y={y(v) - 8} fontSize={12.5} fontWeight={i === n - 1 ? '700' : '500'} fontFamily={F.body}
+                      <SvgText key={`t${i}`} x={xs(i)} y={y(v) - 8} fontSize={col < 40 ? 11 : 12.5} fontWeight={i === n - 1 ? '700' : '500'} fontFamily={F.body}
                         fill={i === n - 1 ? color : C.fg} textAnchor="middle">{v.toFixed(1)}</SvgText>
                     ))}
                   </Svg>
