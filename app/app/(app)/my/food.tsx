@@ -645,38 +645,37 @@ function AiText({ onSave, busy, photo }: { onSave: (i: NewItem) => void; busy: b
 
 
 /**
- * Fix what the AI guessed before adding it. Changing the amount scales the values from the AI's amount
- * (AI said 1 จาน, you ate 0.5 → half); the values themselves can also be typed over.
+ * Edit before adding (or after): two parts, like a nutrition label.
+ * 1) the nutrition values and the amount they are for (from the label, the library or the AI),
+ * 2) how much was really eaten: every value is scaled by eaten ÷ label amount.
  */
 function AiEdit({ item, onDone, onCancel }: { item: AiItem; onDone: (i: AiItem) => void; onCancel: () => void }) {
-  const s = (n: number | null | undefined) => (n == null ? '' : String(n));
+  const s = (n: number | null | undefined) => (n == null ? '' : String(Math.round(n * 10) / 10));
+  const base = item.amount || 1;
   const [name, setName] = useState(item.name);
-  const [amount, setAmount] = useState(s(item.amount || 1));
-  const [unit, setUnit] = useState(item.unit);
+  const [per, setPer] = useState(s(base));
+  const [unit, setUnit] = useState(item.unit || 'ที่');
   const [kcal, setKcal] = useState(s(item.kcal));
   const [p, setP] = useState(s(item.protein_g)); const [c, setC_] = useState(s(item.carb_g)); const [f, setF] = useState(s(item.fat_g));
-  const [g, setG] = useState(s(item.grams));
+  const [ate, setAte] = useState(s(base));
   const num = (v: string) => v.replace(/[^\d.]/g, '');
   const macroKcal = Math.round(Number(p || 0) * 4 + Number(c || 0) * 4 + Number(f || 0) * 9);
-
-  function changeAmount(v: string) {
-    const old = Number(amount) || 0, nu = Number(num(v)) || 0;
-    setAmount(num(v));
-    if (old > 0 && nu > 0 && nu !== old) {
-      const k = nu / old, sc = (x: string, d = 1) => (x === '' ? '' : String(Math.round(Number(x) * k * 10 ** d) / 10 ** d));
-      setKcal(sc(kcal, 0)); setP(sc(p)); setC_(sc(c)); setF(sc(f)); setG(sc(g, 0));
-    }
-  }
+  const perN = Number(per) || 0, ateN = ate !== '' ? Number(ate) || 0 : perN;
+  const k = perN > 0 ? ateN / perN : 1;
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  const out = { kcal: Math.round(Number(kcal || 0) * k), protein_g: r1(Number(p || 0) * k), carb_g: r1(Number(c || 0) * k), fat_g: r1(Number(f || 0) * k) };
+  const byWeight = unit === 'กรัม' || unit === 'g' || unit === 'มล.';
+  // grams eaten: the amount itself for weight units, otherwise the original grams scaled
+  const grams = byWeight ? ateN : item.grams != null ? Math.round(item.grams * (ateN / base)) : null;
   return (
     <View style={{ gap: 10, padding: 12, borderRadius: R.field, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.accent }}>
-      <Txt bold size={14}>แก้ไขก่อนเพิ่ม</Txt>
       <Field label="ชื่อ" value={name} onChangeText={setName} />
+
+      <Txt bold size={14}>โภชนาการ (ตามฉลาก / ฐานข้อมูล)</Txt>
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <View style={{ flex: 1 }}><Field label="ปริมาณ" value={amount} onChangeText={changeAmount} keyboardType="decimal-pad" /></View>
+        <View style={{ flex: 1 }}><Field label="ค่าต่อ" value={per} onChangeText={v => setPer(num(v))} keyboardType="decimal-pad" /></View>
         <View style={{ flex: 1 }}><Field label="หน่วย" value={unit} onChangeText={setUnit} /></View>
-        <View style={{ flex: 1 }}><Field label="น้ำหนัก g" value={g} onChangeText={v => setG(num(v))} keyboardType="decimal-pad" /></View>
       </View>
-      <Txt muted size={12.5}>เปลี่ยนปริมาณแล้วค่าด้านล่างปรับตามสัดส่วนให้เอง</Txt>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}><Field label="โปรตีน g" value={p} onChangeText={v => setP(num(v))} keyboardType="decimal-pad" /></View>
         <View style={{ flex: 1 }}><Field label="คาร์บ g" value={c} onChangeText={v => setC_(num(v))} keyboardType="decimal-pad" /></View>
@@ -686,10 +685,17 @@ function AiEdit({ item, onDone, onCancel }: { item: AiItem; onDone: (i: AiItem) 
         <View style={{ flex: 1 }}><Field label="แคลอรี (kcal)" value={kcal} onChangeText={v => setKcal(num(v))} keyboardType="decimal-pad" /></View>
         <Btn kind="ghost" label="คำนวณจาก Macro" onPress={() => setKcal(String(macroKcal))} style={{ minHeight: 48 }} />
       </View>
+
+      <Txt bold size={14}>กินจริง</Txt>
+      <Field label={`ปริมาณที่กิน (${unit || 'ที่'})`} value={ate} onChangeText={v => setAte(num(v))} keyboardType="decimal-pad" placeholder={per} />
+      <View style={{ padding: 12, borderRadius: R.field, backgroundColor: C.surface, gap: 2 }}>
+        <Txt bold>{`${out.kcal.toLocaleString('en-US')} kcal · P ${fmt1(out.protein_g)} C ${fmt1(out.carb_g)} F ${fmt1(out.fat_g)}`}</Txt>
+        <Txt muted size={13}>{perN && ateN !== perN ? `กิน ${fmt1(ateN)} ${unit} จาก ${fmt1(perN)} ${unit} = ×${fmt1(r1(k))}` : 'เท่ากับค่าโภชนาการด้านบน'}</Txt>
+      </View>
+
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Btn kind="ghost" label="ยกเลิก" onPress={onCancel} style={{ flex: 1 }} />
-        <Btn label="ใช้ค่านี้" onPress={() => onDone({ name: name.trim() || item.name, amount: Number(amount) || 0, unit: unit.trim(), grams: g === '' ? null : Number(g),
-          kcal: Number(kcal || 0), protein_g: Number(p || 0), carb_g: Number(c || 0), fat_g: Number(f || 0) })} style={{ flex: 1 }} />
+        <Btn label="ใช้ค่านี้" onPress={() => onDone({ name: name.trim() || item.name, amount: ateN, unit: unit.trim(), grams, ...out })} style={{ flex: 1 }} />
       </View>
     </View>
   );

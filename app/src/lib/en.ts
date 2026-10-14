@@ -1625,5 +1625,10 @@ export const EN: Record<string, string> = {
  "ให้เทรนเนอร์ดูรูปได้": "Let my trainer see these photos",
  "เทรนเนอร์ที่ดูแลคุณเห็นรูปเหล่านี้ · ปิดได้ทุกเมื่อ": "Your trainer can see these photos · turn off any time",
  "รูปเห็นเฉพาะคุณคนเดียว · เทรนเนอร์ยังเห็นน้ำหนักและสัดส่วนตามปกติ": "Only you can see these photos · your trainer still sees weight and measurements",
- "เพิ่มลง{0} · มื้ออื่นกด + ที่มื้อนั้นด้านบน": "Adds to {0} · for another meal, tap + on that meal above"
+ "เพิ่มลง{0} · มื้ออื่นกด + ที่มื้อนั้นด้านบน": "Adds to {0} · for another meal, tap + on that meal above",
+ "โภชนาการ (ตามฉลาก / ฐานข้อมูล)": "Nutrition (label / library)",
+ "กินจริง": "Actually eaten",
+ "ปริมาณที่กิน ({0})": "Amount eaten ({0})",
+ "กิน {0} {1} จาก {2} {3} = ×{4}": "Ate {0} {1} of {2} {3} = ×{4}",
+ "เท่ากับค่าโภชนาการด้านบน": "Same as the nutrition values above"
 };
