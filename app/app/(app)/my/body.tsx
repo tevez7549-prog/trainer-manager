@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, Platform, Pressable, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { supabase, thError } from '../../../src/lib/supabase';
@@ -7,7 +7,7 @@ import { thDate, todayISO } from '../../../src/lib/gym';
 import { MEMBER_TABS } from '../../../src/lib/nav';
 import { uuid } from '../../../src/lib/store';
 import { ANGLE_TH, fmt1, type Body, type Photo } from '../../../src/lib/me';
-import { Btn, Card, Chips, ConfirmBtn, DateField, Field, H, Header, Label, Notice, Screen, Txt } from '../../../src/ui';
+import { Btn, Card, Chips, ConfirmBtn, DateField, Field, H, Header, Label, Notice, Screen, Toggle, Txt } from '../../../src/ui';
 import { MiniChart } from '../../../src/ui/Macro';
 import { TabBar } from '../../../src/ui/TabBar';
 import { InBodyCard } from '../../../src/ui/InBodyCard';
@@ -154,6 +154,15 @@ function PhotoBox({ photos, onDone }: { photos: Photo[]; onDone: (msg: string, o
   const { profile } = useAuth();
   const [angle, setAngle] = useState<Photo['angle']>('front');
   const [busy, setBusy] = useState(false);
+  const [share, setShare] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (profile) supabase.from('profiles').select('share_photos').eq('id', profile.id).single().then(({ data }) => setShare((data as any)?.share_photos ?? true));
+  }, [profile]);
+  async function toggleShare(v: boolean) {
+    setShare(v);
+    const { error } = await supabase.from('profiles').update({ share_photos: v }).eq('id', profile!.id);
+    if (error) { setShare(!v); onDone(thError(error), false); }
+  }
 
   function pick() {
     if (Platform.OS !== 'web') { onDone('อัปโหลดรูปได้บนเว็บก่อน แอปมือถือกำลังทำ', false); return; }
@@ -192,7 +201,8 @@ function PhotoBox({ photos, onDone }: { photos: Photo[]; onDone: (msg: string, o
         </View>
       ) : <Txt muted size={14}>ยังไม่มีรูป{ANGLE_TH[angle]} · ถ่ายมุมเดิม แสงเดิม ทุก 2–4 สัปดาห์ จะเห็นความต่างชัด</Txt>}
       <Btn kind="ghost" icon="camera" label={`เพิ่มรูป${ANGLE_TH[angle]}`} onPress={pick} loading={busy} />
-      <Txt muted size={12.5}>รูปเห็นเฉพาะคุณ และเทรนเนอร์ของคุณ</Txt>
+      {share === null ? null : <Toggle label="ให้เทรนเนอร์ดูรูปได้" value={share} onChange={toggleShare}
+        hint={share ? 'เทรนเนอร์ที่ดูแลคุณเห็นรูปเหล่านี้ · ปิดได้ทุกเมื่อ' : 'รูปเห็นเฉพาะคุณคนเดียว · เทรนเนอร์ยังเห็นน้ำหนักและสัดส่วนตามปกติ'} />}
     </Card>
   );
 }

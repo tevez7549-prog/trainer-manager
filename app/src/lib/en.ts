@@ -1621,5 +1621,8 @@ export const EN: Record<string, string> = {
  "ส่งต่อ": "Share",
  "คัดลอกอัตโนมัติไม่ได้ · กดค้างที่ลิงก์ด้านบนเพื่อคัดลอกเอง": "Couldn't copy automatically · press and hold the link above to copy it",
  "แก้ {0} แล้ว": "Updated {0}",
- "ยืนยันลบ": "Confirm delete"
+ "ยืนยันลบ": "Confirm delete",
+ "ให้เทรนเนอร์ดูรูปได้": "Let my trainer see these photos",
+ "เทรนเนอร์ที่ดูแลคุณเห็นรูปเหล่านี้ · ปิดได้ทุกเมื่อ": "Your trainer can see these photos · turn off any time",
+ "รูปเห็นเฉพาะคุณคนเดียว · เทรนเนอร์ยังเห็นน้ำหนักและสัดส่วนตามปกติ": "Only you can see these photos · your trainer still sees weight and measurements"
 };
