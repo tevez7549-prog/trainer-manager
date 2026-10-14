@@ -13,7 +13,8 @@ const ROWS: { k: 'weight_kg' | 'smm_kg' | 'pbf'; t: string; unit: string; color:
   { k: 'pbf', t: 'เปอร์เซ็นต์ไขมันในร่างกาย', unit: '%', color: () => C.warnFg },
 ];
 const ROW_H = 74;     // chart height per metric
-const MIN_COL = 46;   // narrowest column before the chart scrolls sideways
+const MIN_COL = 40;   // narrowest column before the chart scrolls sideways (8 tests fit a 320 px phone)
+const LABEL_H = 22;
 
 /**
  * Like the history block on the InBody printout: weight, skeletal muscle and body-fat % as three lines
@@ -26,7 +27,7 @@ export function InBodyTrend({ scans }: { scans: TrendScan[] }) {
   const asc = [...scans].sort((a, b) => a.measured_at.localeCompare(b.measured_at));
   const pts = mode === 'recent' ? asc.slice(-8) : asc;
   const n = pts.length;
-  const col = n ? Math.max(MIN_COL, w / n) : 0;
+  const col = n ? (mode === 'recent' ? w / n : Math.max(MIN_COL, w / n)) : 0;
   const total = col * n;
   useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: false }), 0); }, [mode, n, w]);
   if (n < 2) return null;
@@ -35,11 +36,9 @@ export function InBodyTrend({ scans }: { scans: TrendScan[] }) {
 
   return (
     <View style={{ gap: 8 }} onLayout={e => setW(e.nativeEvent.layout.width)}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <Txt bold size={14} style={{ flex: 1 }}>ประวัติการวัดองค์ประกอบของร่างกาย</Txt>
-        {asc.length > 8 ? <Chips options={[{ v: 'recent', t: 'ล่าสุด 8 ครั้ง' }, { v: 'all', t: `ทั้งหมด (${asc.length})` }]} value={mode} onChange={setMode} /> : null}
-      </View>
-      {w > 0 ? (
+      <Txt bold size={14}>ประวัติการวัดองค์ประกอบของร่างกาย</Txt>
+      {asc.length > 8 ? <Chips options={[{ v: 'recent', t: 'ล่าสุด 8 ครั้ง' }, { v: 'all', t: `ทั้งหมด (${asc.length})` }]} value={mode} onChange={setMode} /> : null}
+      {w > 0 ? <View>
         <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={total > w} scrollEnabled={total > w}>
           <View style={{ width: total }}>
             {ROWS.map(r => {
@@ -53,8 +52,7 @@ export function InBodyTrend({ scans }: { scans: TrendScan[] }) {
               const line = vals.map((v, i) => (v == null ? null : `${xs(i)},${y(v)}`)).filter(Boolean).join(' ');
               const color = r.color();
               return (
-                <View key={r.k} style={{ borderTopWidth: 1, borderTopColor: C.line, paddingTop: 6 }}>
-                  <Txt size={12.5} muted>{`${r.t} (${r.unit})`}</Txt>
+                <View key={r.k} style={{ borderTopWidth: 1, borderTopColor: C.line, paddingTop: LABEL_H }}>
                   <Svg width={total} height={ROW_H} accessibilityLabel={`${r.t} ${vals.map((v, i) => `${d(pts[i].measured_at).dm} ${v == null ? '–' : fmt1(v)}`).join(', ')}`}>
                     {pts.map((_, i) => i > 0 ? <Line key={i} x1={col * i} x2={col * i} y1={0} y2={ROW_H} stroke={C.line} strokeDasharray="3 4" strokeWidth={1} /> : null)}
                     <Polyline points={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
@@ -63,7 +61,7 @@ export function InBodyTrend({ scans }: { scans: TrendScan[] }) {
                     ))}
                     {vals.map((v, i) => v == null ? null : (
                       <SvgText key={`t${i}`} x={xs(i)} y={y(v) - 8} fontSize={12.5} fontWeight={i === n - 1 ? '700' : '500'} fontFamily={F.body}
-                        fill={i === n - 1 ? color : C.fg} textAnchor="middle">{fmt1(v)}</SvgText>
+                        fill={i === n - 1 ? color : C.fg} textAnchor="middle">{v.toFixed(1)}</SvgText>
                     ))}
                   </Svg>
                 </View>
@@ -82,7 +80,15 @@ export function InBodyTrend({ scans }: { scans: TrendScan[] }) {
             </View>
           </View>
         </ScrollView>
-      ) : null}
+        {/* metric names stay put while the chart scrolls */}
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0 }}>
+          {ROWS.filter(r => pts.some(p => p[r.k] != null)).map(r => (
+            <View key={r.k} style={{ height: ROW_H + LABEL_H + 1, paddingTop: 3 }}>
+              <Txt size={12.5} muted style={{ backgroundColor: C.surface, paddingRight: 6 }}>{`${r.t} (${r.unit})`}</Txt>
+            </View>
+          ))}
+        </View>
+      </View> : null}
     </View>
   );
 }
