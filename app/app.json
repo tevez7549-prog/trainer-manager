@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Trainer Manager",
+    "name": "Dogfits",
     "slug": "trainer-manager",
     "scheme": "trainermanager",
     "version": "0.1.0",
@@ -9,8 +9,8 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "name": "Trainer Manager",
-      "shortName": "Trainer",
+      "name": "Dogfits",
+      "shortName": "Dogfits",
       "themeColor": "#0E0F10",
       "backgroundColor": "#0E0F10",
       "favicon": "./assets/favicon.png"

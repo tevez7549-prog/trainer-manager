@@ -181,7 +181,7 @@ function HistRow({ w, onDeleted }: { w: Workout; onDeleted: () => void }) {
         <Btn kind="ghost" icon="share" label="แชร์ลงสตอรี่" onPress={() => shareCard({
           who: profile?.display_name ?? '', big: String(names.length), bigLabel: 'ท่า วันนี้',
           stats: [['เล่น', w.title || 'ออกกำลังกาย'], ['เซต', `${w.sets.length} เซต`], ...(vol ? [['ยกรวม', `${Math.round(vol).toLocaleString('en-US')} kg`] as [string, string]] : [])],
-          footer: 'บันทึกการออกกำลังกายด้วย Trainer Manager',
+          footer: 'บันทึกการออกกำลังกายด้วย Dogfits',
         })} />
         <ConfirmBtn label="ลบบันทึกนี้" onConfirm={del} />
       </> : null}

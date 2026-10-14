@@ -252,7 +252,7 @@ function MemberHome() {
       {cards && !current.length ? (
         <Card>
           <H size={17}>บัตรสมาชิกยิม</H>
-          <Txt muted size={14}>ถ้ายิมของคุณใช้ Trainer Manager บัตร วันหมดอายุ และนัด PT จะขึ้นที่นี่เอง เมื่อยิมบันทึกเบอร์ <Txt bold>{prettyPhone(profile?.phone ?? '')}</Txt> ของคุณ · ไม่มียิมก็ใช้บันทึกอาหาร น้ำหนัก และการเล่นได้ตามปกติ</Txt>
+          <Txt muted size={14}>ถ้ายิมของคุณใช้ Dogfits บัตร วันหมดอายุ และนัด PT จะขึ้นที่นี่เอง เมื่อยิมบันทึกเบอร์ <Txt bold>{prettyPhone(profile?.phone ?? '')}</Txt> ของคุณ · ไม่มียิมก็ใช้บันทึกอาหาร น้ำหนัก และการเล่นได้ตามปกติ</Txt>
           <Txt muted size={13}>ยิมใช้เบอร์อื่น? บอก UID {profile?.uid} ให้เคาน์เตอร์เชื่อมให้</Txt>
           <Txt size={14} style={{ color: C.accent }} onPress={() => router.push('/gym/new' as any)}>เป็นเจ้าของยิม? สร้างยิม</Txt>
         </Card>

@@ -1,4 +1,4 @@
-/* Trainer Manager service worker
+/* Dogfits service worker
  *
  * - App shell (index.html) : network-first, falls back to the cached copy when offline.
  * - /_expo/static/*         : cache-first (file names carry a content hash, so a new deploy = new names).
@@ -9,13 +9,13 @@
  * Bump VERSION when this file's caching rules change. Every deploy is picked up anyway, because the
  * shell is network-first and old bundle files are pruned whenever a newer index.html is seen.
  */
-const VERSION = 'tm-v2';
+const VERSION = 'tm-v3';
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 const RUNTIME = `${VERSION}-runtime`;
 const RUNTIME_MAX = 150;
 const SHELL_URL = '/';
-const PRECACHE = ['/manifest.webmanifest', '/icon-192.png?v=2', '/icon-512.png?v=2', '/apple-touch-icon.png?v=2'];
+const PRECACHE = ['/manifest.webmanifest', '/logo-dark.png?v=3', '/logo-light.png?v=3', '/icon-192.png?v=3', '/icon-512.png?v=3', '/apple-touch-icon.png?v=3'];
 
 /** script/link files that index.html points at (the app bundle and its css) */
 function assetsIn(html) {

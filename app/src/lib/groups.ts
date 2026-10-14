@@ -70,7 +70,7 @@ export const inviteUrl = (code: string) =>
 export const prettyCode = (c: string) => `${c.slice(0, 3)}-${c.slice(3)}`;
 
 export function inviteText(name: string, code: string) {
-  return tr(`มาออกกำลังกายด้วยกันในกลุ่ม "${name}" ใน Trainer Manager\nกดลิงก์นี้เพื่อเข้ากลุ่ม: ${inviteUrl(code)}\n(หรือใส่โค้ด ${prettyCode(code)})`);
+  return tr(`มาออกกำลังกายด้วยกันในกลุ่ม "${name}" ใน Dogfits\nกดลิงก์นี้เพื่อเข้ากลุ่ม: ${inviteUrl(code)}\n(หรือใส่โค้ด ${prettyCode(code)})`);
 }
 
 export async function copyText(t: string) {

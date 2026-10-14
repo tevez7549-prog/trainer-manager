@@ -5,7 +5,7 @@ const out = [];
 const html = readFileSync('dist/index.html', 'utf8');
 for (const f of ['manifest.webmanifest', 'sw.js', '_headers', '_redirects', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'])
   out.push(`file ${f}: ${existsSync('dist/' + f)}`);
-for (const t of ['rel="manifest"', 'apple-mobile-web-app-capable', 'apple-mobile-web-app-status-bar-style', 'apple-mobile-web-app-title" content="Trainer"', 'viewport-fit=cover', 'rel="apple-touch-icon"', 'background-color: #0E0F10', '_expo/static/js/web/entry-'])
+for (const t of ['rel="manifest"', 'apple-mobile-web-app-capable', 'apple-mobile-web-app-status-bar-style', 'apple-mobile-web-app-title" content="Dogfits"', 'viewport-fit=cover', 'rel="apple-touch-icon"', 'background-color: #0E0F10', '_expo/static/js/web/entry-'])
   out.push(`head ${t}: ${html.includes(t)}`);
 const man = JSON.parse(readFileSync('dist/manifest.webmanifest', 'utf8'));
 out.push(`manifest: ${man.name} / ${man.short_name} / ${man.display} / icons ${man.icons.map(i => i.sizes + (i.purpose === 'maskable' ? 'm' : '')).join(',')}`);
