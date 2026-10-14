@@ -9,13 +9,13 @@
  * Bump VERSION when this file's caching rules change. Every deploy is picked up anyway, because the
  * shell is network-first and old bundle files are pruned whenever a newer index.html is seen.
  */
-const VERSION = 'tm-v3';
+const VERSION = 'tm-v4';
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 const RUNTIME = `${VERSION}-runtime`;
 const RUNTIME_MAX = 150;
 const SHELL_URL = '/';
-const PRECACHE = ['/manifest.webmanifest', '/logo-dark.png?v=3', '/logo-light.png?v=3', '/icon-192.png?v=3', '/icon-512.png?v=3', '/apple-touch-icon.png?v=3'];
+const PRECACHE = ['/manifest.webmanifest', '/logo-dark.png?v=4', '/logo-light.png?v=4', '/icon-192.png?v=4', '/icon-512.png?v=4', '/apple-touch-icon.png?v=4'];
 
 /** script/link files that index.html points at (the app bundle and its css) */
 function assetsIn(html) {
