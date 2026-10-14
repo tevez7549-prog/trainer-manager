@@ -219,6 +219,7 @@ function AddSheet({ mode: mode0, meal: meal0, day, bare, onDone }: { mode: Mode;
   const [mode, setMode] = useState<Mode>(mode0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [making, setMaking] = useState(false);   // creating a favourite: no meal to pick
 
   async function save(item: NewItem) {
     setBusy(true); setErr('');
@@ -235,10 +236,10 @@ function AddSheet({ mode: mode0, meal: meal0, day, bare, onDone }: { mode: Mode;
         <Pressable accessibilityRole="button" accessibilityLabel="ปิด" onPress={() => onDone()} hitSlop={8}><Icon name="x" size={20} color={C.muted} /></Pressable>
       </View> : null}
       {bare ? <Chips options={[{ v: 'ai', t: '✦ AI' }, { v: 'search', t: 'ค้นหา' }, { v: 'fav', t: 'โปรด' }, { v: 'recent', t: 'ล่าสุด' }, { v: 'custom', t: 'สร้างเอง' }, { v: 'photo', t: '✦ ถ่ายรูป' }] as { v: Mode; t: string }[]} value={mode} onChange={setMode} />
-        : <Chips options={MEAL_NAMES.map(n => ({ v: n, t: SHORT[n] ?? n }))} value={meal} onChange={setMeal} />}
+        : making ? null : <Chips options={MEAL_NAMES.map(n => ({ v: n, t: SHORT[n] ?? n }))} value={meal} onChange={setMeal} />}
       {err ? <Notice text={err} /> : null}
       {mode === 'search' ? <SearchFoods onPick={save} busy={busy} /> : null}
-      {mode === 'fav' ? <Favorites onPick={save} busy={busy} /> : null}
+      {mode === 'fav' ? <Favorites onPick={save} busy={busy} onMaking={setMaking} /> : null}
       {mode === 'recent' ? <Recent onPick={save} /> : null}
       {mode === 'custom' ? <Custom onSave={save} busy={busy} /> : null}
       {mode === 'photo' ? <AiText photo onSave={save} busy={busy} /> : null}
@@ -376,11 +377,13 @@ function SearchFoods({ onPick, busy }: { onPick: (i: NewItem) => void; busy: boo
   </>;
 }
 
-function Favorites({ onPick, busy }: { onPick: (i: NewItem) => void; busy: boolean }) {
+function Favorites({ onPick, busy, onMaking }: { onPick: (i: NewItem) => void; busy: boolean; onMaking?: (on: boolean) => void }) {
   const fav = useFavIds();
   const [pick, setPick] = useState<Food | null>(null);
   const list = useFavFoods(fav.ids);
-  const [making, setMaking] = useState(false);
+  const [making, setMaking_] = useState(false);
+  const setMaking = (on: boolean) => { setMaking_(on); onMaking?.(on); };
+  useEffect(() => () => onMaking?.(false), []);   // leaving this tab brings the meal picker back
   const [made, setMade] = useState('');
   if (pick) return <Portion f={pick} onAdd={onPick} onBack={() => setPick(null)} busy={busy} />;
   if (making) return <>
