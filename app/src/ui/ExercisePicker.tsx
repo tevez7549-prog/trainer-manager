@@ -2,46 +2,55 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { C, R } from '../lib/theme';
-import { EQUIP_TH, exName, exSub, LEVEL_TH, loadLibrary, mediaUri, MUSCLE_TH, searchLib, type LibEx } from '../lib/exercise';
-import { PART_TH } from '../lib/me';
-import { Field, Select, Txt } from './index';
+import { EQUIP_TH, exName, exSub, LEVEL_TH, LIB_COLS, loadLibrary, mediaUri, MUSCLE_TH, searchLib, type LibEx } from '../lib/exercise';
+import { Btn, Chips, Field, Notice, Txt } from './index';
+import { thError } from '../lib/supabase';
 import { Icon } from './Icon';
 import { ScrollBox } from './ScrollBox';
 
 const PAGE = 30;
 const ROW_H = 73;   // one row (56 px picture + padding); the box shows 6, the rest scroll inside it
-// muscle chips in the order people think: upper body, core, legs, then cardio / stretching
+// muscle chips in the order people think: upper body, core, legs
 const MUSCLE_ORDER = ['chest', 'shoulders', 'lats', 'middle back', 'lower back', 'traps', 'biceps', 'triceps', 'forearms', 'abdominals',
   'quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors', 'neck'];
-type Filter = { k: 'all' } | { k: 'muscle'; v: string } | { k: 'part'; v: 'cardio' | 'stretch' } | { k: 'mine' };
+// a muscle's body part (own moves are saved with both, so they show under the right filters)
+const PART_OF: Record<string, string> = { chest: 'chest', shoulders: 'shoulders', neck: 'shoulders', lats: 'back', 'middle back': 'back', 'lower back': 'back', traps: 'back',
+  biceps: 'arms', triceps: 'arms', forearms: 'arms', abdominals: 'core', quadriceps: 'legs', hamstrings: 'legs', glutes: 'legs', calves: 'legs', adductors: 'legs', abductors: 'legs' };
+type Cat = 'weight' | 'cardio' | 'stretch';
+const CATS: { k: Cat; t: string; icon: any }[] = [
+  { k: 'weight', t: 'เวทเทรนนิ่ง', icon: 'dumbbell' },
+  { k: 'cardio', t: 'คาร์ดิโอ', icon: 'activity' },
+  { k: 'stretch', t: 'ยืดเหยียด', icon: 'repeat' },
+];
+const isWeight = (e: LibEx) => e.kind === 'strength' && e.body_part !== 'stretch' && e.body_part !== 'cardio';
 
 /**
- * Find a move in the library: type an English or Thai name, or tap a muscle; filter by equipment.
- * Each row shows the moving picture; tap it for how-to, + to add.
+ * Find a move in the library: type an English or Thai name, or pick a type (weights → then a muscle, cardio, stretching).
+ * Each row shows the moving picture; tap it for how-to, + to add. "+ ท่าของฉัน" makes a move that isn't in the library.
  */
 export function ExercisePicker({ onPick, picked = [], ownerId, reloadKey }: { onPick?: (e: LibEx) => void; picked?: string[]; ownerId?: string; reloadKey?: number }) {
   const [lib, setLib] = useState<LibEx[] | null>(null);
   const [q, setQ] = useState('');
-  const [f, setF] = useState<Filter>({ k: 'muscle', v: 'chest' });
-  const [equip, setEquip] = useState('all');
+  const [cat, setCat] = useState<Cat>('weight');
+  const [muscle, setMuscle] = useState<string>('all');
   const [n, setN] = useState(PAGE);
   const [open, setOpen] = useState<string | null>(null);
-  useEffect(() => { loadLibrary(!!reloadKey).then(setLib); }, [reloadKey]);
-  useEffect(() => { setN(PAGE); }, [q, f, equip]);
+  const [making, setMaking] = useState(false);
+  const [mine, setMine] = useState(0);
+  useEffect(() => { loadLibrary(!!reloadKey || mine > 0).then(setLib); }, [reloadKey, mine]);
+  useEffect(() => { setN(PAGE); }, [q, cat, muscle]);
 
   const shown = useMemo(() => {
     if (!lib) return [];
     let l = searchLib(lib, q);
     if (!q.trim()) {
-      if (f.k === 'muscle') l = l.filter(e => e.muscle === f.v && e.kind === 'strength');
-      else if (f.k === 'part') l = l.filter(e => e.body_part === f.v);
-      else if (f.k === 'mine') l = l.filter(e => e.created_by && e.created_by === ownerId);
+      if (cat === 'weight') l = l.filter(e => isWeight(e) && (muscle === 'all' || e.muscle === muscle));
+      else l = l.filter(e => e.body_part === cat);
     }
-    if (equip !== 'all') l = l.filter(e => e.equipment === equip);
-    // easier, pictured moves first
-    const rank = (e: LibEx) => (e.media_url ? 0 : 2) + (e.level === 'expert' ? 1 : 0);
+    // own moves first, then easier, pictured moves
+    const rank = (e: LibEx) => (ownerId && e.created_by === ownerId ? -1 : 0) + (e.media_url ? 0 : 2) + (e.level === 'expert' ? 1 : 0);
     return [...l].sort((a, b) => rank(a) - rank(b));
-  }, [lib, q, f, equip, ownerId]);
+  }, [lib, q, cat, muscle, ownerId]);
 
   const chip = (key: string, label: string, on: boolean, press: () => void) => (
     <Pressable key={key} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={press}
@@ -50,23 +59,39 @@ export function ExercisePicker({ onPick, picked = [], ownerId, reloadKey }: { on
       <Txt size={14} bold={on} style={on ? { color: C.accent } : undefined}>{label}</Txt>
     </Pressable>
   );
-  const isOn = (x: Filter) => !q.trim() && JSON.stringify(x) === JSON.stringify(f);
 
   return (
     <View style={{ gap: 10 }}>
       <Field label="ค้นหาท่า" icon="search" value={q} onChangeText={setQ} placeholder="เช่น squat, bench, ดัมเบล, แพลงก์" autoCorrect={false} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingRight: 8 }}>
-        {MUSCLE_ORDER.map(m => chip(m, MUSCLE_TH[m], isOn({ k: 'muscle', v: m }), () => { setQ(''); setF({ k: 'muscle', v: m }); }))}
-        {chip('cardio', PART_TH.cardio, isOn({ k: 'part', v: 'cardio' }), () => { setQ(''); setF({ k: 'part', v: 'cardio' }); })}
-        {chip('stretch', PART_TH.stretch, isOn({ k: 'part', v: 'stretch' }), () => { setQ(''); setF({ k: 'part', v: 'stretch' }); })}
-        {ownerId ? chip('mine', 'ท่าของฉัน', isOn({ k: 'mine' }), () => { setQ(''); setF({ k: 'mine' }); }) : null}
-        {chip('all', 'ทั้งหมด', isOn({ k: 'all' }), () => { setQ(''); setF({ k: 'all' }); })}
-      </ScrollView>
-      <Select label="อุปกรณ์" value={equip} onChange={setEquip}
-        options={[{ v: 'all', t: 'ทุกอุปกรณ์' }, ...Object.keys(EQUIP_TH).map(k => ({ v: k, t: EQUIP_TH[k] }))]} />
+      <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 8 }}>
+        {CATS.map(c => {
+          const on = !q.trim() && cat === c.k;
+          return (
+            <Pressable key={c.k} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => { setQ(''); setCat(c.k); setMuscle('all'); }}
+              style={({ pressed }) => ({ flex: 1, minHeight: 64, borderRadius: R.field, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 4,
+                borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accentSoft : C.surface, opacity: pressed ? 0.8 : 1 })}>
+              <Icon name={c.icon} size={20} color={on ? C.accent : C.muted} />
+              <Txt size={13.5} bold={on} numberOfLines={1} style={{ color: on ? C.accent : C.fg }}>{c.t}</Txt>
+            </Pressable>
+          );
+        })}
+      </View>
+      {!q.trim() && cat === 'weight' ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingRight: 8 }}>
+          {chip('all', 'ทั้งหมด', muscle === 'all', () => setMuscle('all'))}
+          {MUSCLE_ORDER.map(m => chip(m, MUSCLE_TH[m], muscle === m, () => setMuscle(m)))}
+        </ScrollView>
+      ) : null}
+      {ownerId ? (making
+        ? <OwnMove ownerId={ownerId} cat={cat} muscle={muscle} add={!!onPick} onCancel={() => setMaking(false)}
+            onMade={e => { setMaking(false); setMine(mine + 1); setQ(''); onPick?.(e); }} />
+        : <Pressable accessibilityRole="button" onPress={() => setMaking(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 36 }}>
+            <Icon name="plus" size={18} color={C.accent} /><Txt bold size={14} style={{ color: C.accent }}>ท่าของฉัน</Txt>
+            <Txt muted size={13}>· ไม่มีในคลัง สร้างเองได้</Txt>
+          </Pressable>) : null}
 
       {lib === null ? <Txt muted>กำลังโหลดคลังท่า…</Txt> : null}
-      {lib && !shown.length ? <Txt muted>ไม่เจอท่า ลองคำอื่น หรือเปลี่ยนอุปกรณ์</Txt> : null}
+      {lib && !shown.length ? <Txt muted>ไม่เจอท่า ลองคำอื่น หรือกด + ท่าของฉัน</Txt> : null}
       {lib ? <Txt muted size={12.5}>{shown.length.toLocaleString('en-US')} ท่า{q.trim() ? ` ที่ตรงกับ "${q.trim()}"` : ''}{shown.length > 6 ? ' · เลื่อนในกรอบเพื่อดูเพิ่ม' : ''}</Txt> : null}
 
       <View style={{ borderRadius: R.field, backgroundColor: C.surface2, overflow: 'hidden' }}>
@@ -148,6 +173,50 @@ export function ExerciseInfo({ id, e }: { id: string; e?: Partial<LibEx> }) {
           {en ? 'ดูภาษาไทย' : th ? 'Show in English' : 'กำลังแปลเป็นภาษาไทย · ตอนนี้แสดงภาษาอังกฤษ'}
         </Txt>
       ) : null}
+    </View>
+  );
+}
+
+/** Make a move that isn't in the library: name, type, the muscle for weights, how-to. It is added straight away. */
+function OwnMove({ ownerId, cat, muscle, add, onMade, onCancel }: { ownerId: string; cat: Cat; muscle: string; add: boolean; onMade: (e: LibEx) => void; onCancel: () => void }) {
+  const [name, setName] = useState('');
+  const [kind, setKind] = useState<Cat>(cat);
+  const [m, setM] = useState(muscle === 'all' ? 'chest' : muscle);
+  const [how, setHow] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  async function save() {
+    if (!name.trim()) { setErr('ใส่ชื่อท่า'); return; }
+    setBusy(true); setErr('');
+    const row = kind === 'weight'
+      ? { kind: 'strength', body_part: PART_OF[m] ?? 'chest', muscle: m }
+      : { kind, body_part: kind, muscle: null };
+    const { data, error } = await supabase.from('exercises').insert({ name_th: name.trim(), how_to: how.trim() || null, created_by: ownerId, ...row }).select(LIB_COLS).single();
+    setBusy(false);
+    if (error) { setErr(thError(error)); return; }
+    onMade(data as any);
+  }
+  return (
+    <View style={{ gap: 10, padding: 12, borderRadius: R.field, borderWidth: 1.5, borderColor: C.accent }}>
+      <Txt bold>ท่าของฉัน</Txt>
+      {err ? <Notice text={err} /> : null}
+      <Field label="ชื่อท่า" value={name} onChangeText={setName} placeholder="เช่น บัลแกเรียนสปลิตสควอท" />
+      <Chips label="ประเภท" options={CATS.map(c => ({ v: c.k, t: c.t }))} value={kind} onChange={v => setKind(v as Cat)} />
+      {kind === 'weight' ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingRight: 8 }}>
+          {MUSCLE_ORDER.map(k => (
+            <Pressable key={k} accessibilityRole="radio" accessibilityState={{ checked: m === k }} onPress={() => setM(k)}
+              style={{ minHeight: 36, paddingHorizontal: 12, borderRadius: R.pill, borderWidth: 1, justifyContent: 'center', borderColor: m === k ? C.accent : C.line, backgroundColor: m === k ? C.accentSoft : C.surface }}>
+              <Txt size={14} bold={m === k} style={m === k ? { color: C.accent } : undefined}>{MUSCLE_TH[k]}</Txt>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
+      <Field label="วิธีเล่น (ไม่บังคับ)" value={how} onChangeText={setHow} multiline style={{ minHeight: 64, textAlignVertical: 'top' } as any} />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Btn kind="ghost" label="ยกเลิก" onPress={onCancel} style={{ flex: 1 }} />
+        <Btn label={add ? "สร้างแล้วเพิ่ม" : "สร้างท่า"} onPress={save} loading={busy} style={{ flex: 1 }} />
+      </View>
     </View>
   );
 }

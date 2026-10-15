@@ -1656,5 +1656,10 @@ export const EN: Record<string, string> = {
  "บันทึกรูปแล้ว เอาไปลงสตอรี่หรือส่งใน LINE ได้เลย": "Image saved · post it to your story or send it in LINE",
  "ยกรวม {0} kg": "Lifted {0} kg",
  "กินตามเป้า {0} วัน": "On target {0} days",
- "แชร์สรุปสัปดาห์": "Share this week's summary"
+ "แชร์สรุปสัปดาห์": "Share this week's summary",
+ "เวทเทรนนิ่ง": "Weights",
+ "· ไม่มีในคลัง สร้างเองได้": "· not in the library? make your own",
+ "ไม่เจอท่า ลองคำอื่น หรือกด + ท่าของฉัน": "No moves found · try another word, or tap + My move",
+ "สร้างแล้วเพิ่ม": "Create and add",
+ "สร้างท่า": "Create move"
 };
