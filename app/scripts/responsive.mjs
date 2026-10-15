@@ -92,7 +92,7 @@ async function mock(page) {
 
 const ROUTES = [
   ['login', '/login', false], ['signup', '/signup', false],
-  ['home', '/?me=1', true], ['train', '/my/train', true], ['random', '/my/train#random', true], ['food', '/my/food', true], ['food-history', '/my/food#history', true], ['body', '/my/body', true], ['gym-overview', '/gym/g1', true], ['gym-classes', '/gym/g1/classes', true], ['gym-new', '/gym/new', true],
+  ['home', '/?me=1', true], ['train', '/my/train', true], ['train-log', '/my/train#log', true], ['random', '/my/train#random', true], ['food', '/my/food', true], ['food-history', '/my/food#history', true], ['body', '/my/body', true], ['gym-overview', '/gym/g1', true], ['gym-classes', '/gym/g1/classes', true], ['gym-new', '/gym/new', true],
   ['groups', '/groups', true], ['group-new', '/groups/new', true], ['group-food', '/groups/gr1#food', true], ['me', '/me', true], ['care-add', '/trainer/add', true],
 ];
 
@@ -118,6 +118,12 @@ for (const lang of ['th', 'en']) {
         if (await h.count()) { await h.click(); await page.waitForTimeout(800); }
         await page.evaluate(() => { const els = [...document.querySelectorAll('div')].filter(d => getComputedStyle(d).overflowY === 'auto' || getComputedStyle(d).overflowY === 'scroll'); els.forEach(d => { d.scrollTop = d.scrollHeight; }); });
         await page.waitForTimeout(300);
+      }
+      if (path.endsWith('#log')) {
+        const b = page.getByText(lang === 'th' ? 'เริ่มบันทึกการเล่นเอง' : /log a workout|start logging/i).first();
+        if (await b.count()) { await b.click(); await page.waitForTimeout(800); }
+        const box = page.getByText(lang === 'th' ? 'ค้นหาท่า' : 'Find a move', { exact: true }).first();
+        if (await box.count()) { await box.scrollIntoViewIfNeeded(); await page.evaluate(() => window.scrollBy(0, -80)); await page.waitForTimeout(300); }
       }
       if (path.endsWith('#food')) {
         const t = page.getByRole('tab', { name: lang === 'th' ? 'อาหาร' : 'Food' }).first();
